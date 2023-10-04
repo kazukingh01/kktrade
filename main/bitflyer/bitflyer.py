@@ -1,7 +1,6 @@
+import datetime, requests, time, sys
 import pandas as pd
 import numpy as np
-import datetime
-import requests
 # local package
 from kktrade.database.psgre import Psgre
 from kktrade.config.psgre import CONNECTION_STRING
@@ -99,3 +98,27 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_u
     if is_update:
         DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
         DB.execute_sql()
+
+
+if __name__ == "__main__":
+    args = sys.argv[1:]
+    if "getboard" in args or "getticker" in args or "getexecutions" in args:
+        while True:
+            if "getboard" in args:
+                for symbol in SCALE.keys():
+                    try: getboard(symbol=symbol, is_update=True)
+                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getboard symbol: {symbol}. {e}")
+                time.sleep(1)
+            if "getticker" in args:
+                for symbol in SCALE.keys():
+                    try: getticker(symbol=symbol, is_update=True)
+                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getticker symbol: {symbol}. {e}")
+                time.sleep(1)
+            if "getexecutions" in args:
+                for symbol in SCALE.keys():
+                    try:
+                        dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
+                        getexecutions(symbol=symbol, is_update=True, after=dfwk["id"].iloc[0])
+                    except Exception as e:
+                        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getexecutions symbol: {symbol}. {e}")
+                time.sleep(1)
