@@ -28,8 +28,8 @@ setup(
         'psycopg2-binary==2.9.5',
         'pandas==1.5.3',
         'numpy==1.24.2',
-        'joblib==1.1.1',
-        'requests==2.28.2',
+        'joblib==1.3.2',
+        'requests==2.31.0',
     ],
     python_requires='>=3.11.2'
 )
