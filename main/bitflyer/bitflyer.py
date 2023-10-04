@@ -17,8 +17,8 @@ SCALE = {
     "BTC_JPY": 0,
     "XRP_JPY": 1,
     "ETH_JPY": 0,
-    "XLM_JPY": 2,
-    "MONA_JPY": 2,
+    # "XLM_JPY": 2,
+    # "MONA_JPY": 2,
     "FX_BTC_JPY": 0,
 }
 
@@ -107,18 +107,18 @@ if __name__ == "__main__":
             if "getboard" in args:
                 for symbol in SCALE.keys():
                     try: getboard(symbol=symbol, is_update=True)
-                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getboard symbol: {symbol}. {e}")
-                time.sleep(1)
+                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetboard symbol: {symbol}. {e.args}")
+                time.sleep(10) # 4 * 6 = 24
             if "getticker" in args:
                 for symbol in SCALE.keys():
                     try: getticker(symbol=symbol, is_update=True)
-                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getticker symbol: {symbol}. {e}")
-                time.sleep(1)
+                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetticker symbol: {symbol}. {e.args}")
+                time.sleep(5) # 4 * 12 = 48
             if "getexecutions" in args:
                 for symbol in SCALE.keys():
                     try:
                         dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
                         getexecutions(symbol=symbol, is_update=True, after=dfwk["id"].iloc[0])
                     except Exception as e:
-                        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} getexecutions symbol: {symbol}. {e}")
-                time.sleep(1)
+                        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetexecutions symbol: {symbol}. {e.args}")
+                time.sleep(10) # 4 * 6 = 24
