@@ -197,7 +197,7 @@ class Psgre:
         self.logger.info("END")
         return df
 
-    def insert_from_df(self, df: pd.DataFrame, tblname: str, set_sql: bool=True, n_round: int=3, str_null :str="%%null%%", n_jobs: int=1):
+    def insert_from_df(self, df: pd.DataFrame, tblname: str, set_sql: bool=True, n_round: int=3, str_null :str="%%null%%", is_select: bool=False, n_jobs: int=1):
         """
         Params::
             df:
@@ -215,6 +215,9 @@ class Psgre:
         assert isinstance(tblname, str)
         assert isinstance(set_sql, bool)
         df = to_string_all_columns(df, n_round=n_round, rep_nan=str_null, rep_inf=str_null, rep_minf=str_null, strtmp="-9999999", n_jobs=n_jobs)
+        if is_select:
+            dfcol = self.read_table_layout(tblname)
+            df    = df.loc[:, df.columns.isin(dfcol["colname"])].copy()
         sql = "insert into "+tblname+" ("+",".join(df.columns.tolist())+") values "
         for ndf in df.values:
             sql += "('" + "','".join(ndf.tolist()) + "'), "

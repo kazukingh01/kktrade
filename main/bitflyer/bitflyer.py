@@ -80,7 +80,7 @@ def getticker(symbol: str="BTC_JPY", is_update: bool=False):
     df["scale"]    = SCALE[symbol]
     df["last_traded_price"] = df["ltp"]
     if is_update:
-        DB.insert_from_df(df, "ticker", set_sql=True, str_null="")
+        DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
         DB.execute_sql()
 
 def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_update: bool=False):
@@ -95,5 +95,5 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_u
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
     if is_update:
-        DB.insert_from_df(df, "executions", set_sql=True, str_null="")
+        DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
         DB.execute_sql()

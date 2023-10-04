@@ -255,13 +255,14 @@ psql
 
 ```bash
 cp ~/kktrade/main/bitflyer/schema.sql /home/share/
-sudo docker exec --user=postgres postgres psql -f /home/share/schema.sql -U postgres -d bitflyer
+sudo docker exec --user=postgres postgres psql -U postgres -d bitflyer -c 'DROP TABLE board,ticker,executions CASCADE;'
+sudo docker exec --user=postgres postgres psql -U postgres -d bitflyer -f /home/share/schema.sql 
 ```
 
 #### Dump Schema
 
 ```bash
-sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s | sed -n -e "1,/SET default_tablespace/p" > schema.sql
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s | sed -n -e "1,/SET default_tablespace/p" > schema.sql # this command is for functions
 echo "" >> schema.sql
 sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s -t board -t ticker -t executions >> schema.sql
 ```
