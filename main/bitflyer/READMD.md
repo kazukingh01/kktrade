@@ -251,83 +251,17 @@ psql
 \1
 ```
 
-### Create Schema
+### Initialize Schema
 
 ```bash
-su postgres
-psql
-\c bitflyer
+cp ~/kktrade/main/bitflyer/schema.sql /home/share/
+sudo docker exec --user=postgres postgres psql -f /home/share/schema.sql -U postgres -d bitflyer
 ```
 
-```sql
-CREATE OR REPLACE FUNCTION public.update_sys_updated()
-RETURNS TRIGGER LANGUAGE plpgsql AS $$
-BEGIN
-    NEW.sys_updated = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$;
-ALTER FUNCTION public.update_sys_updated() OWNER TO postgres;
-```
+#### Dump Schema
 
-```sql
--- TABLE board
-DROP TABLE public.board CASCADE;
-CREATE TABLE public.board (
-    symbol character varying(8) NOT NULL,
-    unixtime bigint NOT NULL,
-    type character varying(4) NOT NULL,
-    price integer,
-    size integer,
-    scale smallint,
-    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-ALTER TABLE public.board OWNER TO postgres;
-CREATE INDEX board_0 ON public.board USING btree (unixtime);
-CREATE TRIGGER trg_update_sys_updated_board BEFORE UPDATE ON public.board FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
--- TABLE ticker
-DROP TABLE public.ticker CASCADE;
-CREATE TABLE public.ticker (
-    symbol character varying(8) NOT NULL,
-    tick_id integer NOT NULL,
-    state smallint,
-    scale smallint,
-    unixtime bigint,
-    best_bid integer,
-    best_ask integer,
-    best_bid_size integer,
-    best_ask_size integer,
-    total_ask_depth integer,
-    total_ask_depth integer,
-    market_bid_size integer,
-    market_ask_size integer,
-    last_traded_price integer,
-    volume bigint,
-    volume_by_product bigint,
-    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-ALTER TABLE public.ticker OWNER TO postgres;
-ALTER TABLE ONLY public.ticker ADD CONSTRAINT ticker_pkey PRIMARY KEY (symbol, tick_id);
-CREATE INDEX ticker_0 ON public.ticker USING btree (symbol);
-CREATE INDEX ticker_1 ON public.ticker USING btree (tick_id);
-CREATE INDEX ticker_2 ON public.ticker USING btree (unixtime);
-CREATE TRIGGER trg_update_sys_updated_ticker BEFORE UPDATE ON public.ticker FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
--- TABLE executions
-DROP TABLE public.executions CASCADE;
-CREATE TABLE public.executions (
-    symbol character varying(8) NOT NULL,
-    id bigint NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint,
-    unixtime bigint,
-    price integer,
-    size integer,
-    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-ALTER TABLE public.executions OWNER TO postgres;
-ALTER TABLE ONLY public.executions ADD CONSTRAINT executions_pkey PRIMARY KEY (symbol, id);
-CREATE INDEX executions_0 ON public.executions USING btree (symbol);
-CREATE INDEX executions_1 ON public.executions USING btree (id);
-CREATE INDEX executions_2 ON public.executions USING btree (unixtime);
-CREATE TRIGGER trg_update_sys_updated_executions BEFORE UPDATE ON public.executions FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+```bash
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s | sed -n -e "1,/SET default_tablespace/p" > schema.sql
+echo "" >> schema.sql
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s -t board -t ticker -t executions >> schema.sql
 ```
