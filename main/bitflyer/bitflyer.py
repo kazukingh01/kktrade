@@ -127,7 +127,7 @@ if __name__ == "__main__":
                 time.sleep(10) # 4 * 6 = 24
     if "getall" in args:
         dfwk = DB.select_sql(f"select symbol, id, unixtime from executions;")
-        dfwk = dfwk.sort_values(["symbol", "unixtime"]).reset_index(drop=True)
+        dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
         dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
         dfwk["bool"] = (dfwk["diff"] > 9)
