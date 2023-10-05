@@ -39,11 +39,13 @@ func_to_unixtime = np.vectorize(lambda x: x.timestamp())
 
 def getmarkets():
     r  = requests.get(f"{URL_BASE}getmarkets")
+    assert r.status_code == 200
     df = pd.DataFrame(r.json())
     return df
 
 def getboard(symbol: str="BTC_JPY", count_max: int=200):
     r    = requests.get(f"{URL_BASE}getboard", params={"product_code": symbol})
+    assert r.status_code == 200
     time = int(datetime.datetime.now().timestamp())
     df1  = pd.DataFrame(r.json()["bids"])
     df1["type"] = "bids"
@@ -63,6 +65,7 @@ def getboard(symbol: str="BTC_JPY", count_max: int=200):
 
 def getticker(symbol: str="BTC_JPY"):
     r  = requests.get(f"{URL_BASE}getticker", params={"product_code": symbol})
+    assert r.status_code == 200
     df = pd.DataFrame([r.json()])
     for x in ["best_bid", "best_ask", "ltp"]:
         df[x] = (df[x] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
@@ -83,6 +86,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
     r  = requests.get(f"{URL_BASE}getexecutions", params={
         "product_code": symbol, "count": 10000, "before": before, "after": after,
     })
+    assert r.status_code == 200
     df = pd.DataFrame(r.json())
     if df.shape[0] == 0: return df
     df["symbol"]   = symbol
@@ -121,3 +125,20 @@ if __name__ == "__main__":
                         DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
+    if "getall" in args:
+        dfwk = DB.select_sql(f"select symbol, id, unixtime from executions;")
+        dfwk = dfwk.sort_values(["symbol", "unixtime"]).reset_index(drop=True)
+        dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
+        dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
+        dfwk["bool"] = (dfwk["diff"] > 9)
+        DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
+        for x in dfwk.index[dfwk["bool"]]:
+            idb    = dfwk.loc[x  , "id"]
+            ida    = dfwk.loc[x-1, "id"] if dfwk.loc[x  , "unixtime_prev"] > 0 else None
+            symbol = dfwk.loc[x  , "symbol"]
+            DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}')
+            df     = getexecutions(symbol=symbol, before=idb, after=ida)
+            if df.shape[0] > 0:
+                DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                DB.execute_sql()
+            time.sleep(10)

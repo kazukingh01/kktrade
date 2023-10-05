@@ -1,2 +1,2 @@
-*/5 *   * * *   ubuntu  bash /home/ubuntu/kktrade/main/bitflyer/monitor.sh
-0   3   * * *   ubuntu  sleep 240 && pkill python && sudo docker exec postgres /etc/init.d/postgresql restart
+*/1 *   * * *   ubuntu  bash /home/ubuntu/kktrade/main/bitflyer/monitor.sh
+0   3   * * *   ubuntu  sleep 30 && pkill python && sudo docker exec postgres /etc/init.d/postgresql restart
