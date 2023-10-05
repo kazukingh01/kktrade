@@ -102,13 +102,13 @@ if __name__ == "__main__":
             while True:
                 if "getboard" in args:
                     for symbol in SCALE.keys():
-                        df = getboard(symbol=symbol, is_update=True)
+                        df = getboard(symbol=symbol)
                         DB.insert_from_df(df, "board", set_sql=True, str_null="")
                         DB.execute_sql()
                     time.sleep(10) # 4 * 6 = 24
                 if "getticker" in args:
                     for symbol in SCALE.keys():
-                        df   = getticker(symbol=symbol, is_update=True)
+                        df   = getticker(symbol=symbol)
                         dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = '{symbol}';")
                         if dfwk.shape[0] == 0:
                             DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                 if "getexecutions" in args:
                     for symbol in SCALE.keys():
                         dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
-                        df   = getexecutions(symbol=symbol, is_update=True, after=dfwk["id"].iloc[0])
+                        df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
                         DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                     time.sleep(10) # 4 * 6 = 24
