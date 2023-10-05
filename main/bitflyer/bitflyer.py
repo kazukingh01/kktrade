@@ -32,7 +32,7 @@ STATE = {
     "MATURED": 6,
 }
 
-DB = Psgre(CONNECTION_STRING)
+DB = Psgre(CONNECTION_STRING, max_disp_len=200)
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -84,6 +84,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
         "product_code": symbol, "count": 10000, "before": before, "after": after,
     })
     df = pd.DataFrame(r.json())
+    if df.shape[0] == 0: return df
     df["symbol"]   = symbol
     df["scale"]    = SCALE[symbol]
     df["type"]     = df["side"].copy()
@@ -116,6 +117,7 @@ if __name__ == "__main__":
                 for symbol in SCALE.keys():
                     dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
-                    DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
-                    DB.execute_sql()
+                    if df.shape[0] > 0:
+                        DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                        DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
