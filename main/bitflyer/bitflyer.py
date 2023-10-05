@@ -32,7 +32,7 @@ STATE = {
     "MATURED": 6,
 }
 
-DB = Psgre(CONNECTION_STRING, is_print_mode=True)
+DB = Psgre(CONNECTION_STRING)
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -86,7 +86,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
     df = pd.DataFrame(r.json())
     df["symbol"]   = symbol
     df["scale"]    = SCALE[symbol]
-    df["type"]     = df["side"]
+    df["type"]     = df["side"].copy()
     df["price"]    = (df["price"] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
@@ -96,32 +96,26 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    df   = pd.DataFrame()
-    try:
-        if "getboard" in args or "getticker" in args or "getexecutions" in args:
-            while True:
-                if "getboard" in args:
-                    for symbol in SCALE.keys():
-                        df = getboard(symbol=symbol)
-                        DB.insert_from_df(df, "board", set_sql=True, str_null="")
+    if "getboard" in args or "getticker" in args or "getexecutions" in args:
+        while True:
+            if "getboard" in args:
+                for symbol in SCALE.keys():
+                    df = getboard(symbol=symbol)
+                    DB.insert_from_df(df, "board", set_sql=True, str_null="")
+                    DB.execute_sql()
+                time.sleep(10) # 4 * 6 = 24
+            if "getticker" in args:
+                for symbol in SCALE.keys():
+                    df   = getticker(symbol=symbol)
+                    dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = '{symbol}';")
+                    if dfwk.shape[0] == 0:
+                        DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                    time.sleep(10) # 4 * 6 = 24
-                if "getticker" in args:
-                    for symbol in SCALE.keys():
-                        df   = getticker(symbol=symbol)
-                        dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = '{symbol}';")
-                        if dfwk.shape[0] == 0:
-                            DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
-                            DB.execute_sql()
-                    time.sleep(5) # 4 * 12 = 48
-                if "getexecutions" in args:
-                    for symbol in SCALE.keys():
-                        dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
-                        df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
-                        DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
-                    time.sleep(10) # 4 * 6 = 24
-    except Exception as e:
-        DB.__del__()
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\n{args} symbol: {symbol}. {e.args}")
-        for i in range(df.shape[0]): print(df.iloc[i])
+                time.sleep(5) # 4 * 12 = 48
+            if "getexecutions" in args:
+                for symbol in SCALE.keys():
+                    dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
+                    df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
+                    DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                    DB.execute_sql()
+                time.sleep(10) # 4 * 6 = 24
