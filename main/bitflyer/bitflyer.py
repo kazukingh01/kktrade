@@ -126,7 +126,7 @@ if __name__ == "__main__":
                         DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
     if "getall" in args:
-        if re.findall("^[0-9]+$", args[-2]) > 0 and re.findall("^[0-9]+$", args[-1]) > 0:
+        if len(re.findall("^[0-9]+$", args[-2])) > 0 and len(re.findall("^[0-9]+$", args[-1])) > 0:
             over_sec   = int(args[-2])
             over_count = int(args[-1])
         else:
