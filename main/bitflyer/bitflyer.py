@@ -128,17 +128,24 @@ if __name__ == "__main__":
     if "getall" in args:
         dfwk = DB.select_sql(f"select symbol, id, unixtime from executions;")
         dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
+        dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
         dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
         dfwk["bool"] = (dfwk["diff"] >= 60)
+        dfwk = dfwk.sort_values("diff", ascending=False)
         DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
+        count = 0
         for x in dfwk.index[dfwk["bool"]]:
-            idb    = dfwk.loc[x  , "id"]
-            ida    = dfwk.loc[x-1, "id"] if dfwk.loc[x  , "unixtime_prev"] > 0 else None
-            symbol = dfwk.loc[x  , "symbol"]
+            idb    = dfwk.loc[x, "id"]
+            ida    = dfwk.loc[x, "id_prev"] if dfwk.loc[x, "unixtime_prev"] > 0 else None
+            symbol = dfwk.loc[x, "symbol"]
             DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}')
             df     = getexecutions(symbol=symbol, before=idb, after=ida)
             if df.shape[0] > 0:
+                count = 0
                 DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
                 DB.execute_sql()
+            else:
+                count += 1
+            if count > 20: break
             time.sleep(10)
