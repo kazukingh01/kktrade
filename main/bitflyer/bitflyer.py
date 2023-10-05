@@ -1,4 +1,4 @@
-import datetime, requests, time, sys
+import datetime, requests, time, sys, re
 import pandas as pd
 import numpy as np
 # local package
@@ -126,12 +126,18 @@ if __name__ == "__main__":
                         DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
     if "getall" in args:
+        if re.findall("^[0-9]+$", args[-2]) > 0 and re.findall("^[0-9]+$", args[-1]) > 0:
+            over_sec   = int(args[-2])
+            over_count = int(args[-1])
+        else:
+            over_sec   = 60
+            over_count = 20
         dfwk = DB.select_sql(f"select symbol, id, unixtime from executions;")
         dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
         dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
         dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
-        dfwk["bool"] = (dfwk["diff"] >= 60)
+        dfwk["bool"] = (dfwk["diff"] >= over_sec)
         dfwk = dfwk.sort_values("diff", ascending=False)
         DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
         count = 0
@@ -147,5 +153,5 @@ if __name__ == "__main__":
                 DB.execute_sql()
             else:
                 count += 1
-            if count > 20: break
+            if count > over_count: break
             time.sleep(10)
