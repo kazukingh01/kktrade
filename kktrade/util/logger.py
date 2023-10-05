@@ -49,13 +49,15 @@ class MyLogger(logging.Logger):
     See "set_logger" function.
     """
     global _pycolor
-    def __init__(self):
+    def __init__(self, is_print_mode: bool=False):
+        assert isinstance(is_print_mode, bool)
         super().__init__(self)
         self.internal_stream = io.StringIO()
         self.color_info      = None
         self.color_debug     = None
         self.color_warning   = ["BOLD", "YELLOW"]
         self.color_error     = ["BOLD", "RED"]
+        self.is_print_mode   = is_print_mode
     
     def set_message_color(self, msg, level, color):
         if hasattr(sys, "_getframe"):
@@ -71,10 +73,13 @@ class MyLogger(logging.Logger):
         return msg
 
     def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, color: str=None):
-        super()._log(
-            level, self.set_message_color(msg, level, color=color), args, 
-            exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=2,
-        )
+        if self.is_print_mode:
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {msg}")
+        else:
+            super()._log(
+                level, self.set_message_color(msg, level, color=color), args, 
+                exc_info=exc_info, extra=extra, stack_info=stack_info, stacklevel=2,
+            )
 
     def raise_error(self, msg: str, exception = Exception):
         self.error(msg)
@@ -109,8 +114,11 @@ class MyLogger(logging.Logger):
 def set_logger(
     name: str, log_level: str="info", 
     internal_log: bool=False, logfilepath: str=None, is_newlogfile: bool=False,
-    color_info:    Union[str, List[str]]=None,               color_debug: Union[str, List[str]]=None,
-    color_warning: Union[str, List[str]]=["BOLD", "YELLOW"], color_error: Union[str, List[str]]= ["BOLD", "RED"]
+    color_info:    Union[str, List[str]]=None,
+    color_debug:   Union[str, List[str]]=None,
+    color_warning: Union[str, List[str]]=["BOLD", "YELLOW"],
+    color_error:   Union[str, List[str]]= ["BOLD", "RED"],
+    is_print_mode: bool=False
 ) -> MyLogger:
     """
     Return the address in the logging namespace
@@ -132,6 +140,7 @@ def set_logger(
     logger.color_debug   = color_debug
     logger.color_warning = color_warning
     logger.color_error   = color_error
+    logger.is_print_mode = is_print_mode
     if name in _list_logname:
         pass
     else:

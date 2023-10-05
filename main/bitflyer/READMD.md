@@ -283,5 +283,5 @@ cron.*                         /var/log/cron.log
 sudo cp /etc/crontab /etc/crontab.`date "+%Y%m%d%H%M%S"`
 cat ~/kktrade/main/bitflyer/crontab | sudo tee -a /etc/crontab > /dev/null
 sudo /etc/init.d/cron restart
-sudo /etc/init.d/rsyslog restart
+sudo systemctl restart rsyslog
 ```
