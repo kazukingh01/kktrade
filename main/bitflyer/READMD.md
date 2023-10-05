@@ -266,3 +266,22 @@ sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s | s
 echo "" >> schema.sql
 sudo docker exec --user=postgres postgres pg_dump -U postgres -d bitflyer -s -t board -t ticker -t executions >> schema.sql
 ```
+
+### Cron
+
+```bash
+sudo vi /etc/rsyslog.d/50-default.conf
+```
+
+change below.
+
+```
+cron.*                         /var/log/cron.log
+```
+
+```bash
+sudo cp /etc/crontab /etc/crontab.`date "+%Y%m%d%H%M%S"`
+cat ~/kktrade/main/bitflyer/crontab | sudo tee -a /etc/crontab > /dev/null
+sudo /etc/init.d/cron restart
+sudo /etc/init.d/rsyslog restart
+```

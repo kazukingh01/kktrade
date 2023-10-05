@@ -59,6 +59,7 @@ def getboard(symbol: str="BTC_JPY", count_max: int=200, is_update: bool=False):
     df["scale"]    = SCALE[symbol]
     df["price"]    = (df["price"] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
+    print(df)
     if is_update:
         DB.insert_from_df(df, "board", set_sql=True, str_null="")
         DB.execute_sql()
@@ -79,9 +80,12 @@ def getticker(symbol: str="BTC_JPY", is_update: bool=False):
     df["state"]    = df["state"].map(STATE).fillna(-1).astype(int)
     df["scale"]    = SCALE[symbol]
     df["last_traded_price"] = df["ltp"]
+    print(df)
     if is_update:
-        DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
-        DB.execute_sql()
+        dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = '{symbol}';")
+        if dfwk.shape[0] == 0:
+            DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
+            DB.execute_sql()
 
 def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_update: bool=False):
     r  = requests.get(f"{URL_BASE}getexecutions", params={
@@ -95,6 +99,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_u
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
     df["unixtime"] = df["unixtime"].astype(int)
+    print(df)
     if is_update:
         DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
         DB.execute_sql()
@@ -120,4 +125,4 @@ if __name__ == "__main__":
                     time.sleep(10) # 4 * 6 = 24
     except Exception as e:
         DB.__del__()
-        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetboard symbol: {symbol}. {e.args}")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\n{args} symbol: {symbol}. {e.args}")
