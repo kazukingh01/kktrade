@@ -130,7 +130,7 @@ if __name__ == "__main__":
         dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
         dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
-        dfwk["bool"] = (dfwk["diff"] > 9)
+        dfwk["bool"] = (dfwk["diff"] >= 60)
         DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
         for x in dfwk.index[dfwk["bool"]]:
             idb    = dfwk.loc[x  , "id"]
