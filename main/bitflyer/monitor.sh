@@ -10,7 +10,7 @@ mkdir -p ${LOGDIR}
 for COMMAND in "${COMMANDS[@]}"; do
     if ! ps aux | grep -v grep | grep python | grep "${COMMAND}" > /dev/null; then
         echo "Process: ${COMMAND} not found! Restarting..."
-        nohup ${PYTHON} ${MODULE} ${COMMAND} >> ${LOGDIR}${COMMAND}.`date "+%Y%m%d"`.log &
+        nohup ${PYTHON} ${MODULE} ${COMMAND} >> ${LOGDIR}${COMMAND}.`date "+%Y%m%d"`.log 2>&1 &
     else
         echo "Process: ${COMMAND} is running."
     fi
