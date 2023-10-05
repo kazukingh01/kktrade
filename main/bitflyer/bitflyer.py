@@ -102,23 +102,22 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, is_u
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if "getboard" in args or "getticker" in args or "getexecutions" in args:
-        while True:
-            if "getboard" in args:
-                for symbol in SCALE.keys():
-                    try: getboard(symbol=symbol, is_update=True)
-                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetboard symbol: {symbol}. {e.args}")
-                time.sleep(10) # 4 * 6 = 24
-            if "getticker" in args:
-                for symbol in SCALE.keys():
-                    try: getticker(symbol=symbol, is_update=True)
-                    except Exception as e: print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetticker symbol: {symbol}. {e.args}")
-                time.sleep(5) # 4 * 12 = 48
-            if "getexecutions" in args:
-                for symbol in SCALE.keys():
-                    try:
+    try:
+        if "getboard" in args or "getticker" in args or "getexecutions" in args:
+            while True:
+                if "getboard" in args:
+                    for symbol in SCALE.keys():
+                        getboard(symbol=symbol, is_update=True)
+                    time.sleep(10) # 4 * 6 = 24
+                if "getticker" in args:
+                    for symbol in SCALE.keys():
+                        getticker(symbol=symbol, is_update=True)
+                    time.sleep(5) # 4 * 12 = 48
+                if "getexecutions" in args:
+                    for symbol in SCALE.keys():
                         dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
                         getexecutions(symbol=symbol, is_update=True, after=dfwk["id"].iloc[0])
-                    except Exception as e:
-                        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetexecutions symbol: {symbol}. {e.args}")
-                time.sleep(10) # 4 * 6 = 24
+                    time.sleep(10) # 4 * 6 = 24
+    except Exception as e:
+        DB.__del__()
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ERROR\ngetboard symbol: {symbol}. {e.args}")
