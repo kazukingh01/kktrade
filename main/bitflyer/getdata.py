@@ -109,14 +109,14 @@ if __name__ == "__main__":
             if "getticker" in args:
                 for symbol in SCALE.keys():
                     df   = getticker(symbol=symbol)
-                    dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = '{symbol}';")
+                    dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {NAME_MST[symbol]};")
                     if dfwk.shape[0] == 0:
                         DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(5) # 4 * 12 = 48
             if "getexecutions" in args:
                 for symbol in SCALE.keys():
-                    dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = '{symbol}';")
+                    dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = {NAME_MST[symbol]};")
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
                     if df.shape[0] > 0:
                         DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
