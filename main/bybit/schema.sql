@@ -79,12 +79,13 @@ ALTER TABLE public.orderbook OWNER TO postgres;
 
 CREATE TABLE public.executions (
     symbol smallint NOT NULL,
-    id bigint NOT NULL,
+    id character varying(36) NOT NULL,
     type character varying(4) NOT NULL,
     scale smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
+    is_block_trade boolean,
     sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -97,21 +98,20 @@ ALTER TABLE public.executions OWNER TO postgres;
 
 CREATE TABLE public.ticker (
     symbol smallint NOT NULL,
-    tick_id integer NOT NULL,
-    state smallint,
     scale smallint NOT NULL,
     unixtime bigint,
     best_bid integer,
     best_ask integer,
     best_bid_size integer,
     best_ask_size integer,
-    total_bid_depth integer,
-    total_ask_depth integer,
-    market_bid_size integer,
-    market_ask_size integer,
     last_traded_price integer,
+    index_price integer,
+    mark_price integer,
     volume bigint,
-    volume_by_product bigint,
+    turnover bigint,
+    open_interest bigint,
+    open_interest_value bigint,
+    funding_rate smallint,
     sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

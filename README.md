@@ -7,7 +7,7 @@ for trading
 
 ```bash
 sudo apt-get update
-sudo apt-get install vim
+sudo apt-get install -y vim
 ```
 
 ### SSH
@@ -48,6 +48,7 @@ sudo ufw logging on
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow XXXXX # set ssh port
+sudo ufw allow YYYYY # set db port if you need
 sudo ufw reload
 sudo ufw status
 ```
@@ -112,17 +113,29 @@ sudo mkdir /home/share
 sudo chown -R ubuntu:ubuntu /home/share/
 ```
 
-# Create Database Image
+# Create Database
 
-### Docker start
+### Install PostgreSQL
+
+#### Host Base
+
+```bash
+sudo apt-get update
+UBUNTU_CODENAME=`cat /etc/os-release | grep UBUNTU_CODENAME | cut -d '=' -f 2`
+echo "deb http://apt.postgresql.org/pub/repos/apt/ ${UBUNTU_CODENAME}-pgdg main" | sudo tee -a /etc/apt/sources.list.d/pgdg.list
+sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install -y postgresql-16 # check "apt search postgresql"
+```
+
+#### Docker Base
 
 ```bash
 sudo docker pull ubuntu:22.04
 sudo docker run -itd -v /home/share:/home/share -p 65432:5432 --name postgres ubuntu:22.04 /bin/sh
 sudo docker exec -it postgres /bin/bash
 ```
-
-### Install PostgreSQL
 
 ```bash
 apt-get update
@@ -132,13 +145,13 @@ echo "deb http://apt.postgresql.org/pub/repos/apt/ ${UBUNTU_CODENAME}-pgdg main"
 apt-get install -y apt-transport-https ca-certificates curl software-properties-common openssh-client vim
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 apt-get update
-apt-get install postgresql-16 # check "apt search postgresql"
+apt-get install -y postgresql-16 # check "apt search postgresql"
 ```
 
 ### Locale setting
 
 ```bash
-apt-get install -y language-pack-ja
+sudo apt-get install -y language-pack-ja
 locale -a
 # C
 # C.utf8
@@ -149,7 +162,7 @@ locale -a
 ### DB initialize
 
 ```bash
-su postgres
+sudo su postgres
 cd ~
 mkdir /var/lib/postgresql/data
 /usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/data -E UTF8
@@ -158,7 +171,7 @@ mkdir /var/lib/postgresql/data
 ### Start & Check
 
 ```bash
-/etc/init.d/postgresql restart
+sudo /etc/init.d/postgresql restart # for ubuntu user 
 psql
 \l
 # postgres=# \l
@@ -184,8 +197,16 @@ alter role postgres with password 'postgres';
 
 ### Config
 
+In order to be accessed all user, setting below.
+
 ```bash
 echo 'host    all             all             0.0.0.0/0               md5' >> /etc/postgresql/16/main/pg_hba.conf
+```
+
+To protect network.
+
+```bash
+echo 'host    all             all             10.150.11.0/24          md5' >> /etc/postgresql/16/main/pg_hba.conf
 ```
 
 ```bash
@@ -197,7 +218,7 @@ shared_buffers = 4GB                    # min 128kB
 work_mem = 64MB                         # min 64kB
 effective_cache_size = 16GB
 listen_addresses = '*'                  # what IP address(es) to listen on;
-port = 5432                             # (change requires restart)
+port = 55432                            # (change requires restart)
 autovacuum = on                 # Enable autovacuum subprocess?  'on'
 autovacuum_max_workers = 4              # max number of autovacuum subprocesses
 maintenance_work_mem = 1GB              # min 1MB
@@ -208,7 +229,7 @@ autovacuum_work_mem = -1                # min 1MB, or -1 to use maintenance_work
 /etc/init.d/postgresql restart
 ```
 
-### Docker Save
+### Docker Save ( For Docker )
 
 ```bash
 exit
@@ -218,7 +239,7 @@ sudo docker save postgres:XX.X > postgres_XX.X.tar # export tar
 sudo docker rm postgres
 ```
 
-# Run Database Container
+# Run Database Container ( For Docker )
 
 ### Docker run
 
