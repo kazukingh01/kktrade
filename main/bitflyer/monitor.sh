@@ -1,14 +1,15 @@
 #!/bin/bash
 
-LOGDIR="/home/ubuntu/log/"
-MODULE="/home/ubuntu/kktrade/main/bitflyer/bitflyer.py"
+HOMEDIR="/home/ubuntu"
+LOGDIR="${HOMEDIR}/log/"
+MODULE="${HOMEDIR}/kktrade/main/bitflyer/getdata.py"
 COMMANDS=("getboard" "getexecutions" "getticker")
-PYTHON="/home/ubuntu/venv/bin/python"
+PYTHON="${HOMEDIR}/venv/bin/python"
 
 mkdir -p ${LOGDIR}
 
 for COMMAND in "${COMMANDS[@]}"; do
-    if ! ps aux | grep -v grep | grep python | grep "${COMMAND}" > /dev/null; then
+    if ! ps aux | grep -v grep | grep python | grep "${MODULE} ${COMMAND}" > /dev/null; then
         echo "Process: ${COMMAND} not found! Restarting..."
         nohup ${PYTHON} ${MODULE} ${COMMAND} >> ${LOGDIR}${COMMAND}.`date "+%Y%m%d"`.log 2>&1 &
     else
