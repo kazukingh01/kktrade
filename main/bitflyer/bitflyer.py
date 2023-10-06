@@ -3,8 +3,9 @@ import pandas as pd
 import numpy as np
 # local package
 from kktrade.database.psgre import Psgre
-from kktrade.config.psgre import CONNECTION_STRING
+from kktrade.config.psgre import HOST, PORT, USER, PASS
 
+DBNAME   = "bitflyer"
 URL_BASE = "https://api.bitflyer.com/v1/"
 
 SCALE_MST = {
@@ -32,7 +33,7 @@ STATE = {
     "MATURED": 6,
 }
 
-DB = Psgre(CONNECTION_STRING, max_disp_len=200)
+DB = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -92,7 +93,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
     df["symbol"]   = symbol
     df["scale"]    = SCALE[symbol]
     df["type"]     = df["side"].copy()
-    df.loc[df["type"] == "", "type"] = "OTHR"
+    df.loc[df["type"] == "", "type"] = "OTHR" # 板寄せ
     df["price"]    = (df["price"] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
@@ -155,4 +156,4 @@ if __name__ == "__main__":
             else:
                 count += 1
             if count > over_count: break
-            time.sleep(10)
+            time.sleep(0.6)
