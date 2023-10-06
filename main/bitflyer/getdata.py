@@ -4,15 +4,10 @@ import numpy as np
 # local package
 from kktrade.database.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS
+from kktrade.config.com import SCALE_MST, NAME_MST
 
 DBNAME   = "bitflyer"
 URL_BASE = "https://api.bitflyer.com/v1/"
-
-SCALE_MST = {
-    0: [0, 5],
-    1: [2, 2],
-    2: [3, 2],
-}
 
 SCALE = {
     "BTC_JPY": 0,
@@ -44,7 +39,7 @@ def getmarkets():
     df = pd.DataFrame(r.json())
     return df
 
-def getboard(symbol: str="BTC_JPY", count_max: int=200):
+def getorderbook(symbol: str="BTC_JPY", count_max: int=200):
     r    = requests.get(f"{URL_BASE}getboard", params={"product_code": symbol})
     assert r.status_code == 200
     time = int(datetime.datetime.now().timestamp())
@@ -58,7 +53,7 @@ def getboard(symbol: str="BTC_JPY", count_max: int=200):
         pd.DataFrame([{"type": "mprc", "price": r.json()["mid_price"]}])
     ], axis=0, ignore_index=True)
     df["unixtime"] = time
-    df["symbol"]   = symbol
+    df["symbol"]   = NAME_MST[symbol]
     df["scale"]    = SCALE[symbol]
     df["price"]    = (df["price"] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
@@ -77,7 +72,7 @@ def getticker(symbol: str="BTC_JPY"):
         df[x] = (df[x] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["timestamp"]).dt.to_pydatetime())
     df["unixtime"] = df["unixtime"].astype(int)
-    df["symbol"]   = symbol
+    df["symbol"]   = NAME_MST[symbol]
     df["state"]    = df["state"].map(STATE).fillna(-1).astype(int)
     df["scale"]    = SCALE[symbol]
     df["last_traded_price"] = df["ltp"]
@@ -90,7 +85,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
     if df.shape[0] == 0: return df
-    df["symbol"]   = symbol
+    df["symbol"]   = NAME_MST[symbol]
     df["scale"]    = SCALE[symbol]
     df["type"]     = df["side"].copy()
     df.loc[df["type"] == "", "type"] = "OTHR" # 板寄せ
@@ -103,12 +98,12 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
 
 if __name__ == "__main__":
     args = sys.argv[1:]
-    if "getboard" in args or "getticker" in args or "getexecutions" in args:
+    if "getorderbook" in args or "getticker" in args or "getexecutions" in args:
         while True:
-            if "getboard" in args:
+            if "getorderbook" in args:
                 for symbol in SCALE.keys():
-                    df = getboard(symbol=symbol)
-                    DB.insert_from_df(df, "board", set_sql=True, str_null="")
+                    df = getorderbook(symbol=symbol)
+                    DB.insert_from_df(df, "orderbook", set_sql=True, str_null="")
                     DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
             if "getticker" in args:

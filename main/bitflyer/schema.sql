@@ -61,7 +61,7 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.orderbook (
-    symbol character varying(10) NOT NULL,
+    symbol smallint NOT NULL,
     unixtime bigint NOT NULL,
     type character varying(4) NOT NULL,
     price integer,
@@ -78,7 +78,7 @@ ALTER TABLE public.orderbook OWNER TO postgres;
 --
 
 CREATE TABLE public.executions (
-    symbol character varying(10) NOT NULL,
+    symbol smallint NOT NULL,
     id bigint NOT NULL,
     type character varying(4) NOT NULL,
     scale smallint,
@@ -96,7 +96,7 @@ ALTER TABLE public.executions OWNER TO postgres;
 --
 
 CREATE TABLE public.ticker (
-    symbol character varying(10) NOT NULL,
+    symbol smallint NOT NULL,
     tick_id integer NOT NULL,
     state smallint,
     scale smallint,

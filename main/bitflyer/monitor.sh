@@ -3,7 +3,7 @@
 HOMEDIR="/home/ubuntu"
 LOGDIR="${HOMEDIR}/log/"
 MODULE="${HOMEDIR}/kktrade/main/bitflyer/getdata.py"
-COMMANDS=("getboard" "getexecutions" "getticker")
+COMMANDS=("getorderbook" "getexecutions" "getticker")
 PYTHON="${HOMEDIR}/venv/bin/python"
 
 mkdir -p ${LOGDIR}
