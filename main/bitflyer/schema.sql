@@ -57,10 +57,10 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: board; Type: TABLE; Schema: public; Owner: postgres
+-- Name: orderbook; Type: TABLE; Schema: public; Owner: postgres
 --
 
-CREATE TABLE public.board (
+CREATE TABLE public.orderbook (
     symbol character varying(10) NOT NULL,
     unixtime bigint NOT NULL,
     type character varying(4) NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE public.board (
 );
 
 
-ALTER TABLE public.board OWNER TO postgres;
+ALTER TABLE public.orderbook OWNER TO postgres;
 
 --
 -- Name: executions; Type: TABLE; Schema: public; Owner: postgres
@@ -135,10 +135,10 @@ ALTER TABLE ONLY public.ticker
 
 
 --
--- Name: board_0; Type: INDEX; Schema: public; Owner: postgres
+-- Name: orderbook_0; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX board_0 ON public.board USING btree (unixtime);
+CREATE INDEX orderbook_0 ON public.orderbook USING btree (unixtime);
 
 
 --
@@ -184,10 +184,10 @@ CREATE INDEX ticker_2 ON public.ticker USING btree (unixtime);
 
 
 --
--- Name: board trg_update_sys_updated_board; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: orderbook trg_update_sys_updated_orderbook; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
-CREATE TRIGGER trg_update_sys_updated_board BEFORE UPDATE ON public.board FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+CREATE TRIGGER trg_update_sys_updated_orderbook BEFORE UPDATE ON public.orderbook FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
