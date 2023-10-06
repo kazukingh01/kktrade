@@ -131,7 +131,7 @@ ALTER TABLE ONLY public.executions
 --
 
 ALTER TABLE ONLY public.ticker
-    ADD CONSTRAINT ticker_pkey PRIMARY KEY (symbol, tick_id);
+    ADD CONSTRAINT ticker_pkey PRIMARY KEY (symbol, unixtime);
 
 
 --
@@ -173,14 +173,7 @@ CREATE INDEX ticker_0 ON public.ticker USING btree (symbol);
 -- Name: ticker_1; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX ticker_1 ON public.ticker USING btree (tick_id);
-
-
---
--- Name: ticker_2; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX ticker_2 ON public.ticker USING btree (unixtime);
+CREATE INDEX ticker_1 ON public.ticker USING btree (unixtime);
 
 
 --

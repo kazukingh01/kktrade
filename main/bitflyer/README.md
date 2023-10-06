@@ -4,11 +4,16 @@
 
 # Create Database
 
+### ( for docker )
+
 ```bash
 sudo docker exec -it postgres /bin/bash
-su postgres
+```
+
+```bash
+sudo su postgres
 cd ~
-/usr/lib/postgresql/16/bin/createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 bitflyer
+/usr/lib/postgresql/16/bin/createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 bitflyer
 psql
 \l
 # postgres=# \l
@@ -27,19 +32,45 @@ psql
 
 ### Initialize Schema
 
+#### For Host
+
+```bash
+sudo su postgres
+cd ~
+git clone https://github.com/kazukingh01/kktrade.git
+DBNAME="bitflyer"
+psql -U postgres -d ${DBNAME} -c 'DROP TABLE orderbook,ticker,executions CASCADE;'
+psql -U postgres -d ${DBNAME} -f ~/kktrade/main/${DBNAME}/schema.sql
+```
+
+#### For Docker 
+
 ```bash
 DBNAME="bitflyer"
 cp ~/kktrade/main/${DBNAME}/schema.sql /home/share/
-sudo docker exec --user=postgres postgres psql -U postgres -d ${DBNAME} -c 'DROP TABLE board,ticker,executions CASCADE;'
+sudo docker exec --user=postgres postgres psql -U postgres -d ${DBNAME} -c 'DROP TABLE orderbook,ticker,executions CASCADE;'
 sudo docker exec --user=postgres postgres psql -U postgres -d ${DBNAME} -f /home/share/schema.sql 
 ```
 
-#### Dump Schema
+### Dump Schema
 
+#### For Host 
+
+```bash
+sudo su postgres
+cd ~
+DBNAME="bitflyer"
+FILEPATH="~/kktrade/main/${DBNAME}/schema.sql"
+pg_dump -U postgres -d ${DBNAME} -s | sed -n -e "1,/SET default_tablespace/p" > ${FILEPATH} # this command is for functions
+echo "" >> ${FILEPATH}
+pg_dump -U postgres -d ${DBNAME} -s -t orderbook -t ticker -t executions >> ${FILEPATH}
+```
+
+#### For Docker 
 ```bash
 DBNAME="bitflyer"
 FILEPATH="~/kktrade/main/${DBNAME}/schema.sql"
 sudo docker exec --user=postgres postgres pg_dump -U postgres -d ${DBNAME} -s | sed -n -e "1,/SET default_tablespace/p" > ${FILEPATH} # this command is for functions
 echo "" >> ${FILEPATH}
-sudo docker exec --user=postgres postgres pg_dump -U postgres -d ${DBNAME} -s -t board -t ticker -t executions >> ${FILEPATH}
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d ${DBNAME} -s -t orderbook -t ticker -t executions >> ${FILEPATH}
 ```
