@@ -92,6 +92,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None):
     df["symbol"]   = symbol
     df["scale"]    = SCALE[symbol]
     df["type"]     = df["side"].copy()
+    df.loc[df["type"] == "", "type"] = "OTHR"
     df["price"]    = (df["price"] * (10 ** SCALE_MST[SCALE[symbol]][0])).fillna(-1).astype(int)
     df["size"]     = (df["size" ] * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
