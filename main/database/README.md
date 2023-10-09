@@ -190,6 +190,12 @@ sudo /etc/init.d/cron restart
 sudo systemctl restart rsyslog
 ```
 
+### Cron for get data
+
+```bash
+cat /home/ubuntu/kktrade/main/database/bitflyer/crontab | sudo tee -a /etc/crontab
+```
+
 # Database Backup/Restore
 
 ### Backup
