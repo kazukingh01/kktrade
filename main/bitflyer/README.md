@@ -74,3 +74,25 @@ sudo docker exec --user=postgres postgres pg_dump -U postgres -d ${DBNAME} -s | 
 echo "" >> ${FILEPATH}
 sudo docker exec --user=postgres postgres pg_dump -U postgres -d ${DBNAME} -s -t orderbook -t ticker -t executions >> ${FILEPATH}
 ```
+
+# Database Backup/Restore
+
+### Backup
+
+```bash
+sudo docker exec --user=postgres postgres pg_dump -U postgres \
+    -t orderbook \
+    -t ticker \
+    -t executions \
+    -Fc bitflyer > db_bitflyer_`date "+%Y%m%d"`.dump
+```
+
+### Restore
+
+```bash
+sudo su postgres
+psql bitflyer -c "DELETE FROM orderbook;"
+psql bitflyer -c "DELETE FROM ticker;"
+psql bitflyer -c "DELETE FROM executions;"
+pg_restore -a -d bitflyer -t orderbook -t ticker -t executions -Fc /home/share/db_bitflyer_20231007.dump
+```
