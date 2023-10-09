@@ -3,10 +3,10 @@ import pandas as pd
 import numpy as np
 # local package
 from kktrade.database.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS
+from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.com import SCALE_MST, NAME_MST
 
-DBNAME   = "bitflyer"
+EXCHANGE = "bitflyer"
 URL_BASE = "https://api.bitflyer.com/v1/"
 
 SCALE = {
@@ -104,23 +104,23 @@ if __name__ == "__main__":
             if "getorderbook" in args:
                 for symbol in SCALE.keys():
                     df = getorderbook(symbol=symbol)
-                    DB.insert_from_df(df, "orderbook", set_sql=True, str_null="")
+                    DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                     DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
             if "getticker" in args:
                 for symbol in SCALE.keys():
                     df   = getticker(symbol=symbol)
-                    dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {NAME_MST[symbol]};")
+                    dfwk = DB.select_sql(f"select tick_id from {EXCHANGE}_ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {NAME_MST[symbol]};")
                     if dfwk.shape[0] == 0:
-                        DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
+                        DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(5) # 4 * 12 = 48
             if "getexecutions" in args:
                 for symbol in SCALE.keys():
-                    dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = {NAME_MST[symbol]};")
+                    dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {NAME_MST[symbol]};")
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
                     if df.shape[0] > 0:
-                        DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                        DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
     if "getall" in args:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             over_sec   = 60
             over_count = 20
             time_until = int(datetime.datetime.now().timestamp())
-        dfwk = DB.select_sql(f"select symbol, id, unixtime from executions where unixtime <= {time_until};")
+        dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until};")
         dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
         dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
@@ -149,7 +149,7 @@ if __name__ == "__main__":
             df     = getexecutions(symbol=symbol, before=idb, after=ida)
             if df.shape[0] > 0:
                 count = 0
-                DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                 DB.execute_sql()
             else:
                 count += 1

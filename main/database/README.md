@@ -5,6 +5,11 @@ There are 2 options.
 - Create database by using docker 
 - Create database on host server
 
+I support below exchanges.
+
+- [bitflyer](https://bitflyer.com/ja-jp/) 
+- [bybit](https://bybit-exchange.github.io/docs/) 
+
 ### Install PostgreSQL
 
 #### Host Base
@@ -133,7 +138,7 @@ sudo docker rm postgres
 
 ### Create Database
 
-### ( for docker )
+( for docker )
 
 ```bash
 sudo docker exec -it postgres /bin/bash
@@ -167,12 +172,42 @@ psql
 sudo su postgres
 cd ~
 git clone https://github.com/kazukingh01/kktrade.git
-psql -U postgres -d trade -f ~/kktrade/main/schema.sql
+psql -U postgres -d trade -f ~/kktrade/main/database/schema.sql
 ```
 
 #### For Docker 
 
 ```bash
-cp ~/kktrade/main/schema.sql /home/share/
+cp ~/kktrade/main/database/schema.sql /home/share/
 sudo docker exec --user=postgres postgres psql -U postgres -d trade -f /home/share/schema.sql 
+```
+
+### Cron
+
+```bash
+echo "0   3   * * *   ubuntu  sleep 30 && pkill python && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
+sudo /etc/init.d/cron restart
+sudo systemctl restart rsyslog
+```
+
+# Database Backup/Restore
+
+### Backup
+
+```bash
+sudo docker exec --user=postgres postgres pg_dump -U postgres \
+    -t orderbook \
+    -t ticker \
+    -t executions \
+    -Fc bitflyer > db_bitflyer_`date "+%Y%m%d"`.dump
+```
+
+### Restore
+
+```bash
+sudo su postgres
+psql bitflyer -c "DELETE FROM orderbook;"
+psql bitflyer -c "DELETE FROM ticker;"
+psql bitflyer -c "DELETE FROM executions;"
+pg_restore -a -d bitflyer -t orderbook -t ticker -t executions -Fc /home/share/db_bitflyer_20231007.dump
 ```

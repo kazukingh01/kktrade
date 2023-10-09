@@ -48,7 +48,7 @@ sudo ufw logging on
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow XXXXX # set ssh port
-sudo ufw allow YYYYY # set db port if you need
+sudo ufw allow from 172.128.128.0/24 to any port YYYYY # set db port if you need
 sudo ufw reload
 sudo ufw status
 ```
