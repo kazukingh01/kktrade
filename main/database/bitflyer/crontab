@@ -1,2 +1,2 @@
 */1 *   * * *   ubuntu  bash /home/ubuntu/kktrade/main/database/bitflyer/monitor.sh
-0   3   * * *   ubuntu  pkill python
+0   3   * * *   ubuntu  sleep 10 && pkill python
