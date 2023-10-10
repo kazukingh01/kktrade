@@ -1,4 +1,5 @@
 # kktrade
+
 for trading
 
 # Server Basic setup
@@ -64,7 +65,7 @@ source ~/.bashrc
 date
 ```
 
-### Docker
+### Docker ( If you need )
 
 see: https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script
 
@@ -150,7 +151,7 @@ cron.*                         /var/log/cron.log
 
 ```bash
 sudo cp /etc/crontab /etc/crontab.`date "+%Y%m%d%H%M%S"`
-cat ~/kktrade/main/bitflyer/crontab | sudo tee -a /etc/crontab > /dev/null
+# cat ~/kktrade/main/bitflyer/crontab | sudo tee -a /etc/crontab > /dev/null
 sudo /etc/init.d/cron restart
 sudo systemctl restart rsyslog
 ```
@@ -161,7 +162,7 @@ sudo systemctl restart rsyslog
 sudo vi /etc/netplan/50-cloud-init.yaml
 ```
 
-add below. (mac address should be changed the number as same as one which can be checked by 'ip a' )
+add below. ( mac address should be changed the number as same as one which can be checked by 'ip a' )
 
 ```
         eth1:

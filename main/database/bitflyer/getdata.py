@@ -103,7 +103,7 @@ if __name__ == "__main__":
         while True:
             if "getorderbook" in args:
                 for symbol in SCALE.keys():
-                    df = getorderbook(symbol=symbol)
+                    df = getorderbook(symbol=symbol, count_max=50)
                     DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                     DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
@@ -124,15 +124,17 @@ if __name__ == "__main__":
                         DB.execute_sql()
                 time.sleep(10) # 4 * 6 = 24
     if "getall" in args:
-        if len(re.findall("^[0-9]+$", args[-3])) > 0 and len(re.findall("^[0-9]+$", args[-2])) > 0 and len(re.findall("^[0-9]+$", args[-1])) > 0:
+        if len(re.findall("^[0-9]+$", args[-4])) > 0 and len(re.findall("^[0-9]+$", args[-3])) > 0 and len(re.findall("^[0-9]+$", args[-2])) > 0 and len(re.findall("^[0-9]+$", args[-1])) > 0:
             over_sec   = int(args[-2])
             over_count = int(args[-1])
+            time_since = int(datetime.datetime.fromisoformat(args[-4]).timestamp())
             time_until = int(datetime.datetime.fromisoformat(args[-3]).timestamp())
         else:
             over_sec   = 60
             over_count = 20
+            time_since = int(datetime.datetime.fromisoformat("20000101").timestamp())
             time_until = int(datetime.datetime.now().timestamp())
-        dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until};")
+        dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};")
         dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
         dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
         dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
@@ -145,10 +147,13 @@ if __name__ == "__main__":
             idb    = dfwk.loc[index, "id"]
             ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
             symbol = {y:x for x, y in NAME_MST.items()}[dfwk.loc[index, "symbol"]]
-            DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}')
+            DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
             df     = getexecutions(symbol=symbol, before=idb, after=ida)
             if df.shape[0] > 0:
-                count = 0
+                df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
+                df       = df.loc[~df["id"].isin(df_exist["id"])]
+            if df.shape[0] > 0:
+                count    = 0
                 DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                 DB.execute_sql()
             else:

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-python getdata.py getall 30 10000
+python getdata.py getall 20231001 20231012 30 200
 for i in {1..1000}
 do
-   python getdata.py getall 20230915 60 333
+   python getdata.py getall 20231001 20231012 30 200
 done

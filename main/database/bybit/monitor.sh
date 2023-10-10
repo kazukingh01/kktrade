@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXCHANGE="bitflyer"
+EXCHANGE="bybit"
 HOMEDIR="/home/ubuntu"
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"

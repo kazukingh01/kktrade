@@ -3,12 +3,11 @@ import pandas as pd
 import numpy as np
 # local package
 from kktrade.database.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS
+from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.com import SCALE_MST, NAME_MST
 
-DBNAME   = "bybit"
+EXCHANGE = "bybit"
 URL_BASE = "https://api.bybit.com/v5/"
-
 
 SCALE = {
     "spot@BTCUSDT": 3,
@@ -24,12 +23,11 @@ SCALE = {
     "inverse@XRPUSD": 7,
 }
 
-
-# DB = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-
+DB = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
 fnuc_parse = lambda x: {"category": x.split("@")[0], "symbol": x.split("@")[-1]}
+
 
 def getinstruments():
     list_df = []
@@ -118,55 +116,26 @@ if __name__ == "__main__":
         while True:
             if "getorderbook" in args:
                 for symbol in SCALE.keys():
-                    df = getorderbook(symbol=symbol)
-                    DB.insert_from_df(df, "orderbook", set_sql=True, str_null="")
+                    df = getorderbook(symbol=symbol, count_max=50)
+                    DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                     DB.execute_sql()
-                time.sleep(10) # 4 * 6 = 24
+                time.sleep(10) # 11 * 6 = 66
             if "getticker" in args:
                 for symbol in SCALE.keys():
                     df   = getticker(symbol=symbol)
-                    dfwk = DB.select_sql(f"select tick_id from ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {NAME_MST[symbol]};")
+                    dfwk = DB.select_sql(f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {NAME_MST[symbol]};")
                     if dfwk.shape[0] == 0:
-                        DB.insert_from_df(df, "ticker", set_sql=True, str_null="", is_select=True)
+                        DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                time.sleep(5) # 4 * 12 = 48
+                time.sleep(1) # 11 * 60 = 660
             if "getexecutions" in args:
                 for symbol in SCALE.keys():
-                    dfwk = DB.select_sql(f"select max(id) as id from executions where symbol = {NAME_MST[symbol]};")
+                    dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {NAME_MST[symbol]};")
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
                     if df.shape[0] > 0:
-                        DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
+                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
+                        df       = df.loc[~df["id"].isin(df_exist["id"])]
+                    if df.shape[0] > 0:
+                        DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                time.sleep(10) # 4 * 6 = 24
-    if "getall" in args:
-        if len(re.findall("^[0-9]+$", args[-3])) > 0 and len(re.findall("^[0-9]+$", args[-2])) > 0 and len(re.findall("^[0-9]+$", args[-1])) > 0:
-            over_sec   = int(args[-2])
-            over_count = int(args[-1])
-            time_until = int(datetime.datetime.fromisoformat(args[-3]).timestamp())
-        else:
-            over_sec   = 60
-            over_count = 20
-            time_until = int(datetime.datetime.now().timestamp())
-        dfwk = DB.select_sql(f"select symbol, id, unixtime from executions where unixtime <= {time_until};")
-        dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
-        dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
-        dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
-        dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
-        dfwk["bool"] = (dfwk["diff"] >= over_sec)
-        dfwk = dfwk.sort_values("diff", ascending=False)
-        DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
-        count = 0
-        for index in dfwk.index[dfwk["bool"]]:
-            idb    = dfwk.loc[index, "id"]
-            ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
-            symbol = {y:x for x, y in NAME_MST.items()}[dfwk.loc[index, "symbol"]]
-            DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}')
-            df     = getexecutions(symbol=symbol, before=idb, after=ida)
-            if df.shape[0] > 0:
-                count = 0
-                DB.insert_from_df(df, "executions", set_sql=True, str_null="", is_select=True)
-                DB.execute_sql()
-            else:
-                count += 1
-            if count > over_count: break
-            time.sleep(0.6)
+                time.sleep(5) # 11 * 12 = 132

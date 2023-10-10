@@ -182,10 +182,30 @@ cp ~/kktrade/main/database/schema.sql /home/share/
 sudo docker exec --user=postgres postgres psql -U postgres -d trade -f /home/share/schema.sql 
 ```
 
+### Dump Schema
+
+#### For Host 
+
+```bash
+sudo su postgres
+cd ~
+FILEPATH="/var/lib/postgresql/kktrade/main/database/schema.sql"
+pg_dump -U postgres --port 55432 -d trade -s > ${FILEPATH}
+```
+
+#### For Docker 
+
+```bash
+DBNAME="bitflyer"
+FILEPATH="~/kktrade/main/database/schema.sql"
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade -s > ${FILEPATH}
+```
+
 ### Cron
 
 ```bash
-echo "0   3   * * *   ubuntu  sleep 30 && pkill python && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
+echo "0   3   * * *   ubuntu  sleep 30 && sudo /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
+# echo "0   3   * * *   ubuntu  sleep 30 && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab # for docker 
 sudo /etc/init.d/cron restart
 sudo systemctl restart rsyslog
 ```
