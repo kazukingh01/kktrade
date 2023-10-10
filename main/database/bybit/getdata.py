@@ -131,9 +131,9 @@ if __name__ == "__main__":
             if "getexecutions" in args:
                 for symbol in SCALE.keys():
                     dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {NAME_MST[symbol]};")
-                    df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0])
+                    df   = getexecutions(symbol=symbol)
                     if df.shape[0] > 0:
-                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
+                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "');")
                         df       = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
