@@ -23,8 +23,6 @@ SCALE = {
     "inverse@XRPUSD": 7,
 }
 
-DB = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
 fnuc_parse = lambda x: {"category": x.split("@")[0], "symbol": x.split("@")[-1]}
 
@@ -111,6 +109,7 @@ def getexecutions(symbol: str=list(SCALE.keys())[0]):
 
 
 if __name__ == "__main__":
+    DB   = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     args = sys.argv[1:]
     if "getorderbook" in args or "getticker" in args or "getexecutions" in args:
         while True:
@@ -133,7 +132,10 @@ if __name__ == "__main__":
                     dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {NAME_MST[symbol]};")
                     df   = getexecutions(symbol=symbol)
                     if df.shape[0] > 0:
-                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "');")
+                        df_exist = DB.select_sql(
+                            f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
+                            f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        )
                         df       = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
