@@ -54,10 +54,9 @@ if __name__ == "__main__":
                     f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
                     f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                 )
-                df       = df.loc[~df["id"].isin(df_exist["id"])]
+                df = df.loc[~df["id"].isin(df_exist["id"])]
             else:
                 print("Nothing data.")
                 continue
             if df.shape[0] > 0:
-                DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True, n_jobs=8)
-                DB.execute_sql()
+                DB.execute_copy_from_df(df, f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
