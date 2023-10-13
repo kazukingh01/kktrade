@@ -204,8 +204,8 @@ sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade -s > ${FI
 ### Cron
 
 ```bash
-echo "0   3   * * *   ubuntu  sleep 30 && sudo /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
-# echo "0   3   * * *   ubuntu  sleep 30 && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab # for docker 
+echo "0   0   * * *   ubuntu  sleep 30 && sudo /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
+# echo "0   0   * * *   ubuntu  sleep 30 && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab # for docker 
 sudo /etc/init.d/cron restart
 sudo systemctl restart rsyslog
 ```
