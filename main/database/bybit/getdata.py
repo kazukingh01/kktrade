@@ -173,7 +173,7 @@ if __name__ == "__main__":
             if "getkline" in args:
                 for symbol in SCALE.keys():
                     for kline in ["mark", "index", "premium"]:
-                        df = getkline(kline, symbol=symbol, limit=100)
+                        df = getkline(kline, symbol=symbol, interval=1, limit=100)
                         if df.shape[0] > 0:
                             df_exist = DB.select_sql(
                                 f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                 for symbol in SCALE.keys():
                     for kline in ["mark", "index", "premium"]:
                         print(date, hour, symbol, kline)
-                        df = getkline(kline, symbol=symbol, start=time_since, end=time_until, limit=1000)
+                        df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000)
                         if df.shape[0] > 0:
                             df_exist = DB.select_sql(
                                 f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
