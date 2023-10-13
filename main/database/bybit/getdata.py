@@ -183,3 +183,25 @@ if __name__ == "__main__":
                             DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
                             DB.execute_sql()
                 time.sleep(60)
+    if "getallkline" in args:
+        assert len(re.findall("^[0-9]+$", args[-2])) > 0 and len(re.findall("^[0-9]+$", args[-1])) > 0
+        date_since = datetime.datetime.fromisoformat(args[-2])
+        date_until = datetime.datetime.fromisoformat(args[-1])
+        for date in [date_since + datetime.timedelta(days=x) for x in range((date_until - date_since).days + 1)]:
+            for hour in [0, 12]:
+                time_since = int((date + datetime.timedelta(hours=hour+ 0)).timestamp() * 1000)
+                time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
+                for symbol in SCALE.keys():
+                    for kline in ["mark", "index", "premium"]:
+                        print(date, hour, symbol, kline)
+                        df = getkline(kline, symbol=symbol, start=time_since, end=time_until, limit=1000)
+                        if df.shape[0] > 0:
+                            df_exist = DB.select_sql(
+                                f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
+                                f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            )
+                            df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
+                        if df.shape[0] > 0:
+                            DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
+                            DB.execute_sql()
+                
