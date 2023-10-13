@@ -125,8 +125,10 @@ def getkline(kline: str, symbol: str=list(SCALE.keys())[0], interval=1, start: i
     assert r.status_code == 200
     assert r.json()["retCode"] == 0
     df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close"])
+    df["symbol"]     = NAME_MST[symbol]
     df["kline_type"] = KLINE_TYPE[kline]
     df["interval"]   = {"D": 60*24, "W": 60*24*7, "M": -1}[interval] if isinstance(interval, str) else interval
+    df["unixtime"]   = df["unixtime"].astype(int)
     if kline == "premium": df["scale"] = 10
     else:                  df["scale"] = SCALE[symbol]
     for x in ["price_open", "price_high", "price_low", "price_close"]:
@@ -162,7 +164,7 @@ if __name__ == "__main__":
                             f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
                             f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                         )
-                        df       = df.loc[~df["id"].isin(df_exist["id"])]
+                        df = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
@@ -173,11 +175,11 @@ if __name__ == "__main__":
                         df = getkline(kline, symbol=symbol, limit=100)
                         if df.shape[0] > 0:
                             df_exist = DB.select_sql(
-                                f"select unixtime from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
+                                f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
                                 f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                             )
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0:
                             DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
                             DB.execute_sql()
-                time.sleep(60) # 1 * 12 = 12
+                time.sleep(60)
