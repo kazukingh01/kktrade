@@ -160,6 +160,28 @@ CREATE TABLE public.bybit_ticker (
 
 ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
+
+--
+-- Name: bybit_kline; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_kline (
+    symbol smallint NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint NOT NULL,
+    kline_type smallint NOT NULL,
+    interval smallint NOT NULL,
+    price_open integer,
+    price_high integer,
+    price_low integer,
+    price_close integer,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_kline OWNER TO postgres;
+
+
 --
 -- Name: bitflyer_executions bitflyer_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -190,6 +212,14 @@ ALTER TABLE ONLY public.bybit_executions
 
 ALTER TABLE ONLY public.bybit_ticker
     ADD CONSTRAINT bybit_ticker_pkey PRIMARY KEY (symbol, unixtime);
+
+
+--
+-- Name: bybit_ticker bybit_kline_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_kline
+    ADD CONSTRAINT bybit_kline_pkey PRIMARY KEY (symbol, unixtime, kline_type, interval);
 
 
 --
@@ -284,6 +314,34 @@ CREATE INDEX bybit_ticker_1 ON public.bybit_ticker USING btree (unixtime);
 
 
 --
+-- Name: bybit_kline_0; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX bybit_kline_0 ON public.bybit_kline USING btree (symbol);
+
+
+--
+-- Name: bybit_kline_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX bybit_kline_1 ON public.bybit_kline USING btree (unixtime);
+
+
+--
+-- Name: bybit_kline_2; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX bybit_kline_2 ON public.bybit_kline USING btree (kline_type);
+
+
+--
+-- Name: bybit_kline_3; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX bybit_kline_3 ON public.bybit_kline USING btree (interval);
+
+
+--
 -- Name: bitflyer_executions trg_update_sys_updated_bitflyer_executions; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -323,6 +381,14 @@ CREATE TRIGGER trg_update_sys_updated_bybit_orderbook BEFORE UPDATE ON public.by
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_ticker BEFORE UPDATE ON public.bybit_ticker FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: bybit_ticker trg_update_sys_updated_bybit_kline; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_kline BEFORE UPDATE ON public.bybit_kline FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
 
 
 --

@@ -8,8 +8,7 @@ from kktrade.config.com import SCALE_MST, NAME_MST
 
 EXCHANGE = "bybit"
 URL_BASE = "https://api.bybit.com/v5/"
-
-SCALE = {
+SCALE    = {
     "spot@BTCUSDT": 3,
     "spot@ETHUSDC": 4,
     "spot@BTCUSDC": 3,
@@ -22,6 +21,17 @@ SCALE = {
     "inverse@ETHUSD": 9,
     "inverse@XRPUSD": 7,
 }
+KLINE_TYPE = {
+    "mark": 0,
+    "index": 1,
+    "premium": 2,
+}
+KILNE_URL = {
+    "mark": "mark-price-kline",
+    "index": "index-price-kline",
+    "premium": "premium-index-price-kline"
+}
+
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
 fnuc_parse = lambda x: {"category": x.split("@")[0], "symbol": x.split("@")[-1]}
@@ -107,11 +117,27 @@ def getexecutions(symbol: str=list(SCALE.keys())[0]):
     df["is_block_trade"] = df["isBlockTrade"].astype(bool)
     return df
 
+def getkline(kline: str, symbol: str=list(SCALE.keys())[0], interval=1, start: int=None, end: int=None, limit: int=200):
+    assert isinstance(kline, str) and kline in ["mark", "index", "premium"]
+    assert interval in [1, 3, 5, 15, 30, 60, 120, 240, 360, 720, "D", "M", "W"]
+    if fnuc_parse(symbol)["category"] == "spot": return pd.DataFrame()
+    r = requests.get(f"{URL_BASE}market/{KILNE_URL[kline]}", params=dict({"interval": interval, "start": start, "end": end, "limit": limit}, **fnuc_parse(symbol)))
+    assert r.status_code == 200
+    assert r.json()["retCode"] == 0
+    df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close"])
+    df["kline_type"] = KLINE_TYPE[kline]
+    df["interval"]   = {"D": 60*24, "W": 60*24*7, "M": -1}[interval] if isinstance(interval, str) else interval
+    if kline == "premium": df["scale"] = 10
+    else:                  df["scale"] = SCALE[symbol]
+    for x in ["price_open", "price_high", "price_low", "price_close"]:
+        df[x] = (df[x].astype(float) * (10 ** SCALE_MST[df["scale"].iloc[0]][0])).fillna(-1).astype(int)
+    return df
+    
 
 if __name__ == "__main__":
     DB   = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     args = sys.argv[1:]
-    if "getorderbook" in args or "getticker" in args or "getexecutions" in args:
+    if "getorderbook" in args or "getticker" in args or "getexecutions" in args or "getkline" in args:
         while True:
             if "getorderbook" in args:
                 for symbol in SCALE.keys():
@@ -141,3 +167,17 @@ if __name__ == "__main__":
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(5) # 11 * 12 = 132
+            if "getkline" in args:
+                for symbol in SCALE.keys():
+                    for kline in ["mark", "index", "premium"]:
+                        df = getkline(kline, symbol=symbol, limit=100)
+                        if df.shape[0] > 0:
+                            df_exist = DB.select_sql(
+                                f"select unixtime from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
+                                f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            )
+                            df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
+                        if df.shape[0] > 0:
+                            DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
+                            DB.execute_sql()
+                time.sleep(60) # 1 * 12 = 12
