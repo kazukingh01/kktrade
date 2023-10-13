@@ -125,6 +125,7 @@ def getkline(kline: str, symbol: str=list(SCALE.keys())[0], interval=1, start: i
     assert r.status_code == 200
     assert r.json()["retCode"] == 0
     df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close"])
+    if df.shape[0] == 0: return df
     df["symbol"]     = NAME_MST[symbol]
     df["kline_type"] = KLINE_TYPE[kline]
     df["interval"]   = {"D": 60*24, "W": 60*24*7, "M": -1}[interval] if isinstance(interval, str) else interval
