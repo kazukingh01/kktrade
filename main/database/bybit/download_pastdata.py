@@ -34,6 +34,7 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
     df["size"]     = (df["size" ].astype(float) * (10 ** SCALE_MST[SCALE[symbol]][1])).fillna(-1).astype(int)
     df["unixtime"] = (df["timestamp"] * (10 ** 3)).astype(int)
     df["is_block_trade"] = False
+    df = df.groupby(["symbol", "id"]).first().reset_index()
     return df
 
 
