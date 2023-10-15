@@ -1,0 +1,3 @@
+
+
+APIKEY_EODHD = "demo"
