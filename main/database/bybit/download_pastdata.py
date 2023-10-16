@@ -1,4 +1,5 @@
 import datetime, sys, re, requests, gzip, time
+from tqdm import tqdm
 from io import StringIO
 import pandas as pd
 import numpy as np
@@ -61,8 +62,9 @@ if __name__ == "__main__":
                 print("Nothing data.")
                 continue
             if df.shape[0] > 0:
-                if df.shape[0] > 1000000:
-                    for indexes in np.array_split(np.arange(df.shape[0]), 10):
-                        DB.execute_copy_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
+                if df.shape[0] > 10000:
+                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // 10000)):
+                        DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", is_select=True, n_jobs=8)
+                        DB.execute_sql()
                 else:
                     DB.execute_copy_from_df(df, f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)

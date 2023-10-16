@@ -30,6 +30,7 @@ setup(
         'numpy==1.24.2',
         'joblib==1.3.2',
         'requests==2.31.0',
+        'tqdm==4.66.1',
     ],
     python_requires='>=3.11.2'
 )
