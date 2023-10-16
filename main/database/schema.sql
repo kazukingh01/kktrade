@@ -137,6 +137,7 @@ CREATE TABLE public.bybit_kline (
 
 ALTER TABLE public.bybit_kline OWNER TO postgres;
 
+
 --
 -- Name: bybit_orderbook; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -180,6 +181,28 @@ CREATE TABLE public.bybit_ticker (
 
 ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
+
+--
+-- Name: eodhd_ohlcv; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.eodhd_ohlcv (
+    symbol smallint NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint NOT NULL,
+    "interval" smallint NOT NULL,
+    price_open integer,
+    price_high integer,
+    price_low integer,
+    price_close integer,
+    volume bigint,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.eodhd_ohlcv OWNER TO postgres;
+
+
 --
 -- Name: bitflyer_executions bitflyer_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -218,6 +241,14 @@ ALTER TABLE ONLY public.bybit_kline
 
 ALTER TABLE ONLY public.bybit_ticker
     ADD CONSTRAINT bybit_ticker_pkey PRIMARY KEY (symbol, unixtime);
+
+
+--
+-- Name: eodhd_ohlcv eodhd_ohlcv_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.eodhd_ohlcv
+    ADD CONSTRAINT eodhd_ohlcv_pkey PRIMARY KEY (symbol, unixtime, "interval");
 
 
 --
@@ -340,6 +371,27 @@ CREATE INDEX bybit_ticker_1 ON public.bybit_ticker USING btree (unixtime);
 
 
 --
+-- Name: eodhd_ohlcv_0; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX eodhd_ohlcv_0 ON public.eodhd_ohlcv USING btree (symbol);
+
+
+--
+-- Name: eodhd_ohlcv_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX eodhd_ohlcv_1 ON public.eodhd_ohlcv USING btree (unixtime);
+
+
+--
+-- Name: eodhd_ohlcv_2; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX eodhd_ohlcv_2 ON public.eodhd_ohlcv USING btree ("interval");
+
+
+--
 -- Name: bitflyer_executions trg_update_sys_updated_bitflyer_executions; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -386,6 +438,13 @@ CREATE TRIGGER trg_update_sys_updated_bybit_orderbook BEFORE UPDATE ON public.by
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_ticker BEFORE UPDATE ON public.bybit_ticker FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: eodhd_ohlcv trg_update_sys_updated_eodhd_ohlcv; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_eodhd_ohlcv BEFORE UPDATE ON public.eodhd_ohlcv FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --

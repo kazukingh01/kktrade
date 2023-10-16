@@ -15,6 +15,7 @@ SCALE_MST = {
     8: [1, 0],
     9: [2, 0],
     10: [9, 0],
+    11: [3, 0],
 }
 
 NAME_MST = {
@@ -35,6 +36,7 @@ NAME_MST = {
     "inverse@BTCUSD": 14,
     "inverse@ETHUSD": 15,
     "inverse@XRPUSD": 16,
+    "USDJPY.FOREX": 17,
 }
 
 assert sum(list(SCALE_MST.keys())) == sum(list(range(len(SCALE_MST))))
