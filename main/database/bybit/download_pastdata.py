@@ -1,6 +1,7 @@
 import datetime, sys, re, requests, gzip, time
 from io import StringIO
 import pandas as pd
+import numpy as np
 # local package
 from kktrade.database.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
@@ -60,4 +61,8 @@ if __name__ == "__main__":
                 print("Nothing data.")
                 continue
             if df.shape[0] > 0:
-                DB.execute_copy_from_df(df, f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
+                if df.shape[0] > 1000000:
+                    for indexes in np.array_split(np.arange(df.shape[0]), 10):
+                        DB.execute_copy_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
+                else:
+                    DB.execute_copy_from_df(df, f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
