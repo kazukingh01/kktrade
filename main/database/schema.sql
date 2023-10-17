@@ -554,6 +554,41 @@ CREATE TRIGGER trg_update_sys_updated_bybit_executions BEFORE UPDATE ON public.b
 
 
 --
+-- Name: bybit_executions trg_update_sys_updated_bybit_executions_2019; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_executions_2019 BEFORE UPDATE ON public.bybit_executions_2019 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: bybit_executions trg_update_sys_updated_bybit_executions_2020; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_executions_2020 BEFORE UPDATE ON public.bybit_executions_2020 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: bybit_executions trg_update_sys_updated_bybit_executions_2021; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_executions_2021 BEFORE UPDATE ON public.bybit_executions_2021 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: bybit_executions trg_update_sys_updated_bybit_executions_2022; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_executions_2022 BEFORE UPDATE ON public.bybit_executions_2022 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: bybit_executions trg_update_sys_updated_bybit_executions_2023; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_bybit_executions_2023 BEFORE UPDATE ON public.bybit_executions_2023 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
 -- Name: bybit_kline trg_update_sys_updated_bybit_kline; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
