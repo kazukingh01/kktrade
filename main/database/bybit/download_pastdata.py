@@ -54,7 +54,7 @@ if __name__ == "__main__":
             df = download_trade(symbol, date)
             if df.shape[0] > 0:
                 df_exist = DB.select_sql(
-                    f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
+                    f"select symbol, id from {EXCHANGE}_executions_{date.year} where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
                     f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                 )
                 df = df.loc[~df["id"].isin(df_exist["id"])]
@@ -64,7 +64,7 @@ if __name__ == "__main__":
             if df.shape[0] > 0:
                 if df.shape[0] > 10000:
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // 10000)):
-                        DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", is_select=True, n_jobs=8)
+                        DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions_{date.year}", is_select=True, n_jobs=8)
                         DB.execute_sql()
                 else:
-                    DB.execute_copy_from_df(df, f"{EXCHANGE}_executions", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
+                    DB.execute_copy_from_df(df, f"{EXCHANGE}_executions_{date.year}", filename=f"postgres.{symbol}.{date.strftime('%Y%m%d')}.csv", str_null="", n_jobs=8)
