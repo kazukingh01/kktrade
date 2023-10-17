@@ -118,6 +118,100 @@ CREATE TABLE public.bybit_executions (
 ALTER TABLE public.bybit_executions OWNER TO postgres;
 
 --
+-- Name: bybit_executions_2019; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_executions_2019 (
+    symbol smallint NOT NULL,
+    id character varying(36) NOT NULL,
+    type character varying(4) NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint,
+    price integer,
+    size integer,
+    is_block_trade boolean,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_executions_2019 OWNER TO postgres;
+
+--
+-- Name: bybit_executions_2020; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_executions_2020 (
+    symbol smallint NOT NULL,
+    id character varying(36) NOT NULL,
+    type character varying(4) NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint,
+    price integer,
+    size integer,
+    is_block_trade boolean,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_executions_2020 OWNER TO postgres;
+
+--
+-- Name: bybit_executions_2021; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_executions_2021 (
+    symbol smallint NOT NULL,
+    id character varying(36) NOT NULL,
+    type character varying(4) NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint,
+    price integer,
+    size integer,
+    is_block_trade boolean,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_executions_2021 OWNER TO postgres;
+
+--
+-- Name: bybit_executions_2022; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_executions_2022 (
+    symbol smallint NOT NULL,
+    id character varying(36) NOT NULL,
+    type character varying(4) NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint,
+    price integer,
+    size integer,
+    is_block_trade boolean,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_executions_2022 OWNER TO postgres;
+
+--
+-- Name: bybit_executions_2023; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_executions_2023 (
+    symbol smallint NOT NULL,
+    id character varying(36) NOT NULL,
+    type character varying(4) NOT NULL,
+    scale smallint NOT NULL,
+    unixtime bigint,
+    price integer,
+    size integer,
+    is_block_trade boolean,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.bybit_executions_2023 OWNER TO postgres;
+--
 -- Name: bybit_kline; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -225,6 +319,46 @@ ALTER TABLE ONLY public.bitflyer_ticker
 
 ALTER TABLE ONLY public.bybit_executions
     ADD CONSTRAINT bybit_executions_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_2019; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions_2019
+    ADD CONSTRAINT bybit_executions_2019_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_2020; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions_2020
+    ADD CONSTRAINT bybit_executions_2020_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_2021; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions_2021
+    ADD CONSTRAINT bybit_executions_2021_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_2022; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions_2022
+    ADD CONSTRAINT bybit_executions_2022_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_2023; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions_2023
+    ADD CONSTRAINT bybit_executions_2023_pkey PRIMARY KEY (symbol, id);
 
 
 --
