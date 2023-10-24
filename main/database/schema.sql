@@ -43,8 +43,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.bitflyer_executions (
     symbol smallint NOT NULL,
     id bigint NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -61,10 +60,9 @@ ALTER TABLE public.bitflyer_executions OWNER TO postgres;
 CREATE TABLE public.bitflyer_orderbook (
     symbol smallint NOT NULL,
     unixtime bigint NOT NULL,
-    type character varying(4) NOT NULL,
+    side smallint NOT NULL,
     price integer,
     size integer,
-    scale smallint NOT NULL,
     sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -79,12 +77,11 @@ CREATE TABLE public.bitflyer_ticker (
     symbol smallint NOT NULL,
     tick_id integer NOT NULL,
     state smallint,
-    scale smallint NOT NULL,
     unixtime bigint,
-    best_bid integer,
-    best_ask integer,
-    best_bid_size integer,
-    best_ask_size integer,
+    bid integer,
+    ask integer,
+    bid_size integer,
+    ask_size integer,
     total_bid_depth integer,
     total_ask_depth integer,
     market_bid_size integer,
@@ -105,8 +102,7 @@ ALTER TABLE public.bitflyer_ticker OWNER TO postgres;
 CREATE TABLE public.bybit_executions (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -124,8 +120,7 @@ ALTER TABLE public.bybit_executions OWNER TO postgres;
 CREATE TABLE public.bybit_executions_2019 (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -143,8 +138,7 @@ ALTER TABLE public.bybit_executions_2019 OWNER TO postgres;
 CREATE TABLE public.bybit_executions_2020 (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -162,8 +156,7 @@ ALTER TABLE public.bybit_executions_2020 OWNER TO postgres;
 CREATE TABLE public.bybit_executions_2021 (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -181,8 +174,7 @@ ALTER TABLE public.bybit_executions_2021 OWNER TO postgres;
 CREATE TABLE public.bybit_executions_2022 (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -200,8 +192,7 @@ ALTER TABLE public.bybit_executions_2022 OWNER TO postgres;
 CREATE TABLE public.bybit_executions_2023 (
     symbol smallint NOT NULL,
     id character varying(36) NOT NULL,
-    type character varying(4) NOT NULL,
-    scale smallint NOT NULL,
+    side smallint NOT NULL,
     unixtime bigint,
     price integer,
     size integer,
@@ -217,7 +208,6 @@ ALTER TABLE public.bybit_executions_2023 OWNER TO postgres;
 
 CREATE TABLE public.bybit_kline (
     symbol smallint NOT NULL,
-    scale smallint NOT NULL,
     unixtime bigint NOT NULL,
     kline_type smallint NOT NULL,
     "interval" smallint NOT NULL,
@@ -239,10 +229,9 @@ ALTER TABLE public.bybit_kline OWNER TO postgres;
 CREATE TABLE public.bybit_orderbook (
     symbol smallint NOT NULL,
     unixtime bigint NOT NULL,
-    type character varying(4) NOT NULL,
+    side smallint NOT NULL,
     price integer,
     size integer,
-    scale smallint NOT NULL,
     sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
@@ -255,12 +244,11 @@ ALTER TABLE public.bybit_orderbook OWNER TO postgres;
 
 CREATE TABLE public.bybit_ticker (
     symbol smallint NOT NULL,
-    scale smallint NOT NULL,
     unixtime bigint NOT NULL,
-    best_bid integer,
-    best_ask integer,
-    best_bid_size integer,
-    best_ask_size integer,
+    bid integer,
+    ask integer,
+    bid_size integer,
+    ask_size integer,
     last_traded_price integer,
     index_price integer,
     mark_price integer,
@@ -277,12 +265,29 @@ ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
 
 --
+-- Name: dukascopy_ticks; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.dukascopy_ticks (
+    symbol smallint NOT NULL,
+    unixtime bigint NOT NULL,
+    bid integer,
+    ask integer,
+    bid_size integer,
+    ask_size integer,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.dukascopy_ticks OWNER TO postgres;
+
+
+--
 -- Name: eodhd_ohlcv; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.eodhd_ohlcv (
     symbol smallint NOT NULL,
-    scale smallint NOT NULL,
     unixtime bigint NOT NULL,
     "interval" smallint NOT NULL,
     price_open integer,
@@ -375,6 +380,14 @@ ALTER TABLE ONLY public.bybit_kline
 
 ALTER TABLE ONLY public.bybit_ticker
     ADD CONSTRAINT bybit_ticker_pkey PRIMARY KEY (symbol, unixtime);
+
+
+--
+-- Name: dukascopy_ticks dukascopy_ticks_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dukascopy_ticks
+    ADD CONSTRAINT dukascopy_ticks_pkey PRIMARY KEY (symbol, unixtime);
 
 
 --
@@ -607,6 +620,13 @@ CREATE TRIGGER trg_update_sys_updated_bybit_orderbook BEFORE UPDATE ON public.by
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_ticker BEFORE UPDATE ON public.bybit_ticker FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: dukascopy_ticks trg_update_sys_updated_dukascopy_ticks; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_dukascopy_ticks BEFORE UPDATE ON public.dukascopy_ticks FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
