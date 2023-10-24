@@ -40,6 +40,7 @@ SET default_table_access_method = heap;
 -- Name: bitflyer_executions; Type: TABLE; Schema: public; Owner: postgres
 --
 
+DROP TABLE public.master_symbol CASCADE;
 CREATE TABLE public.master_symbol (
     symbol_id smallint NOT NULL,
     symbol_name character varying(30) NOT NULL,
@@ -54,8 +55,8 @@ CREATE TABLE public.master_symbol (
 );
 
 ALTER TABLE public.master_symbol OWNER TO postgres;
-ALTER TABLE ONLY public.master_symbol ADD CONSTRAINT master_symbol_pkey_0 PRIMARY KEY (symbol_id);
-ALTER TABLE ONLY public.master_symbol ADD CONSTRAINT master_symbol_pkey_1 PRIMARY KEY (exchange, symbol_name);
+ALTER TABLE ONLY public.master_symbol ADD CONSTRAINT master_symbol_pkey PRIMARY KEY (symbol_id);
+ALTER TABLE ONLY public.master_symbol ADD CONSTRAINT master_symbol_unique_0 UNIQUE (exchange, symbol_name);
 
 CREATE TRIGGER trg_update_sys_updated_master_symbol BEFORE UPDATE ON public.master_symbol FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
