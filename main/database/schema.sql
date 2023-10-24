@@ -202,6 +202,7 @@ CREATE TABLE public.bybit_executions_2023 (
 
 
 ALTER TABLE public.bybit_executions_2023 OWNER TO postgres;
+
 --
 -- Name: bybit_kline; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -220,7 +221,6 @@ CREATE TABLE public.bybit_kline (
 
 
 ALTER TABLE public.bybit_kline OWNER TO postgres;
-
 
 --
 -- Name: bybit_orderbook; Type: TABLE; Schema: public; Owner: postgres
@@ -263,7 +263,6 @@ CREATE TABLE public.bybit_ticker (
 
 ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
-
 --
 -- Name: dukascopy_ticks; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -280,7 +279,6 @@ CREATE TABLE public.dukascopy_ticks (
 
 
 ALTER TABLE public.dukascopy_ticks OWNER TO postgres;
-
 
 --
 -- Name: eodhd_ohlcv; Type: TABLE; Schema: public; Owner: postgres
@@ -301,6 +299,25 @@ CREATE TABLE public.eodhd_ohlcv (
 
 ALTER TABLE public.eodhd_ohlcv OWNER TO postgres;
 
+--
+-- Name: master_symbol; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.master_symbol (
+    symbol_id smallint NOT NULL,
+    symbol_name character varying(30) NOT NULL,
+    exchange character varying(30) NOT NULL,
+    base character varying(30) NOT NULL,
+    currency character varying(30) NOT NULL,
+    is_active boolean NOT NULL,
+    explain text,
+    scale_pre json,
+    scale_aft json,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.master_symbol OWNER TO postgres;
 
 --
 -- Name: bitflyer_executions bitflyer_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
@@ -319,15 +336,7 @@ ALTER TABLE ONLY public.bitflyer_ticker
 
 
 --
--- Name: bybit_executions bybit_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.bybit_executions
-    ADD CONSTRAINT bybit_executions_pkey PRIMARY KEY (symbol, id);
-
-
---
--- Name: bybit_executions bybit_executions_2019; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bybit_executions_2019 bybit_executions_2019_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.bybit_executions_2019
@@ -335,7 +344,7 @@ ALTER TABLE ONLY public.bybit_executions_2019
 
 
 --
--- Name: bybit_executions bybit_executions_2020; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bybit_executions_2020 bybit_executions_2020_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.bybit_executions_2020
@@ -343,7 +352,7 @@ ALTER TABLE ONLY public.bybit_executions_2020
 
 
 --
--- Name: bybit_executions bybit_executions_2021; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bybit_executions_2021 bybit_executions_2021_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.bybit_executions_2021
@@ -351,7 +360,7 @@ ALTER TABLE ONLY public.bybit_executions_2021
 
 
 --
--- Name: bybit_executions bybit_executions_2022; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bybit_executions_2022 bybit_executions_2022_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.bybit_executions_2022
@@ -359,11 +368,19 @@ ALTER TABLE ONLY public.bybit_executions_2022
 
 
 --
--- Name: bybit_executions bybit_executions_2023; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bybit_executions_2023 bybit_executions_2023_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.bybit_executions_2023
     ADD CONSTRAINT bybit_executions_2023_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bybit_executions bybit_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bybit_executions
+    ADD CONSTRAINT bybit_executions_pkey PRIMARY KEY (symbol, id);
 
 
 --
@@ -396,6 +413,14 @@ ALTER TABLE ONLY public.dukascopy_ticks
 
 ALTER TABLE ONLY public.eodhd_ohlcv
     ADD CONSTRAINT eodhd_ohlcv_pkey PRIMARY KEY (symbol, unixtime, "interval");
+
+
+--
+-- Name: master_symbol master_symbol_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.master_symbol
+    ADD CONSTRAINT master_symbol_pkey PRIMARY KEY (symbol_id);
 
 
 --
@@ -567,35 +592,35 @@ CREATE TRIGGER trg_update_sys_updated_bybit_executions BEFORE UPDATE ON public.b
 
 
 --
--- Name: bybit_executions trg_update_sys_updated_bybit_executions_2019; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: bybit_executions_2019 trg_update_sys_updated_bybit_executions_2019; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_executions_2019 BEFORE UPDATE ON public.bybit_executions_2019 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
--- Name: bybit_executions trg_update_sys_updated_bybit_executions_2020; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: bybit_executions_2020 trg_update_sys_updated_bybit_executions_2020; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_executions_2020 BEFORE UPDATE ON public.bybit_executions_2020 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
--- Name: bybit_executions trg_update_sys_updated_bybit_executions_2021; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: bybit_executions_2021 trg_update_sys_updated_bybit_executions_2021; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_executions_2021 BEFORE UPDATE ON public.bybit_executions_2021 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
--- Name: bybit_executions trg_update_sys_updated_bybit_executions_2022; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: bybit_executions_2022 trg_update_sys_updated_bybit_executions_2022; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_executions_2022 BEFORE UPDATE ON public.bybit_executions_2022 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
--- Name: bybit_executions trg_update_sys_updated_bybit_executions_2023; Type: TRIGGER; Schema: public; Owner: postgres
+-- Name: bybit_executions_2023 trg_update_sys_updated_bybit_executions_2023; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER trg_update_sys_updated_bybit_executions_2023 BEFORE UPDATE ON public.bybit_executions_2023 FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
@@ -634,6 +659,13 @@ CREATE TRIGGER trg_update_sys_updated_dukascopy_ticks BEFORE UPDATE ON public.du
 --
 
 CREATE TRIGGER trg_update_sys_updated_eodhd_ohlcv BEFORE UPDATE ON public.eodhd_ohlcv FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
+
+
+--
+-- Name: master_symbol trg_update_sys_updated_master_symbol; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trg_update_sys_updated_master_symbol BEFORE UPDATE ON public.master_symbol FOR EACH ROW EXECUTE FUNCTION public.update_sys_updated();
 
 
 --
