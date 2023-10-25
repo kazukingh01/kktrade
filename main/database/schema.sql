@@ -424,6 +424,14 @@ ALTER TABLE ONLY public.master_symbol
 
 
 --
+-- Name: master_symbol master_symbol_unique_0; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.master_symbol
+    ADD CONSTRAINT master_symbol_unique_0 UNIQUE (exchange, symbol_name);
+
+
+--
 -- Name: bitflyer_executions_0; Type: INDEX; Schema: public; Owner: postgres
 --
 
