@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser.add_argument("--since", type=datetime.datetime.fromisoformat)
     parser.add_argument("--until", type=datetime.datetime.fromisoformat)
     parser.add_argument("--tbl", type=str, help="table name")
+    parser.add_argument("--num", type=int, default=10000)
     args = parser.parse_args()
     print(args)
     DB_from = Psgre(f"host={args.fr} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
@@ -25,7 +26,7 @@ if __name__ == "__main__":
         dfbase = DB_from.select_sql(f"select id from {args.tbl};")
         dfwk   = DB_to  .select_sql(f"select id from {args.tbl};")
     dfbase = dfbase.loc[~dfbase["id"].isin(dfwk["id"])]
-    for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // 10000)):
+    for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
         sql  = f"select * from {args.tbl} where id in ('" + "','".join(dfwk["id"].tolist()) + "');"
         df_insert = DB_from.select_sql(sql)
