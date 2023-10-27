@@ -116,7 +116,8 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                         DB.execute_sql()
-                time.sleep(12) # 4 * 5 = 20
+                    time.sleep(0.5)
+                time.sleep(10)
             elif "getticker" == args.fn:
                 for symbol in mst_id.keys():
                     df   = getticker(symbol=symbol, mst_id=mst_id, scale_pre=scale_pre[symbol])
@@ -124,7 +125,8 @@ if __name__ == "__main__":
                     if dfwk.shape[0] == 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                time.sleep(6) # 4 * 10 = 40
+                    time.sleep(0.5)
+                time.sleep(4)
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
                     dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {mst_id[symbol]};")
@@ -132,7 +134,8 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                time.sleep(12) # 4 * 5 = 20
+                    time.sleep(0.5)
+                time.sleep(10)
     if args.fn in ["getall"]:
         time_since = int(datetime.datetime.fromisoformat(args.fr).timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101").timestamp())
         time_until = int(datetime.datetime.fromisoformat(args.to).timestamp()) if args.to is not None else int(datetime.datetime.now().timestamp())
