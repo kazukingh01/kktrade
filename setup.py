@@ -32,6 +32,7 @@ setup(
         'requests==2.31.0',
         'tqdm==4.66.1',
         'websockets==11.0.3',
+        'httpx==0.25.0',
     ],
     python_requires='>=3.11.2'
 )
