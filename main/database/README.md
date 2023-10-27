@@ -66,7 +66,9 @@ mkdir /var/lib/postgresql/data
 ### Start & Check
 
 ```bash
-sudo /etc/init.d/postgresql restart # for ubuntu user 
+exit
+sudo /etc/init.d/postgresql restart # for ubuntu user
+sudo su postgres
 psql
 \l
 # postgres=# \l
@@ -123,6 +125,7 @@ autovacuum_work_mem = -1                # min 1MB, or -1 to use maintenance_work
 ```
 
 ```bash
+exit
 sudo /etc/init.d/postgresql restart
 ```
 
@@ -151,15 +154,15 @@ cd ~
 psql
 \l
 # postgres=# \l
-#                                                       List of databases
-#    Name    |  Owner   | Encoding | Locale Provider |  Collate   |   Ctype    | ICU Locale | ICU Rules |   Access privileges
-# -----------+----------+----------+-----------------+------------+------------+------------+-----------+-----------------------
-#  bitflyer  | postgres | UTF8     | libc            | ja_JP.utf8 | ja_JP.utf8 |            |           |
-#  postgres  | postgres | UTF8     | libc            | C.UTF-8    | C.UTF-8    |            |           |
-#  template0 | postgres | UTF8     | libc            | C.UTF-8    | C.UTF-8    |            |           | =c/postgres          +
-#            |          |          |                 |            |            |            |           | postgres=CTc/postgres
-#  template1 | postgres | UTF8     | libc            | C.UTF-8    | C.UTF-8    |            |           | =c/postgres          +
-#            |          |          |                 |            |            |            |           | postgres=CTc/postgres
+#                                                        List of databases
+#    Name    |  Owner   | Encoding | Locale Provider |   Collate   |    Ctype    | ICU Locale | ICU Rules |   Access privileges
+# -----------+----------+----------+-----------------+-------------+-------------+------------+-----------+-----------------------
+#  postgres  | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           |
+#  template0 | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           | =c/postgres          +
+#            |          |          |                 |             |             |            |           | postgres=CTc/postgres
+#  template1 | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           | =c/postgres          +
+#            |          |          |                 |             |             |            |           | postgres=CTc/postgres
+#  trade     | postgres | UTF8     | libc            | ja_JP.utf8  | ja_JP.utf8  |            |           |
 # (4 rows)
 \q
 ```
@@ -169,10 +172,10 @@ psql
 #### For Host
 
 ```bash
-sudo su postgres
 cd ~
 git clone https://github.com/kazukingh01/kktrade.git
 psql -U postgres -d trade -f ~/kktrade/main/database/schema.sql
+psql -U postgres -d trade -f ~/kktrade/main/database/master_symbol.sql
 ```
 
 #### For Docker 
@@ -208,12 +211,6 @@ echo "0   0   * * *   ubuntu  sleep 30 && sudo /etc/init.d/postgresql restart" |
 # echo "0   0   * * *   ubuntu  sleep 30 && sudo docker exec postgres /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab # for docker 
 sudo /etc/init.d/cron restart
 sudo systemctl restart rsyslog
-```
-
-### Cron for get data
-
-```bash
-cat /home/ubuntu/kktrade/main/database/bitflyer/crontab | sudo tee -a /etc/crontab
 ```
 
 # Database Backup/Restore
