@@ -116,7 +116,6 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                         DB.execute_sql()
-                    time.sleep(0.5)
                 time.sleep(10)
             elif "getticker" == args.fn:
                 for symbol in mst_id.keys():
@@ -125,7 +124,6 @@ if __name__ == "__main__":
                     if dfwk.shape[0] == 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                    time.sleep(0.5)
                 time.sleep(4)
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
@@ -134,7 +132,6 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
-                    time.sleep(0.5)
                 time.sleep(10)
     if args.fn in ["getall"]:
         time_since = int(datetime.datetime.fromisoformat(args.fr).timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101").timestamp())
