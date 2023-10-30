@@ -31,7 +31,10 @@ if __name__ == "__main__":
     dfbase = dfbase.loc[~dfbase["id"].isin(dfwk["id"])]
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
-        sql  = f"select * from {args.tbl} where id in ('" + "','".join(dfwk["id"].tolist()) + "');"
+        if args.since is not None and args.until is not None:
+            sql = f"select * from {args.tbl} where unixtime >= {int(args.since.timestamp()) * 1000} and unixtime <= {int(args.until.timestamp()) * 1000} and id in ('" + "','".join(dfwk["id"].tolist()) + "');"
+        else:
+            sql = f"select * from {args.tbl} where id in ('" + "','".join(dfwk["id"].tolist()) + "');"
         df_insert = DB_from.select_sql(sql)
         df_insert["side"] = df_insert["type"].map({"Buy": 0, "Sell": 1, "BUY": 0, "SELL": 1}).astype(float).fillna(-1).astype(int)
         if args.update and df_insert.shape[0] > 0:
