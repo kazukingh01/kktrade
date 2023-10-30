@@ -14,7 +14,7 @@ for COMMAND in "${COMMANDS[@]}"; do
     if ! ps aux | grep -v grep | grep python | grep "${MODULE} ${COMMAND}" > /dev/null; then
         echo "Process: ${COMMAND} not found! Restarting..."
         touch ${LOGFILE}
-        nohup ${PYTHON} ${MODULE} ${COMMAND} >> ${LOGFILE} 2>&1 &
+        nohup ${PYTHON} ${MODULE} --fn ${COMMAND} --update >> ${LOGFILE} 2>&1 &
     else
         echo "Process: ${COMMAND} is running."
     fi
