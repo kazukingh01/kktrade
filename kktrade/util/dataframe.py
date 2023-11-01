@@ -24,6 +24,9 @@ __all__ = [
 ]
 
 
+LIST_NUM_TYPES = [int, float, np.int8, np.int16, np.int32, np.int64, np.float16, np.float32, np.float64, np.float128]
+
+
 def parallel_apply(df: pd.DataFrame, func, axis: int=0, group_key=None, func_aft=None, batch_size: int=1, n_jobs: int=1):
     """
     pandarallel is slow in some cases. It is twice as fast to use pandas.
@@ -88,13 +91,33 @@ def apply_fill_missing_values(df: pd.DataFrame, rep_nan, rep_inf, rep_minf, dtyp
     assert isinstance(df, pd.DataFrame)
     assert isinstance(batch_size, int) and batch_size >= 1
     assert isinstance(n_jobs, int) and n_jobs >= 1
+    df = df.astype(object).copy()
     func1 = partial(apply_fill_missing_values_func1, rep_nan=rep_nan, rep_inf=rep_inf, rep_minf=rep_minf, dtype=dtype)
     return parallel_apply(
         df, func1,
         func_aft=lambda x,y,z: pd.concat(x, axis=1, ignore_index=False, sort=False).loc[:, z], axis=0, batch_size=batch_size, n_jobs=n_jobs
     )
-def apply_fill_missing_values_func1(x, rep_nan=None, rep_inf=None, rep_minf=None, dtype=None):
-    return x.copy().fillna(rep_nan).replace(float("inf"), rep_inf).replace(float("-inf"), rep_minf).astype(dtype)
+# The aim of vectorize_to_int is converting df type object and disticting integer and float type in object column.
+# df[x].astype(str) with integer type can convert to string correctory, which means 1e20 change to 100000000000000000000, not "1e20"
+vectorize_to_int = np.vectorize(lambda x: (int(x) if float.is_integer(float(x)) else float(x)) if check_type_list(x, LIST_NUM_TYPES) else x)
+def apply_fill_missing_values_func1(ins, rep_nan=None, rep_inf=None, rep_minf=None, dtype=None):
+    if dtype == str:
+        y = ins.fillna(rep_nan).replace(float("inf"), rep_inf).replace(float("-inf"), rep_minf)
+        if isinstance(y, pd.DataFrame): # after fillna(rep_nan), the column which has string (but originaly from datetime64[ns]) type become back datetime64[ns] aitpmaticaly
+            for x in y.columns:
+                if pd.api.types.is_datetime64_ns_dtype(y[x]): y[x] = y[x].astype(str) # If x is datetime and df[x].values.tolist() run, the date goes to integer. I don't know why.
+        elif isinstance(y, pd.Series):
+            if pd.api.types.is_datetime64_ns_dtype(y): y = y.astype(str) 
+        y = vectorize_to_int(y.values.tolist())
+        if isinstance(ins, pd.DataFrame):
+            y = pd.DataFrame(y, index=ins.index, columns=ins.columns, dtype=dtype)
+        elif isinstance(ins, pd.Series):
+            y = pd.Series(y, index=ins.index, dtype=dtype)
+        else:
+            raise Exception(f"unexpected class: {ins.__class__}")
+    else:
+        y = ins.copy().fillna(rep_nan).replace(float("inf"), rep_inf).replace(float("-inf"), rep_minf).astype(dtype)
+    return y
 
 def check_column_is_integer(se: pd.Series, except_strings: List[str] = [""]) -> pd.Series:
     se_bool = (se.str.contains(r"^[0-9]$",     regex=True) | se.str.contains(r"^-[1-9]$",     regex=True) | \
