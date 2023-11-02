@@ -83,13 +83,13 @@ if __name__ == "__main__":
     scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
     for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
         for symbol in mst_id.keys():
-            print(date, symbol)
+            DB.logger.info(f"{date}, {symbol}")
             try: df = getticks(symbol, date, is_throw_exception=True)
             except httpx.ConnectTimeout as e:
-                print("Timeout error.")
+                DB.logger.info("Timeout error.")
                 continue
             if df.shape[0] == 0:
-                print("No data.")
+                DB.logger.info("No data.")
                 continue
             df["symbol"] = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
             df = correct_df(df, scale_pre=scale_pre[symbol])
