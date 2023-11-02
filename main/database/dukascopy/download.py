@@ -15,7 +15,7 @@ class Http:
     status_code: int
     content: bytes
 
-async def fetch_url_retry(client, url, retry: int=5):
+async def fetch_url_retry(client, url, retry: int=5, is_throw_exception: bool=False):
     for _ in range(retry):
         try:
             response = await client.get(url)
@@ -26,11 +26,12 @@ async def fetch_url_retry(client, url, retry: int=5):
         except (httpx.ReadTimeout, httpx.ConnectTimeout):
             continue
     print("Max retry", url)
+    if is_throw_exception: raise httpx.ConnectTimeout(f"Max retry: {url}")
     return (url, Http(200, b''))
 
-async def fetch_urls(urls: List[str]):
+async def fetch_urls(urls: List[str], is_throw_exception: bool=False):
     async with httpx.AsyncClient() as client:
-        responses = await asyncio.gather(*(fetch_url_retry(client, url) for url in urls))
+        responses = await asyncio.gather(*(fetch_url_retry(client, url, is_throw_exception=is_throw_exception) for url in urls))
     return responses
 
 def tokenize(buffer):
@@ -41,10 +42,10 @@ def tokenize(buffer):
         tokens.append(struct.unpack('!IIIff', buffer[i * token_size: (i + 1) * token_size]))
     return tokens
 
-def getticks(symbol: str, date: datetime.datetime):
+def getticks(symbol: str, date: datetime.datetime, is_throw_exception: bool=False):
     results = asyncio.run(fetch_urls([
         f"https://datafeed.dukascopy.com/datafeed/{symbol}/{date.year}/{str(date.month-1).zfill(2)}/{str(date.day).zfill(2)}/{str(hour).zfill(2)}h_ticks.bi5" for hour in range(24)
-    ]))
+    ], is_throw_exception=is_throw_exception))
     df = [pd.DataFrame(columns=['unixtime', 'ask', 'bid', 'ask_size', 'bid_size']), ]
     for url, result in results:
         assert result.status_code == 200
@@ -83,7 +84,10 @@ if __name__ == "__main__":
     for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
         for symbol in mst_id.keys():
             print(date, symbol)
-            df = getticks(symbol, date)
+            try: df = getticks(symbol, date, is_throw_exception=True)
+            except httpx.ConnectTimeout as e:
+                print("Timeout error.")
+                continue
             if df.shape[0] == 0:
                 print("No data.")
                 continue
