@@ -551,6 +551,20 @@ CREATE INDEX bybit_ticker_1 ON public.bybit_ticker USING btree (unixtime);
 
 
 --
+-- Name: dukascopy_ticks_0; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX dukascopy_ticks_0 ON public.dukascopy_ticks USING btree (symbol);
+
+
+--
+-- Name: dukascopy_ticks_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX dukascopy_ticks_1 ON public.dukascopy_ticks USING btree (unixtime);
+
+
+--
 -- Name: eodhd_ohlcv_0; Type: INDEX; Schema: public; Owner: postgres
 --
 
