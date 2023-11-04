@@ -263,7 +263,6 @@ CREATE TABLE public.bybit_ticker (
 
 ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
-
 --
 -- Name: dukascopy_ohlcv; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -284,7 +283,6 @@ CREATE TABLE public.dukascopy_ohlcv (
 
 ALTER TABLE public.dukascopy_ohlcv OWNER TO postgres;
 
-
 --
 -- Name: dukascopy_ticks; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -301,7 +299,6 @@ CREATE TABLE public.dukascopy_ticks (
 
 
 ALTER TABLE public.dukascopy_ticks OWNER TO postgres;
-
 
 --
 -- Name: eodhd_ohlcv; Type: TABLE; Schema: public; Owner: postgres
