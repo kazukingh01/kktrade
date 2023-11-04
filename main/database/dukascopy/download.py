@@ -74,13 +74,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
     parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
+    parser.add_argument("--symbols", type=lambda x: [int(y) for y in x.split(",")], help="--symbols 63,64")
     parser.add_argument("--update", action='store_true', default=False)
     args      = parser.parse_args()
     print(args)
     DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    if args.symbols is not None and len(args.symbols) > 0: df_mst = df_mst.loc[df_mst["symbol_id"].isin(args.symbols)]
     mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
+    assert args.fr is not None and args.to is not None
+    assert args.fr <= args.to
     for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
         for symbol in mst_id.keys():
             DB.logger.info(f"{date}, {symbol}")

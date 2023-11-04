@@ -88,3 +88,6 @@ VALUES
     (81,         'XAUUSD', 'dukascopy',      'XAU',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask":   0.001, "bid":   0.001}'),
     (82,         'XAGUSD', 'dukascopy',      'XAG',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask":   0.001, "bid":   0.001}')
 ;
+
+UPDATE public.master_symbol SET symbol_name = 'DEUIDXEUR' where symbol_id = 63;
+UPDATE public.master_symbol SET symbol_name = 'GBRIDXGBP' where symbol_id = 65;
