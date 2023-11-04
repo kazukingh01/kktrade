@@ -263,6 +263,28 @@ CREATE TABLE public.bybit_ticker (
 
 ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
+
+--
+-- Name: dukascopy_ohlcv; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.dukascopy_ohlcv (
+    symbol smallint NOT NULL,
+    unixtime bigint NOT NULL,
+    "interval" smallint NOT NULL,
+    price_open integer,
+    price_high integer,
+    price_low integer,
+    price_close integer,
+    ask_volume integer,
+    bid_volume integer,
+    sys_updated timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE public.dukascopy_ohlcv OWNER TO postgres;
+
+
 --
 -- Name: dukascopy_ticks; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -279,6 +301,7 @@ CREATE TABLE public.dukascopy_ticks (
 
 
 ALTER TABLE public.dukascopy_ticks OWNER TO postgres;
+
 
 --
 -- Name: eodhd_ohlcv; Type: TABLE; Schema: public; Owner: postgres
@@ -397,6 +420,14 @@ ALTER TABLE ONLY public.bybit_kline
 
 ALTER TABLE ONLY public.bybit_ticker
     ADD CONSTRAINT bybit_ticker_pkey PRIMARY KEY (symbol, unixtime);
+
+
+--
+-- Name: dukascopy_ohlcv dukascopy_ohlcv_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.dukascopy_ohlcv
+    ADD CONSTRAINT dukascopy_ohlcv_pkey PRIMARY KEY (symbol, unixtime, "interval");
 
 
 --
@@ -548,6 +579,20 @@ CREATE INDEX bybit_ticker_0 ON public.bybit_ticker USING btree (symbol);
 --
 
 CREATE INDEX bybit_ticker_1 ON public.bybit_ticker USING btree (unixtime);
+
+
+--
+-- Name: dukascopy_ohlcv_0; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX dukascopy_ohlcv_0 ON public.dukascopy_ohlcv USING btree (symbol);
+
+
+--
+-- Name: dukascopy_ohlcv_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX dukascopy_ohlcv_1 ON public.dukascopy_ohlcv USING btree (unixtime);
 
 
 --
