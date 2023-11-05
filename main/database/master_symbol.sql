@@ -124,3 +124,27 @@ VALUES
     (110,        'XAU/USD', 'dukascopyapi',      'XAU',  'USD', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":  100000, "bid_volume":  100000}', null),
     (111,        'XAG/USD', 'dukascopyapi',      'XAG',  'USD', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":   10000, "bid_volume":   10000}', null)
 ;
+
+UPDATE public.master_symbol SET base = 'SPI20' where symbol_id in (67, 96);
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 30;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 33;
+UPDATE public.master_symbol SET scale_pre = '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}' WHERE symbol_id = 36;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 40;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 45;
+UPDATE public.master_symbol SET scale_pre = '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}' WHERE symbol_id = 46;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 47;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 48;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100, "volume": 1}' WHERE symbol_id = 49;
+UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 50;
+
+
+INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain, scale_pre, scale_aft)
+VALUES
+    (112,    'AXJO.INDX', 'eodhd',  'AXJO', 'AUD', true,  'S&P/ASX 200',                     '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+    (113,    'NSEI.INDX', 'eodhd',  'NSEI', 'INR', true,  'Nifty 50',                        '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}', null),
+    (114,    'IBEX.INDX', 'eodhd',  'IBEX', 'EUR', true,  'IBEX 35 Index',                   '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+    (115,   'SPI20.INDX', 'eodhd', 'SPI20', 'CHF', false, 'SPI 20 PR (Not available)',       null, null),
+    (116,     'AEX.INDX', 'eodhd',  'NL25', 'EUR', true,  'AEX Amsterdam Index',             '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+    (117,   'WIG20.INDX', 'eodhd', 'WIG20', 'PLN', false, 'Poland 20 index (Not available)', '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+    (118, 'XAGUSD.FOREX', 'eodhd',   'XAG', 'USD', true,  null,                              '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+;
