@@ -65,6 +65,7 @@ def correct_df(df: pd.DataFrame, scale_pre: dict=None):
     for x in ['ask', 'bid', 'ask_size', 'bid_size']:
         if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
             df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
+            df.loc[df[x] >= 2147483647, x] = -1
         else:
             df[x] = df[x].astype(float).fillna(-1).astype(int)
     return df
