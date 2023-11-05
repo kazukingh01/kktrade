@@ -3,107 +3,76 @@ import pandas as pd
 # local package
 from kktrade.database.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
-from kktrade.config.com import SCALE_MST, NAME_MST
 from kktrade.config.apikey import APIKEY_EODHD
 
 
-# https://www.axiory.com/jp/trading-tools/historical-data
-# https://www.dukascopy.com/plugins/fxMarketWatch/?historical_data # Bir, UTC, GMT
-# https://finance.yahoo.com/currencies
-# https://help.yahoo.com/kb/finance-for-web
-
-
-# https://medium.com/codex/top-7-financial-apis-to-try-out-in-2022-4f7b38c1fb8
-
-# これいいかも
-# https://twelvedata.com/pricing
-
-# 結局これにする。
-# https://eodhd.com/pricing
-
 EXCHANGE = "eodhd"
 URL_BASE = "https://eodhd.com/api/"
-SCALE = {
-    "USDJPY.FOREX": 11,
-    "EURUSD.FOREX": 13,
-    "GBPUSD.FOREX": 13,
-    "USDCHF.FOREX": 13,
-    "AUDUSD.FOREX": 13,
-    "USDCAD.FOREX": 13,
-    "NZDUSD.FOREX": 13,
-    "EURGBP.FOREX": 13,
-    "EURJPY.FOREX": 11,
-    "EURCHF.FOREX": 13,
-    "XAUUSD.FOREX": 9,
-    "GSPC.INDX":     7,
-    "DJI.INDX":      11,
-    "IXIC.INDX":     7,
-    "BUK100P.INDX":  13,
-    "VIX.INDX":      9,
-    "GDAXI.INDX":    7,
-    "FCHI.INDX":     7,
-    "STOXX50E.INDX": 7,
-    "N100.INDX":     13,
-    "BFX.INDX":      7,
-    # "IMOEX.INDX":    12, # no data
-    "N225.INDX":     11,
-    "HSI.INDX":      7,
-    # "SSEC.INDX":     12, # no data
-    "AORD.INDX":     7,
-    "BSESN.INDX":    11,
-    "JKSE.INDX":     7,
-    "NZ50.INDX":     7,
-    "KS11.INDX":     13, # 5
-    "TWII.INDX":     7,  # 4
-    "GSPTSE.INDX":   7,
-    "BVSP.INDX":     11, # 3
-    "MXX.INDX":      7,
-    # "SPIPSA.INDX":   12, # no data
-    # "MERV.INDX":     12, # no data
-    # "TA125.INDX":    12, # no data
+DICT_INTERVAL = {
+    "BUK100P.INDX":  {"1m": "5m"},
+    "GDAXI.INDX":    {"1m": "5m"},
+    "FCHI.INDX":     {"1m": "5m"},
+    "STOXX50E.INDX": {"1m": "5m"},
+    "N100.INDX":     {"1m": "5m"},
+    "BFX.INDX":      {"1m": "5m"},
+    "N225.INDX":     {"1m": "5m"},
+    "HSI.INDX":      {"1m": "5m"},
+    "AORD.INDX":     {"1m": "5m"},
+    "BSESN.INDX":    {"1m": "5m"},
+    "JKSE.INDX":     {"1m": "5m"},
+    "NZ50.INDX":     {"1m": "5m"},
+    "KS11.INDX":     {"1m": "5m"},
+    "TWII.INDX":     {"1m": "5m"},
+    "GSPTSE.INDX":   {"1m": "5m"},
+    "BVSP.INDX":     {"1m": "5m"},
+    "MXX.INDX":      {"1m": "5m"},
+    "AXJO.INDX":     {"1m": "5m"},
+    "NSEI.INDX":     {"1m": "5m"},
+    "IBEX.INDX":     {"1m": "5m"},
+    "AEX.INDX":      {"1m": "5m"},
 }
-
 
 
 def getexchangelist():
     r = requests.get(f"{URL_BASE}exchanges-list/", params=dict({"api_token": APIKEY_EODHD, "fmt": "json"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str, interval: str="1m", date_from: str=None, date_to: str=None):
-    if interval == "1m" and symbol in [
-        "BUK100P.INDX", "GDAXI.INDX", "FCHI.INDX", "STOXX50E.INDX", "N100.INDX", "BFX.INDX", "N225.INDX",
-        "HSI.INDX", "AORD.INDX", "BSESN.INDX", "JKSE.INDX", "NZ50.INDX", "TWII.INDX", "GSPTSE.INDX", "BVSP.INDX",
-        "MXX.INDX", "KS11.INDX", 
-    ]: interval = "5m"
+def getsymbollist(exchange: str):
+    r = requests.get(f"{URL_BASE}exchange-symbol-list/{exchange}", params=dict({"api_token": APIKEY_EODHD, "fmt": "json"}))
+    return pd.DataFrame(r.json())
+
+def getintraday(symbol: str, interval: str="1m", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
     r = requests.get(f"{URL_BASE}intraday/{symbol}", params=dict({
-        "api_token": APIKEY_EODHD, "interval": interval, "fmt": "json", "from": date_from, "to": date_to
+        "api_token": APIKEY_EODHD, "interval": interval, "fmt": "json",
+        "from": int(date_from.timestamp()) if date_from is not None else None,
+        "to":   int(date_to.  timestamp()) if date_to   is not None else None
     }))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
     if df.shape[0] == 0: return df
     df["unixtime"] = df["timestamp"].astype(int)
-    df["symbol"]   = NAME_MST[symbol]
-    df["scale"]    = SCALE[symbol]
     df["interval"] = {"1m": 1, "5m": 5, "1h": 60}[interval]
-    for x in ["open", "high", "low", "close"]:
-        df[f"price_{x}"] = (df[x].astype(float) * (10 ** SCALE_MST[df["scale"].iloc[0]][0])).fillna(-1).astype(int)
-    df["volume"]   = (df["volume" ].astype(float) * (10 ** SCALE_MST[df["scale"].iloc[0]][1])).fillna(-1).astype(int)
+    columns = df.columns.copy()
+    for x in ["open", "high", "low", "close"]: columns = columns.str.replace(f"^{x}$", f"price_{x}", regex=True)
+    df.columns = columns
     return df
 
 def getliveprice(symbol: str):
-    assert isinstance(symbol, str) and symbol.find(".FOREX") >= 0
-    r = requests.get(f"{URL_BASE}real-time/{symbol}", params=dict({"api_token": APIKEY_EODHD, "fmt": "json"}))
-    df = pd.DataFrame([r.json()])
+    assert isinstance(symbol, str) or isinstance(symbol, list)
+    if isinstance(symbol, str): symbol = [symbol, ]
+    r = requests.get(f"{URL_BASE}real-time/{symbol[0]}", params=dict({"api_token": APIKEY_EODHD, "fmt": "json", "s": ",".join(symbol[1:]) if len(symbol) > 1 else None}))
+    assert r.status_code == 200
+    dictwk = [r.json(), ] if isinstance(r.json(), dict) else r.json()
+    df = pd.DataFrame(dictwk)
     df["unixtime"] = df["timestamp"].astype(int)
-    df["symbol"]   = NAME_MST[symbol]
-    df["scale"]    = SCALE[symbol]
     df["interval"] = 1
-    for x in ["open", "high", "low", "close"]:
-        df[f"price_{x}"] = (df[x].astype(float) * (10 ** SCALE_MST[df["scale"].iloc[0]][0])).fillna(-1).astype(int)
-    df["volume"]   = (df["volume" ].astype(float) * (10 ** SCALE_MST[df["scale"].iloc[0]][1])).fillna(-1).astype(int)
+    columns = df.columns.copy()
+    for x in ["open", "high", "low", "close"]: columns = columns.str.replace(f"^{x}$", f"price_{x}", regex=True)
+    df.columns = columns
     return df
 
 async def getfromws(symbol: str, type: str="forex", is_update: bool=False):
+    # https://eodhd.com/financial-apis/new-real-time-data-api-websockets/
     assert type in ["forex", "crypto"]
     assert isinstance(symbol, str) and symbol.find(".FOREX") >= 0
     pkey = {"forex": "a", "crypto": "p"}[type]
@@ -113,9 +82,6 @@ async def getfromws(symbol: str, type: str="forex", is_update: bool=False):
         await ws.send('{"action": "subscribe", "symbols": "'+symbol.replace(".FOREX", "")+'"}')
         message = await ws.recv()
         po, ph, pl, pc = None, None, None, None
-        symbol_id = NAME_MST[symbol]
-        scale     = SCALE[symbol]
-        scale_mst = SCALE_MST[scale][0]
         time_base = datetime.datetime.now()
         time_base = (int(time_base.timestamp()) - time_base.second) * 1000
         while True:
@@ -139,58 +105,64 @@ async def getfromws(symbol: str, type: str="forex", is_update: bool=False):
                 if pl > price: pl = price
             print(f"Received: {symbol, time, po, ph, pl, pc}")
 
+def correct_df(df: pd.DataFrame, scale_pre: dict=None):
+    df = df.copy()
+    for x in ["price_open", "price_high", "price_low", "price_close", "volume"]:
+        if df.columns.isin([x]).any() == False: continue
+        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
+            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
+        else:
+            df[x] = df[x].astype(float).fillna(-1).astype(int)
+    return df
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fn", type=str)
     parser.add_argument("--no", type=int, default=-1)
-    parser.add_argument("--since", type=str, default="")
-    parser.add_argument("--until", type=str, default="")
+    parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
+    parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
-    DB   = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    if args.fn in ["getintraday", "getliveprice"]:
-        while True:
-            if args.fn == "getintraday":
-                for symbol in SCALE.keys():
-                    timestamp = int(datetime.datetime.now().timestamp())
-                    df = getintraday(symbol, interval="1m", date_from=timestamp-(60*60*24*3), date_to=timestamp)
-                    if df.shape[0] > 0 and args.update:
-                        DB.set_sql(
-                            f"delete from {EXCHANGE}_ohlcv where interval = {df['interval'].iloc[0]} and " + 
-                            f"unixtime in ({','.join(df['unixtime'].astype(str).tolist())}) and symbol = {df['symbol'].iloc[0]};"
-                        )
-                        DB.execute_sql() # Because below function's is_select=True cause ANOTHER SELECT SQL, I have to delete step by step.
-                        DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True, n_jobs=8)
-                        DB.execute_sql()
-                time.sleep(60 * 60 * 1) # per hour
-            if args.fn == "getliveprice":
-                for symbol in SCALE.keys():
-                    df = getliveprice(symbol)
-                    if df.shape[0] == 1 and args.update:
-                        DB.set_sql(f"delete from {EXCHANGE}_ohlcv where unixtime = {df['unixtime'].iloc[0]} and symbol = {df['symbol'].iloc[0]};")
-                        DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
-                time.sleep(60) # per miniute
-    if args.fn == "getall":
-        assert args.since != "" and args.until != ""
-        date_since = datetime.datetime.fromisoformat(args.since)
-        date_until = datetime.datetime.fromisoformat(args.until)
-        for date in [date_since + datetime.timedelta(days=x) for x in range(0, (date_until - date_since).days + 1, 50)]:
-            date_from = int(date.timestamp())
-            date_to   = int((date + datetime.timedelta(days=50)).timestamp())
-            for symbol in SCALE.keys():
-                print(date, date_from, date_to, symbol)
-                df = getintraday(symbol, interval="1m", date_from=date_from, date_to=date_to)
+    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}';")
+    mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
+    scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
+    if args.fn == "getintraday":
+        assert args.fr is not None and args.to is not None
+        for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
+            for symbol_name, symbol_id in mst_id.items():
+                DB.logger.info(f"{date}, {symbol_name}")
+                df = getintraday(
+                    symbol_name, interval=DICT_INTERVAL[symbol_name]["1m"] if DICT_INTERVAL.get(symbol_name) is not None else "1m",
+                    date_from=date, date_to=(date + datetime.timedelta(days=1))
+                )
+                df["symbol"] = symbol_id
+                df = correct_df(df, scale_pre=scale_pre[symbol_name])
                 if df.shape[0] > 0 and args.update:
-                    DB.set_sql(
-                        f"delete from {EXCHANGE}_ohlcv where interval = {df['interval'].iloc[0]} and " + 
-                        f"unixtime in ({','.join(df['unixtime'].astype(str).tolist())}) and symbol = {df['symbol'].iloc[0]};"
+                    DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = {df['interval'].iloc[0]} and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
+                    DB.insert_from_df(
+                        df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close", "volume"]],
+                        f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
                     )
-                    DB.execute_sql() # Because below function's is_select=True cause ANOTHER SELECT SQL, I have to delete step by step.
-                    DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True, n_jobs=8)
                     DB.execute_sql()
+    elif args.fn == "getliveprice":
+        df = getliveprice(list(mst_id.keys()))
+        df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("code")], axis=0, ignore_index=True)
+        df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
+        df["symbol"] = df["code"].map(mst_id)
+        if df.shape[0] > 0 and args.update:
+            sql = f"delete from {EXCHANGE}_ohlcv where "
+            for x, y, z in df[["symbol", "interval", "unixtime"]].values:
+                sql += f"(symbol = {x} and interval = {y} and unixtime = {z}) or "
+            sql = sql[:-4] + ";"
+            DB.set_sql(sql)
+            DB.insert_from_df(
+                df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close", "volume"]],
+                f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
+            )
+            DB.execute_sql()
     if args.fn == "getfromws":
         assert args.no >= 0 and args.no < len(SCALE.keys())
         symbol = list(SCALE.keys())[args.no]
