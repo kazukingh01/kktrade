@@ -146,5 +146,5 @@ VALUES
     (115,   'SPI20.INDX', 'eodhd', 'SPI20', 'CHF', false, 'SPI 20 PR (Not available)',       null, null),
     (116,     'AEX.INDX', 'eodhd',  'NL25', 'EUR', true,  'AEX Amsterdam Index',             '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
     (117,   'WIG20.INDX', 'eodhd', 'WIG20', 'PLN', false, 'Poland 20 index (Not available)', '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
-    (118, 'XAGUSD.FOREX', 'eodhd',   'XAG', 'USD', true,  null,                              '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
+    (118, 'XAGUSD.FOREX', 'eodhd',   'XAG', 'USD', true,  null,                              '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null)
 ;
