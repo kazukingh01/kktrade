@@ -71,40 +71,6 @@ def getliveprice(symbol: str):
     df.columns = columns
     return df
 
-async def getfromws(symbol: str, type: str="forex", is_update: bool=False):
-    # https://eodhd.com/financial-apis/new-real-time-data-api-websockets/
-    assert type in ["forex", "crypto"]
-    assert isinstance(symbol, str) and symbol.find(".FOREX") >= 0
-    pkey = {"forex": "a", "crypto": "p"}[type]
-    uri  = f"wss://ws.eodhistoricaldata.com/ws/{type}?api_token={APIKEY_EODHD}"
-    db   = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200) if is_update else None
-    async with websockets.connect(uri) as ws:
-        await ws.send('{"action": "subscribe", "symbols": "'+symbol.replace(".FOREX", "")+'"}')
-        message = await ws.recv()
-        po, ph, pl, pc = None, None, None, None
-        time_base = datetime.datetime.now()
-        time_base = (int(time_base.timestamp()) - time_base.second) * 1000
-        while True:
-            message = await ws.recv()
-            message = json.loads(message)
-            price   = int(float(message[pkey]) * (10 ** scale_mst))
-            time    = int(message["t"])
-            if is_update and (time - time_base) >= (60 * 1000) and po is not None:
-                db.set_sql(
-                    f"INSERT INTO eodhd_ohlcv (symbol, scale, unixtime, interval, price_open, price_high, price_low, price_close) VALUES " + 
-                    f"({symbol_id}, {scale}, {time}, 1, {po}, {ph}, {pl}, {pc});"
-                )
-                db.execute_sql()
-                time_base = time
-                po, ph, pl, pc = None, None, None, None
-            if po is None:
-                po, ph, pl, pc = price, price, price, price
-            else:
-                pc = price
-                if ph < price: ph = price
-                if pl > price: pl = price
-            print(f"Received: {symbol, time, po, ph, pl, pc}")
-
 def correct_df(df: pd.DataFrame, scale_pre: dict=None):
     df = df.copy()
     for x in ["price_open", "price_high", "price_low", "price_close", "volume"]:
@@ -115,6 +81,52 @@ def correct_df(df: pd.DataFrame, scale_pre: dict=None):
             df[x] = df[x].astype(float).fillna(-1).astype(int)
     return df
 
+def organize_values(list_values: list, scale_pre: dict, mst_id: dict, DB: Psgre=None):
+    df = pd.DataFrame(list_values)
+    df = df.sort_values(["t"]).reset_index(drop=True)
+    df["tm"] = (df["t"] / 1000).astype(int)
+    df["tm"] = (df["tm"] - (df["tm"] % 60) + 60) * 1000
+    df["m"]  = (df["a"] + df["b"]) / 2.
+    df = df.groupby(["s", "tm"])["m"].aggregate(["first", "max", "min", "last"]).reset_index()
+    df.columns = ["symbol", "unixtime", "price_open", "price_high", "price_low", "price_close"]
+    df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("symbol")], axis=0, ignore_index=True)
+    df["interval"] = 1
+    df["symbol"]   = df["symbol"].map(mst_id)
+    if DB is not None and df.shape[0] > 0:
+        DB.insert_from_df(
+            df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close"]],
+            f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
+        )
+        DB.execute_sql()
+    return df
+
+async def getfromws(symbols: str, scale_pre: dict, mst_id: dict, type: str="forex", is_update: bool=False):
+    # https://eodhd.com/financial-apis/new-real-time-data-api-websockets/
+    assert type in ["forex"]
+    assert isinstance(symbols, str) or isinstance(symbols, list)
+    if isinstance(symbols, str): symbols = [symbols, ]
+    uri = f"wss://ws.eodhistoricaldata.com/ws/{type}?api_token={APIKEY_EODHD}"
+    DB  = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200) if is_update else None
+    async with websockets.connect(uri) as ws:
+        await ws.send('{"action": "subscribe", "symbols": "'+",".join(symbols)+'"}')
+        list_values = []
+        message     = await ws.recv()
+        time_base   = None
+        while True:
+            message = await ws.recv()
+            message = json.loads(message)
+            t       = int(message["t"])
+            if time_base is None:
+                time_base = int(t / 1000)
+                time_base = (time_base - (time_base % 60)) * 1000
+            if (t - time_base) >= (60 * 1000) and len(list_values) > 0:
+                df = organize_values(list_values.copy(), scale_pre, mst_id, DB=DB)
+                print(df)
+                list_values = []
+                time_base   = int(t / 1000)
+                time_base   = (time_base - (time_base % 60)) * 1000
+            list_values.append(message)
+            print(f"Received: {message}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -140,6 +152,7 @@ if __name__ == "__main__":
                 )
                 df["symbol"] = symbol_id
                 df = correct_df(df, scale_pre=scale_pre[symbol_name])
+                DB.logger.info(f"{df}")
                 if df.shape[0] > 0 and args.update:
                     DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = {df['interval'].iloc[0]} and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
                     DB.insert_from_df(
@@ -148,24 +161,28 @@ if __name__ == "__main__":
                     )
                     DB.execute_sql()
     elif args.fn == "getliveprice":
-        df = getliveprice(list(mst_id.keys()))
-        df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("code")], axis=0, ignore_index=True)
-        df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
-        df["symbol"] = df["code"].map(mst_id)
-        if df.shape[0] > 0 and args.update:
-            sql = f"delete from {EXCHANGE}_ohlcv where "
-            for x, y, z in df[["symbol", "interval", "unixtime"]].values:
-                sql += f"(symbol = {x} and interval = {y} and unixtime = {z}) or "
-            sql = sql[:-4] + ";"
-            DB.set_sql(sql)
-            DB.insert_from_df(
-                df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close", "volume"]],
-                f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
-            )
-            DB.execute_sql()
-    if args.fn == "getfromws":
-        assert args.no >= 0 and args.no < len(SCALE.keys())
-        symbol = list(SCALE.keys())[args.no]
-        assert symbol.find(".FOREX") >= 0
-        asyncio.run(getfromws(symbol, type="forex", is_update=args.update))
+        while True:
+            df = getliveprice(list(mst_id.keys()))
+            df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("code")], axis=0, ignore_index=True)
+            df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
+            df["symbol"] = df["code"].map(mst_id)
+            if df.shape[0] > 0 and args.update:
+                sql = f"delete from {EXCHANGE}_ohlcv where "
+                for x, y, z in df[["symbol", "interval", "unixtime"]].values:
+                    sql += f"(symbol = {x} and interval = {y} and unixtime = {z}) or "
+                sql = sql[:-4] + ";"
+                DB.set_sql(sql)
+                DB.insert_from_df(
+                    df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close", "volume"]],
+                    f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
+                )
+                DB.execute_sql()
+            time.sleep(30)
+    elif args.fn == "getfromws":
+        symbols = [x.split(".")[0] for x in list(mst_id.keys()) if x.find(".FOREX") >= 0]
+        asyncio.run(getfromws(
+            symbols, {x.split(".")[0]:y for x, y in scale_pre.items()}, 
+            {x.split(".")[0]:y for x, y in mst_id.items()}, 
+            type="forex", is_update=args.update
+        ))
 

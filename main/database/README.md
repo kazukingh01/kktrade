@@ -113,15 +113,16 @@ vi /etc/postgresql/16/main/postgresql.conf
 ```
 
 ```
-shared_buffers = 4GB                    # min 128kB
-work_mem = 64MB                         # min 64kB
+shared_buffers = 2GB                    # Set 40% of RAM
+work_mem = 256MB                        # min 64kB
 effective_cache_size = 16GB
 listen_addresses = '*'                  # what IP address(es) to listen on;
 port = 55432                            # (change requires restart)
-autovacuum = on                 # Enable autovacuum subprocess?  'on'
+autovacuum = on                         # Enable autovacuum subprocess?  'on'
 autovacuum_max_workers = 4              # max number of autovacuum subprocesses
 maintenance_work_mem = 1GB              # min 1MB
 autovacuum_work_mem = -1                # min 1MB, or -1 to use maintenance_work_mem
+max_wal_size = 8GB
 ```
 
 ```bash
