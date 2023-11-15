@@ -1,4 +1,4 @@
 */1 *   * * *   ubuntu  bash /home/ubuntu/kktrade/main/database/eodhd/monitor.sh
 0   0   * * *   ubuntu  sleep 10 && pkill python
 0   0   * * *   ubuntu  /home/ubuntu/venv/bin/python /home/ubuntu/kktrade/main/log/remove.py --path /home/ubuntu/kktrade/main/log/*YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
-0   1   * * *   ubuntu  /home/ubuntu/venv/bin/python /home/ubuntu/kktrade/main/database/eodhd/getdata.py --fn getintraday --fr `date "+\%Y\%m\%d" --date '2 day ago'` --to `date "+\%Y\%m\%d" --date '0 day ago'` --update
+0   1   * * *   ubuntu  /home/ubuntu/venv/bin/python /home/ubuntu/kktrade/main/database/eodhd/getdata.py --fn getintraday --fr `date "+\%Y\%m\%d" --date '2 day ago'` --to `date "+\%Y\%m\%d" --date '0 day ago'` --update > /home/ubuntu/kktrade/main/log/eodhd_getintraday.`date "+\%Y\%m\%d"`.log
