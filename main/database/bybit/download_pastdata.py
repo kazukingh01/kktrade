@@ -46,8 +46,14 @@ if __name__ == "__main__":
     parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101", required=True)
     parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101", required=True)
     parser.add_argument("--update", action='store_true', default=False)
+    kwargs_psgre = {
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 5,
+        "keepalives_count": 5,
+    }
     args      = parser.parse_args()
-    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", kwargs_psgre=kwargs_psgre, max_disp_len=200)
     df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}

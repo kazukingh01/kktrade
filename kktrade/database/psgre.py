@@ -17,7 +17,7 @@ __all__ = [
 
 
 class Psgre:
-    def __init__(self, connection_string: str, max_disp_len: int=100, **kwargs):
+    def __init__(self, connection_string: str, max_disp_len: int=100, kwargs_psgre: dict={}, **kwargs):
         """
         DataFrame interface class for PostgresSQL.
         Params::
@@ -29,7 +29,7 @@ class Psgre:
         assert connection_string is None or isinstance(connection_string, str)
         assert isinstance(max_disp_len, int)
         self.connection_string = connection_string
-        self.con               = None if connection_string is None else psycopg2.connect(connection_string)
+        self.con               = None if connection_string is None else psycopg2.connect(connection_string, **kwargs_psgre)
         self.max_disp_len      = max_disp_len
         self.logger            = set_logger(f"{LOGNAME}.{self.__class__.__name__}.{str(id(self.con))}", **kwargs)
         self.initialize()
