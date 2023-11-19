@@ -50,7 +50,7 @@ if __name__ == "__main__":
         "keepalives": 1,
         "keepalives_idle": 30,
         "keepalives_interval": 5,
-        "keepalives_count": 5,
+        "keepalives_count": 100,
     }
     args      = parser.parse_args()
     DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", kwargs_psgre=kwargs_psgre, max_disp_len=200)
@@ -65,10 +65,7 @@ if __name__ == "__main__":
             if MST_CONV.get(symbol) is None: continue
             df = download_trade(symbol, date, mst_id=mst_id, scale_pre=scale_pre[symbol])
             if df.shape[0] > 0:
-                df_exist = DB.select_sql(
-                    f"select symbol, id from {EXCHANGE}_executions_{date.year} where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
-                    f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
-                )
+                df_exist = DB.select_sql(f"select id from {EXCHANGE}_executions_{date.year} where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};")
                 df = df.loc[~df["id"].isin(df_exist["id"])]
             else:
                 print("Nothing data.")
