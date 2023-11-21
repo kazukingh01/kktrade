@@ -42,11 +42,15 @@ def getsymbollist(exchange: str):
     return pd.DataFrame(r.json())
 
 def getintraday(symbol: str, interval: str="1m", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
-    r = requests.get(f"{URL_BASE}intraday/{symbol}", params=dict({
-        "api_token": APIKEY_EODHD, "interval": interval, "fmt": "json",
-        "from": int(date_from.timestamp()) if date_from is not None else None,
-        "to":   int(date_to.  timestamp()) if date_to   is not None else None
-    }))
+    r = None
+    for _ in range(3):
+        r = requests.get(f"{URL_BASE}intraday/{symbol}", params=dict({
+            "api_token": APIKEY_EODHD, "interval": interval, "fmt": "json",
+            "from": int(date_from.timestamp()) if date_from is not None else None,
+            "to":   int(date_to.  timestamp()) if date_to   is not None else None
+        }))
+        if r.status_code == 200: break
+        continue
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
     if df.shape[0] == 0: return df
