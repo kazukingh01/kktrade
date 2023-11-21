@@ -50,6 +50,7 @@ def getintraday(symbol: str, interval: str="1m", date_from: datetime.datetime=No
             "to":   int(date_to.  timestamp()) if date_to   is not None else None
         }))
         if r.status_code == 200: break
+        time.sleep(5)
         continue
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
