@@ -10,8 +10,8 @@ with open("README.md", "r") as fh:
 
 setup(
     name='kktrade',
-    version='1.0.0',
-    description='augmentation wrapper package for albumentations',
+    version='1.1.0',
+    description='python libraries for trade.',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/kazukingh01/kktrade",
@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'psycopg2-binary==2.9.5',
+        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@894ef961d66aff7355bb839d0e6a2156e14ff8eb',
         'pandas==1.5.3',
         'numpy==1.24.2',
         'joblib==1.3.2',

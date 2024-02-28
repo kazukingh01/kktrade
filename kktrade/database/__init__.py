@@ -1,1 +1,0 @@
-from kktrade.database import psgre
