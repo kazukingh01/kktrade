@@ -168,7 +168,6 @@ add below. ( mac address should be changed the number as same as one which can b
         eth1:
             addresses:
             - 172.128.128.10/24
-            gateway4: 172.128.128.1
             set-name: eth1
             match:
                 macaddress: fa:16:3e:94:58:36

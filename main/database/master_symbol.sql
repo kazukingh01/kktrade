@@ -1,150 +1,121 @@
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain, scale_pre, scale_aft)
-VALUES
-    ( 0,        'BTC_JPY',  'bitflyer',      'BTC',  'JPY', true,  null, '{"price":     1, "size":  100000, "bid":     1, "ask":     1, "last_traded_price":     1, "bid_size": 100000, "ask_size": 100000, "total_bid_depth": 100000, "total_ask_depth": 100000, "market_bid_size": 100000, "market_ask_size": 100000, "volume": 100000, "volume_by_product": 100000}', null),
-    ( 1,        'XRP_JPY',  'bitflyer',      'XRP',  'JPY', true,  null, '{"price":   100, "size":     100, "bid":   100, "ask":   100, "last_traded_price":   100, "bid_size":    100, "ask_size":    100, "total_bid_depth":    100, "total_ask_depth":    100, "market_bid_size":    100, "market_ask_size":    100, "volume":    100, "volume_by_product":    100}', null),
-    ( 2,        'ETH_JPY',  'bitflyer',      'ETH',  'JPY', true,  null, '{"price":     1, "size":  100000, "bid":     1, "ask":     1, "last_traded_price":     1, "bid_size": 100000, "ask_size": 100000, "total_bid_depth": 100000, "total_ask_depth": 100000, "market_bid_size": 100000, "market_ask_size": 100000, "volume": 100000, "volume_by_product": 100000}', null),
-    ( 3,        'XLM_JPY',  'bitflyer',      'XLM',  'JPY', false, null, '{"price":  1000, "size":     100, "bid":  1000, "ask":  1000, "last_traded_price":  1000, "bid_size":    100, "ask_size":    100, "total_bid_depth":    100, "total_ask_depth":    100, "market_bid_size":    100, "market_ask_size":    100, "volume":    100, "volume_by_product":    100}', null),
-    ( 4,       'MONA_JPY',  'bitflyer',     'MONA',  'JPY', false, null, '{"price":  1000, "size":     100, "bid":  1000, "ask":  1000, "last_traded_price":  1000, "bid_size":    100, "ask_size":    100, "total_bid_depth":    100, "total_ask_depth":    100, "market_bid_size":    100, "market_ask_size":    100, "volume":    100, "volume_by_product":    100}', null),
-    ( 5,     'FX_BTC_JPY',  'bitflyer',   'BTC_FX',  'JPY', true,  null, '{"price":     1, "size":  100000, "bid":     1, "ask":     1, "last_traded_price":     1, "bid_size": 100000, "ask_size": 100000, "total_bid_depth": 100000, "total_ask_depth": 100000, "market_bid_size": 100000, "market_ask_size": 100000, "volume": 100000, "volume_by_product": 100000}', null),
-    ( 6,   'spot@BTCUSDT',     'bybit',      'BTC', 'USDT', true,  null, '{"price":   100, "size": 1000000, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size": 1000000, "ask_size": 1000000, "volume": 1000000, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    ( 7,   'spot@ETHUSDC',     'bybit',      'ETH', 'USDC', true,  null, '{"price":   100, "size":  100000, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size":  100000, "ask_size":  100000, "volume":  100000, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    ( 8,   'spot@BTCUSDC',     'bybit',      'BTC', 'USDC', true,  null, '{"price":   100, "size": 1000000, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size": 1000000, "ask_size": 1000000, "volume": 1000000, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    ( 9,   'spot@ETHUSDT',     'bybit',      'ETH', 'USDT', true,  null, '{"price":   100, "size":  100000, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size":  100000, "ask_size":  100000, "volume":  100000, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    (10,   'spot@XRPUSDT',     'bybit',      'XRP', 'USDT', true,  null, '{"price": 10000, "size":     100, "bid": 10000, "ask": 10000, "last_traded_price": 10000, "index_price": 10000, "mark_price": 10000, "funding_rate": 10000, "bid_size":     100, "ask_size":     100, "volume":     100, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000}', null),
-    (11, 'linear@BTCUSDT',     'bybit',      'BTC', 'USDT', true,  null, '{"price":   100, "size":    1000, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size":    1000, "ask_size":    1000, "volume":    1000, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    (12, 'linear@ETHUSDT',     'bybit',      'ETH', 'USDT', true,  null, '{"price":   100, "size":     100, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size":     100, "ask_size":     100, "volume":     100, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    (13, 'linear@XRPUSDT',     'bybit',      'XRP', 'USDT', true,  null, '{"price": 10000, "size":       1, "bid": 10000, "ask": 10000, "last_traded_price": 10000, "index_price": 10000, "mark_price": 10000, "funding_rate": 10000, "bid_size":       1, "ask_size":       1, "volume":       1, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000}', null),
-    (14, 'inverse@BTCUSD',     'bybit',      'BTC',  'USD', true,  null, '{"price":    10, "size":       1, "bid":    10, "ask":    10, "last_traded_price":    10, "index_price":    10, "mark_price":    10, "funding_rate":    10, "bid_size":       1, "ask_size":       1, "volume":       1, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":    10, "price_high":    10, "price_low":    10, "price_close":    10}', null),
-    (15, 'inverse@ETHUSD',     'bybit',      'ETH',  'USD', true,  null, '{"price":   100, "size":       1, "bid":   100, "ask":   100, "last_traded_price":   100, "index_price":   100, "mark_price":   100, "funding_rate":   100, "bid_size":       1, "ask_size":       1, "volume":       1, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100}', null),
-    (16, 'inverse@XRPUSD',     'bybit',      'XRP',  'USD', true,  null, '{"price": 10000, "size":       1, "bid": 10000, "ask": 10000, "last_traded_price": 10000, "index_price": 10000, "mark_price": 10000, "funding_rate": 10000, "bid_size":       1, "ask_size":       1, "volume":       1, "open_interest": 1, "open_interest_value": 1, "turnover": 1, "price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000}', null),
-    (17,   'USDJPY.FOREX',     'eodhd',      'USD',  'JPY', true,  null, '{"price_open":   1000, "price_high":   1000, "price_low":   1000, "price_close":   1000, "volume": 1}', null),
-    (18,   'EURUSD.FOREX',     'eodhd',      'EUR',  'USD', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (19,   'GBPUSD.FOREX',     'eodhd',      'GBP',  'USD', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (20,   'USDCHF.FOREX',     'eodhd',      'USD',  'CHF', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (21,   'AUDUSD.FOREX',     'eodhd',      'AUD',  'USD', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (22,   'USDCAD.FOREX',     'eodhd',      'USD',  'CAD', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (23,   'NZDUSD.FOREX',     'eodhd',      'NZD',  'USD', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (24,   'EURGBP.FOREX',     'eodhd',      'EUR',  'GBP', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (25,   'EURJPY.FOREX',     'eodhd',      'EUR',  'JPY', true,  null, '{"price_open":   1000, "price_high":   1000, "price_low":   1000, "price_close":   1000, "volume": 1}', null),
-    (26,   'EURCHF.FOREX',     'eodhd',      'EUR',  'CHF', true,  null, '{"price_open": 100000, "price_high": 100000, "price_low": 100000, "price_close": 100000, "volume": 1}', null),
-    (27,   'XAUUSD.FOREX',     'eodhd',      'XAU',  'USD', true,  null, '{"price_open":    100, "price_high":    100, "price_low":    100, "price_close":    100, "volume": 1}', null),
-    (28,      'GSPC.INDX',     'eodhd',     'GSPC',  'USD', true,  'S&P 500',               '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (29,       'DJI.INDX',     'eodhd',      'DJI',  'USD', true,  'Dow Jones',             '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "volume": 1}', null),
-    (30,      'IXIC.INDX',     'eodhd',     'IXIC',  'USD', true,  'NASDAQ Index',          '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (31,   'BUK100P.INDX',     'eodhd',  'BUK100P',  'GBP', true,  'Cboe UK 100',           '{"price_open":  100000, "price_high":  100000, "price_low":  100000, "price_close":  100000, "volume": 1}', null),
-    (32,       'VIX.INDX',     'eodhd',      'VIX',  'USD', true,  'CBOE Volatility Index', '{"price_open":     100, "price_high":     100, "price_low":     100, "price_close":     100, "volume": 1}', null),
-    (33,     'GDAXI.INDX',     'eodhd',    'GDAXI',  'EUR', true,  'Germany 40 index',      '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (34,      'FCHI.INDX',     'eodhd',     'FCHI',  'EUR', true,  'France 40 index',       '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (35,  'STOXX50E.INDX',     'eodhd', 'STOXX50E',  'EUR', true,  'Europe 50 index',       '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (36,      'N100.INDX',     'eodhd',     'N100',  'EUR', true,  'Euronext 100 Index',    '{"price_open":  100000, "price_high":  100000, "price_low":  100000, "price_close":  100000, "volume": 1}', null),
-    (37,       'BFX.INDX',     'eodhd',      'BFX',  'EUR', true,  'Brussels 20 Index',     '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (38,     'IMOEX.INDX',     'eodhd',    'IMOEX',  'RUB', false, 'Russia 50 Index',       null, null),
-    (39,      'N225.INDX',     'eodhd',     'N225',  'JPY', true,  'Nikkei 225',            '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "volume": 1}', null),
-    (40,       'HSI.INDX',     'eodhd',      'HSI',  'HKD', true,  'Hong Kong 40 Index',    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (41,      'SSEC.INDX',     'eodhd',     'SSEC',     '', false, null,                    null, null),
-    (42,      'AORD.INDX',     'eodhd',     'AORD',  'AUD', true,  'Australlia 500 index',  '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (43,     'BSESN.INDX',     'eodhd',    'BSESN',  'INR', true,  'india 30 index',        '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "volume": 1}', null),
-    (44,      'JKSE.INDX',     'eodhd',     'JKSE',  'IDR', true,  'Jakarta all Index',     '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (45,      'NZ50.INDX',     'eodhd',     'NZ50',  'NZD', true,  'New Zealand 50 Index',  '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (46,      'KS11.INDX',     'eodhd',     'KS11',  'KRW', true,  'Koria Index',           '{"price_open":  100000, "price_high":  100000, "price_low":  100000, "price_close":  100000, "volume": 1}', null),
-    (47,      'TWII.INDX',     'eodhd',     'TWII',  'TWD', true,  'Taiwan Index',          '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (48,    'GSPTSE.INDX',     'eodhd',   'GSPTSE',  'CAD', true,  'Canada 250 Index',      '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (49,      'BVSP.INDX',     'eodhd',     'BVSP',  'BRL', true,  'Brazil index',          '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "volume": 1}', null),
-    (50,       'MXX.INDX',     'eodhd',   'GSPTSE',  'MXN', true,  'Mexico Index',          '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "volume": 1}', null),
-    (51,    'SPIPSA.INDX',     'eodhd',   'SPIPSA',  'CLP', false, 'Chile Index',           null, null),
-    (52,      'MERV.INDX',     'eodhd',     'MERV',  'ARS', false, 'Argentina  Index',      null, null),
-    (53,     'TA125.INDX',     'eodhd',    'TA125',  'ILS', false, 'Israel 125 Index',      null, null),
-    (54,   'USA500IDXUSD', 'dukascopy',     'GSPC',  'USD', true,  'S&P 500',               '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask": 0.001, "bid": 0.001}'),
-    (55,      'VOLIDXUSD', 'dukascopy',      'VIX',  'USD', true,  'CBOE Volatility Index', '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask":  0.01, "bid":  0.01}'),
-    (56,      'CHIIDXUSD', 'dukascopy',     'XIN9',  'CNY', true,  'China A50 Index',       '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask": 0.001, "bid": 0.001}'),
-    (57,      'HKGIDXHKD', 'dukascopy',      'HSI',  'HKD', true,  'Hong Kong 40 Index',    '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask": 0.001, "bid": 0.001}'),
-    (58,      'JPNIDXJPY', 'dukascopy',     'N225',  'JPY', true,  'Nikkei 225',            '{"ask": 1, "bid": 1, "ask_size":    1000, "bid_size":    1000}', '{"ask": 0.001, "bid": 0.001}'),
-    (59,      'AUSIDXAUD', 'dukascopy',     'AXJO',  'AUD', true,  'Australlia 200 index',  '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask": 0.001, "bid": 0.001}'),
-    (60,      'INDIDXUSD', 'dukascopy',     'NSEI',  'INR', true,  'India 50 index',        '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask": 0.001, "bid": 0.001}'),
-    (61,      'SGDIDXSGD', 'dukascopy',    'SSGF3',  'SGD', true,  'Singapore Blue Chip',   '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask": 0.001, "bid": 0.001}'),
-    (62,      'FRAIDXEUR', 'dukascopy',     'FCHI',  'EUR', true,  'France 40 index',       '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask": 0.001, "bid": 0.001}')
-;
-
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain, scale_pre, scale_aft)
-VALUES
-    (63,      'DUEIDXEUR', 'dukascopy',    'GDAXI',  'EUR', true,  'Germany 40 index',      '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask":  0.001, "bid":  0.001}'),
-    (64,      'EUSIDXEUR', 'dukascopy', 'STOXX50E',  'EUR', true,  'Europe 50 index',       '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask":  0.001, "bid":  0.001}'),
-    (65,      'GBRIDXGBR', 'dukascopy',  'BUK100P',  'GBP', true,  'UK 100 index',          '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask": 0.0001, "bid": 0.0001}'),
-    (66,      'ESPIDXEUR', 'dukascopy',     'IBEX',  'EUR', true,  'Spain 35 index',        '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask":  0.001, "bid":  0.001}'),
-    (67,      'CHEIDXCHF', 'dukascopy', 'SPI20.SW',  'CHF', true,  'Switzerland 20 index',  '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask":  0.001, "bid":  0.001}'),
-    (68,      'NLDIDXEUR', 'dukascopy',     'NL25',  'EUR', true,  'Netherlands 25 index',  '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask":  0.001, "bid":  0.001}'),
-    (69,      'PLNIDXPLN', 'dukascopy',    'WIG20',  'PLN', true,  'Poland 20 index',       '{"ask": 1, "bid": 1, "ask_size":  100000, "bid_size":  100000}', '{"ask":  0.001, "bid":  0.001}'),
-    (70,      'SOAIDXZAR', 'dukascopy',     'SA40',  'ZAR', true,  'South Africa 40 index', '{"ask": 1, "bid": 1, "ask_size": 1000000, "bid_size": 1000000}', '{"ask":   0.01, "bid":   0.01}'),
-    (71,         'USDJPY', 'dukascopy',      'USD',  'JPY', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask":   0.001, "bid":   0.001}'),
-    (72,         'EURUSD', 'dukascopy',      'EUR',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (73,         'GBPUSD', 'dukascopy',      'GBP',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (74,         'USDCHF', 'dukascopy',      'USD',  'CHF', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (75,         'AUDUSD', 'dukascopy',      'AUD',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (76,         'USDCAD', 'dukascopy',      'USD',  'CAD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (77,         'NZDUSD', 'dukascopy',      'NZD',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (78,         'EURGBP', 'dukascopy',      'EUR',  'GBP', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (79,         'EURJPY', 'dukascopy',      'EUR',  'JPY', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask":   0.001, "bid":   0.001}'),
-    (80,         'EURCHF', 'dukascopy',      'EUR',  'CHF', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":     100, "bid_size":     100}', '{"ask": 0.00001, "bid": 0.00001}'),
-    (81,         'XAUUSD', 'dukascopy',      'XAU',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask":   0.001, "bid":   0.001}'),
-    (82,         'XAGUSD', 'dukascopy',      'XAG',  'USD', true,  null,                    '{"ask": 1, "bid": 1, "ask_size":   10000, "bid_size":   10000}', '{"ask":   0.001, "bid":   0.001}')
-;
-
-UPDATE public.master_symbol SET symbol_name = 'DEUIDXEUR' where symbol_id = 63;
-UPDATE public.master_symbol SET symbol_name = 'GBRIDXGBP' where symbol_id = 65;
-
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain, scale_pre, scale_aft)
-VALUES
-    ( 83, 'USA500.IDX/USD', 'dukascopyapi',     'GSPC',  'USD', true, 'S&P 500',               '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 84,    'VOL.IDX/USD', 'dukascopyapi',      'VIX',  'USD', true, 'CBOE Volatility Index', '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":   10000, "bid_volume":   10000}', null),
-    ( 85,    'CHI.IDX/USD', 'dukascopyapi',     'XIN9',  'CNY', true, 'China A50 Index',       '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume": 1000000, "bid_volume": 1000000}', null),
-    ( 86,    'HKG.IDX/HKD', 'dukascopyapi',      'HSI',  'HKD', true, 'Hong Kong 40 Index',    '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume": 1000000, "bid_volume": 1000000}', null),
-    ( 87,    'JPN.IDX/JPY', 'dukascopyapi',     'N225',  'JPY', true, 'Nikkei 225',            '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":    1000, "bid_volume":    1000}', null),
-    ( 88,    'AUS.IDX/AUD', 'dukascopyapi',     'AXJO',  'AUD', true, 'Australlia 200 index',  '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 89,    'IND.IDX/USD', 'dukascopyapi',     'NSEI',  'INR', true, 'India 50 index',        '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 90,    'SGD.IDX/SGD', 'dukascopyapi',    'SSGF3',  'SGD', true, 'Singapore Blue Chip',   '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":   10000, "bid_volume":   10000}', null),
-    ( 91,    'FRA.IDX/EUR', 'dukascopyapi',     'FCHI',  'EUR', true, 'France 40 index',       '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume": 1000000, "bid_volume": 1000000}', null),
-    ( 92,    'DEU.IDX/EUR', 'dukascopyapi',    'GDAXI',  'EUR', true, 'Germany 40 index',      '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 93,    'EUS.IDX/EUR', 'dukascopyapi', 'STOXX50E',  'EUR', true, 'Europe 50 index',       '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":   10000, "bid_volume":   10000}', null),
-    ( 94,    'GBR.IDX/GBP', 'dukascopyapi',  'BUK100P',  'GBP', true, 'UK 100 index',          '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":  100000, "bid_volume":  100000}', '{"price_open": 0.00001, "price_high": 0.00001, "price_low": 0.00001, "price_close": 0.00001}'),
-    ( 95,    'ESP.IDX/EUR', 'dukascopyapi',     'IBEX',  'EUR', true, 'Spain 35 index',        '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume": 1000000, "bid_volume": 1000000}', null),
-    ( 96,    'CHE.IDX/CHF', 'dukascopyapi', 'SPI20.SW',  'CHF', true, 'Switzerland 20 index',  '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 97,    'NLD.IDX/EUR', 'dukascopyapi',     'NL25',  'EUR', true, 'Netherlands 25 index',  '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":     100, "bid_volume":     100}', null),
-    ( 98,    'PLN.IDX/PLN', 'dukascopyapi',    'WIG20',  'PLN', true, 'Poland 20 index',       '{"price_open":    1000, "price_high":    1000, "price_low":    1000, "price_close":    1000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    ( 99,    'SOA.IDX/ZAR', 'dukascopyapi',     'SA40',  'ZAR', true, 'South Africa 40 index', '{"price_open":     100, "price_high":     100, "price_low":     100, "price_close":     100, "ask_volume": 1000000, "bid_volume": 1000000}', null),
-    (100,        'USD/JPY', 'dukascopyapi',      'USD',  'JPY', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":     100, "bid_volume":     100}', null),
-    (101,        'EUR/USD', 'dukascopyapi',      'EUR',  'USD', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (102,        'GBP/USD', 'dukascopyapi',      'GBP',  'USD', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (103,        'USD/CHF', 'dukascopyapi',      'USD',  'CHF', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (104,        'AUD/USD', 'dukascopyapi',      'AUD',  'USD', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (105,        'USD/CAD', 'dukascopyapi',      'USD',  'CAD', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (106,        'NZD/USD', 'dukascopyapi',      'NZD',  'USD', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (107,        'EUR/GBP', 'dukascopyapi',      'EUR',  'GBP', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (108,        'EUR/JPY', 'dukascopyapi',      'EUR',  'JPY', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":     100, "bid_volume":     100}', null),
-    (109,        'EUR/CHF', 'dukascopyapi',      'EUR',  'CHF', true, null,                    '{"price_open": 1000000, "price_high": 1000000, "price_low": 1000000, "price_close": 1000000, "ask_volume":     100, "bid_volume":     100}', null),
-    (110,        'XAU/USD', 'dukascopyapi',      'XAU',  'USD', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":  100000, "bid_volume":  100000}', null),
-    (111,        'XAG/USD', 'dukascopyapi',      'XAG',  'USD', true, null,                    '{"price_open":   10000, "price_high":   10000, "price_low":   10000, "price_close":   10000, "ask_volume":   10000, "bid_volume":   10000}', null)
-;
-
-UPDATE public.master_symbol SET base = 'SPI20' where symbol_id in (67, 96);
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 30;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 33;
-UPDATE public.master_symbol SET scale_pre = '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}' WHERE symbol_id = 36;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 40;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 45;
-UPDATE public.master_symbol SET scale_pre = '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}' WHERE symbol_id = 46;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 47;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 48;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":   100, "price_high":   100, "price_low":   100, "price_close":   100, "volume": 1}' WHERE symbol_id = 49;
-UPDATE public.master_symbol SET scale_pre = '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}' WHERE symbol_id = 50;
-
-
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain, scale_pre, scale_aft)
-VALUES
-    (112,    'AXJO.INDX', 'eodhd',  'AXJO', 'AUD', true,  'S&P/ASX 200',                     '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
-    (113,    'NSEI.INDX', 'eodhd',  'NSEI', 'INR', true,  'Nifty 50',                        '{"price_open":  1000, "price_high":  1000, "price_low":  1000, "price_close":  1000, "volume": 1}', null),
-    (114,    'IBEX.INDX', 'eodhd',  'IBEX', 'EUR', true,  'IBEX 35 Index',                   '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
-    (115,   'SPI20.INDX', 'eodhd', 'SPI20', 'CHF', false, 'SPI 20 PR (Not available)',       null, null),
-    (116,     'AEX.INDX', 'eodhd',  'NL25', 'EUR', true,  'AEX Amsterdam Index',             '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
-    (117,   'WIG20.INDX', 'eodhd', 'WIG20', 'PLN', false, 'Poland 20 index (Not available)', '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null),
-    (118, 'XAGUSD.FOREX', 'eodhd',   'XAG', 'USD', true,  null,                              '{"price_open": 10000, "price_high": 10000, "price_low": 10000, "price_close": 10000, "volume": 1}', null)
-;
+COPY public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) FROM stdin;
+0	BTC_JPY	bitflyer	BTC	JPY	t	\N
+1	XRP_JPY	bitflyer	XRP	JPY	t	\N
+2	ETH_JPY	bitflyer	ETH	JPY	t	\N
+3	XLM_JPY	bitflyer	XLM	JPY	f	\N
+4	MONA_JPY	bitflyer	MONA	JPY	f	\N
+5	FX_BTC_JPY	bitflyer	BTC_FX	JPY	t	\N
+6	spot@BTCUSDT	bybit	BTC	USDT	t	\N
+7	spot@ETHUSDC	bybit	ETH	USDC	t	\N
+8	spot@BTCUSDC	bybit	BTC	USDC	t	\N
+9	spot@ETHUSDT	bybit	ETH	USDT	t	\N
+10	spot@XRPUSDT	bybit	XRP	USDT	t	\N
+11	linear@BTCUSDT	bybit	BTC	USDT	t	\N
+12	linear@ETHUSDT	bybit	ETH	USDT	t	\N
+13	linear@XRPUSDT	bybit	XRP	USDT	t	\N
+14	inverse@BTCUSD	bybit	BTC	USD	t	\N
+15	inverse@ETHUSD	bybit	ETH	USD	t	\N
+16	inverse@XRPUSD	bybit	XRP	USD	t	\N
+17	USDJPY.FOREX	eodhd	USD	JPY	t	\N
+18	EURUSD.FOREX	eodhd	EUR	USD	t	\N
+19	GBPUSD.FOREX	eodhd	GBP	USD	t	\N
+20	USDCHF.FOREX	eodhd	USD	CHF	t	\N
+21	AUDUSD.FOREX	eodhd	AUD	USD	t	\N
+22	USDCAD.FOREX	eodhd	USD	CAD	t	\N
+23	NZDUSD.FOREX	eodhd	NZD	USD	t	\N
+24	EURGBP.FOREX	eodhd	EUR	GBP	t	\N
+25	EURJPY.FOREX	eodhd	EUR	JPY	t	\N
+26	EURCHF.FOREX	eodhd	EUR	CHF	t	\N
+27	XAUUSD.FOREX	eodhd	XAU	USD	t	\N
+28	GSPC.INDX	eodhd	GSPC	USD	t	S&P 500
+29	DJI.INDX	eodhd	DJI	USD	t	Dow Jones
+31	BUK100P.INDX	eodhd	BUK100P	GBP	t	Cboe UK 100
+32	VIX.INDX	eodhd	VIX	USD	t	CBOE Volatility Index
+34	FCHI.INDX	eodhd	FCHI	EUR	t	France 40 index
+35	STOXX50E.INDX	eodhd	STOXX50E	EUR	t	Europe 50 index
+37	BFX.INDX	eodhd	BFX	EUR	t	Brussels 20 Index
+38	IMOEX.INDX	eodhd	IMOEX	RUB	f	Russia 50 Index
+39	N225.INDX	eodhd	N225	JPY	t	Nikkei 225
+41	SSEC.INDX	eodhd	SSEC		f	\N
+42	AORD.INDX	eodhd	AORD	AUD	t	Australlia 500 index
+43	BSESN.INDX	eodhd	BSESN	INR	t	india 30 index
+44	JKSE.INDX	eodhd	JKSE	IDR	t	Jakarta all Index
+51	SPIPSA.INDX	eodhd	SPIPSA	CLP	f	Chile Index
+52	MERV.INDX	eodhd	MERV	ARS	f	Argentina  Index
+53	TA125.INDX	eodhd	TA125	ILS	f	Israel 125 Index
+54	USA500IDXUSD	dukascopy	GSPC	USD	t	S&P 500
+55	VOLIDXUSD	dukascopy	VIX	USD	t	CBOE Volatility Index
+56	CHIIDXUSD	dukascopy	XIN9	CNY	t	China A50 Index
+57	HKGIDXHKD	dukascopy	HSI	HKD	t	Hong Kong 40 Index
+58	JPNIDXJPY	dukascopy	N225	JPY	t	Nikkei 225
+59	AUSIDXAUD	dukascopy	AXJO	AUD	t	Australlia 200 index
+60	INDIDXUSD	dukascopy	NSEI	INR	t	India 50 index
+61	SGDIDXSGD	dukascopy	SSGF3	SGD	t	Singapore Blue Chip
+62	FRAIDXEUR	dukascopy	FCHI	EUR	t	France 40 index
+64	EUSIDXEUR	dukascopy	STOXX50E	EUR	t	Europe 50 index
+66	ESPIDXEUR	dukascopy	IBEX	EUR	t	Spain 35 index
+65	GBRIDXGBP	dukascopy	BUK100P	GBP	t	UK 100 index
+30	IXIC.INDX	eodhd	IXIC	USD	t	NASDAQ Index
+33	GDAXI.INDX	eodhd	GDAXI	EUR	t	Germany 40 index
+36	N100.INDX	eodhd	N100	EUR	t	Euronext 100 Index
+40	HSI.INDX	eodhd	HSI	HKD	t	Hong Kong 40 Index
+45	NZ50.INDX	eodhd	NZ50	NZD	t	New Zealand 50 Index
+46	KS11.INDX	eodhd	KS11	KRW	t	Koria Index
+47	TWII.INDX	eodhd	TWII	TWD	t	Taiwan Index
+48	GSPTSE.INDX	eodhd	GSPTSE	CAD	t	Canada 250 Index
+49	BVSP.INDX	eodhd	BVSP	BRL	t	Brazil index
+50	MXX.INDX	eodhd	GSPTSE	MXN	t	Mexico Index
+68	NLDIDXEUR	dukascopy	NL25	EUR	t	Netherlands 25 index
+69	PLNIDXPLN	dukascopy	WIG20	PLN	t	Poland 20 index
+70	SOAIDXZAR	dukascopy	SA40	ZAR	t	South Africa 40 index
+71	USDJPY	dukascopy	USD	JPY	t	\N
+72	EURUSD	dukascopy	EUR	USD	t	\N
+73	GBPUSD	dukascopy	GBP	USD	t	\N
+74	USDCHF	dukascopy	USD	CHF	t	\N
+75	AUDUSD	dukascopy	AUD	USD	t	\N
+76	USDCAD	dukascopy	USD	CAD	t	\N
+77	NZDUSD	dukascopy	NZD	USD	t	\N
+78	EURGBP	dukascopy	EUR	GBP	t	\N
+79	EURJPY	dukascopy	EUR	JPY	t	\N
+80	EURCHF	dukascopy	EUR	CHF	t	\N
+81	XAUUSD	dukascopy	XAU	USD	t	\N
+82	XAGUSD	dukascopy	XAG	USD	t	\N
+63	DEUIDXEUR	dukascopy	GDAXI	EUR	t	Germany 40 index
+83	USA500.IDX/USD	dukascopyapi	GSPC	USD	t	S&P 500
+84	VOL.IDX/USD	dukascopyapi	VIX	USD	t	CBOE Volatility Index
+85	CHI.IDX/USD	dukascopyapi	XIN9	CNY	t	China A50 Index
+86	HKG.IDX/HKD	dukascopyapi	HSI	HKD	t	Hong Kong 40 Index
+87	JPN.IDX/JPY	dukascopyapi	N225	JPY	t	Nikkei 225
+88	AUS.IDX/AUD	dukascopyapi	AXJO	AUD	t	Australlia 200 index
+89	IND.IDX/USD	dukascopyapi	NSEI	INR	t	India 50 index
+90	SGD.IDX/SGD	dukascopyapi	SSGF3	SGD	t	Singapore Blue Chip
+91	FRA.IDX/EUR	dukascopyapi	FCHI	EUR	t	France 40 index
+92	DEU.IDX/EUR	dukascopyapi	GDAXI	EUR	t	Germany 40 index
+93	EUS.IDX/EUR	dukascopyapi	STOXX50E	EUR	t	Europe 50 index
+94	GBR.IDX/GBP	dukascopyapi	BUK100P	GBP	t	UK 100 index
+95	ESP.IDX/EUR	dukascopyapi	IBEX	EUR	t	Spain 35 index
+97	NLD.IDX/EUR	dukascopyapi	NL25	EUR	t	Netherlands 25 index
+98	PLN.IDX/PLN	dukascopyapi	WIG20	PLN	t	Poland 20 index
+99	SOA.IDX/ZAR	dukascopyapi	SA40	ZAR	t	South Africa 40 index
+100	USD/JPY	dukascopyapi	USD	JPY	t	\N
+101	EUR/USD	dukascopyapi	EUR	USD	t	\N
+102	GBP/USD	dukascopyapi	GBP	USD	t	\N
+103	USD/CHF	dukascopyapi	USD	CHF	t	\N
+104	AUD/USD	dukascopyapi	AUD	USD	t	\N
+105	USD/CAD	dukascopyapi	USD	CAD	t	\N
+106	NZD/USD	dukascopyapi	NZD	USD	t	\N
+107	EUR/GBP	dukascopyapi	EUR	GBP	t	\N
+108	EUR/JPY	dukascopyapi	EUR	JPY	t	\N
+109	EUR/CHF	dukascopyapi	EUR	CHF	t	\N
+110	XAU/USD	dukascopyapi	XAU	USD	t	\N
+111	XAG/USD	dukascopyapi	XAG	USD	t	\N
+67	CHEIDXCHF	dukascopy	SPI20	CHF	t	Switzerland 20 index
+96	CHE.IDX/CHF	dukascopyapi	SPI20	CHF	t	Switzerland 20 index
+112	AXJO.INDX	eodhd	AXJO	AUD	t	S&P/ASX 200
+113	NSEI.INDX	eodhd	NSEI	INR	t	Nifty 50
+114	IBEX.INDX	eodhd	IBEX	EUR	t	IBEX 35 Index
+115	SPI20.INDX	eodhd	SPI20	CHF	f	SPI 20 PR (Not available)
+116	AEX.INDX	eodhd	NL25	EUR	t	AEX Amsterdam Index
+117	WIG20.INDX	eodhd	WIG20	PLN	f	Poland 20 index (Not available)
+118	XAGUSD.FOREX	eodhd	XAG	USD	t	\N
+\.

@@ -2,8 +2,9 @@ import datetime, requests, time, argparse
 import pandas as pd
 import numpy as np
 # local package
-from kktrade.database.psgre import Psgre
+from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
+
 
 EXCHANGE = "bitflyer"
 URL_BASE = "https://api.bitflyer.com/v1/"
@@ -26,10 +27,10 @@ def getmarkets():
     df = pd.DataFrame(r.json())
     return df
 
-def getorderbook(symbol: str="BTC_JPY", count_max: int=100, mst_id: dict=None, scale_pre: dict=None):
+def getorderbook(symbol: str="BTC_JPY", count_max: int=100, mst_id: dict=None):
     r    = requests.get(f"{URL_BASE}getboard", params={"product_code": symbol})
     assert r.status_code == 200
-    time = int(datetime.datetime.now().timestamp())
+    time = int(datetime.datetime.now(tz=datetime.UTC).timestamp())
     df1  = pd.DataFrame(r.json()["bids"])
     df1["side"] = "bids"
     df2 = pd.DataFrame(r.json()["asks"])
@@ -43,13 +44,10 @@ def getorderbook(symbol: str="BTC_JPY", count_max: int=100, mst_id: dict=None, s
     df["side"]     = df["side"].map({"asks": 0, "bids": 1, "mprc": 2}).astype(float).fillna(-1).astype(int)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     for x in ["price", "size"]:
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
+        df[x] = df[x].astype(float)
     return df
 
-def getticker(symbol: str="BTC_JPY", mst_id: dict=None, scale_pre: dict=None):
+def getticker(symbol: str="BTC_JPY", mst_id: dict=None):
     r  = requests.get(f"{URL_BASE}getticker", params={"product_code": symbol})
     assert r.status_code == 200
     df = pd.DataFrame([r.json()])
@@ -65,17 +63,14 @@ def getticker(symbol: str="BTC_JPY", mst_id: dict=None, scale_pre: dict=None):
         "bid", "ask", "bid_size", "ask_size", "total_bid_depth", "total_ask_depth",
         "market_bid_size", "market_ask_size", "volume", "volume_by_product", "last_traded_price",
     ]:
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
-    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["timestamp"]).dt.to_pydatetime())
+        df[x] = df[x].astype(float)
+    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["timestamp"], utc=True).dt.to_pydatetime())
     df["unixtime"] = df["unixtime"].astype(int)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["state"]    = df["state"].map(STATE).fillna(-1).astype(int)
     return df
 
-def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_id: dict=None, scale_pre: dict=None):
+def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_id: dict=None):
     r  = requests.get(f"{URL_BASE}getexecutions", params={
         "product_code": symbol, "count": 10000, "before": before, "after": after,
     })
@@ -86,11 +81,8 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_
     df["symbol"] = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["side"]   = df["side"].map({"BUY": 0, "SELL": 1}).astype(float).fillna(-1).astype(int) # nan = 板寄せ
     for x in ["price", "size"]:
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
-    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"]).dt.to_pydatetime())
+        df[x] = df[x].astype(float)
+    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"], utc=True).dt.to_pydatetime())
     df["unixtime"] = df["unixtime"].astype(int)
     return df
 
@@ -107,19 +99,18 @@ if __name__ == "__main__":
     DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
     if args.fn in ["getorderbook", "getticker", "getexecutions"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
-                    df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id, scale_pre=scale_pre[symbol])
+                    df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
                         DB.execute_sql()
                 time.sleep(10)
             elif "getticker" == args.fn:
                 for symbol in mst_id.keys():
-                    df   = getticker(symbol=symbol, mst_id=mst_id, scale_pre=scale_pre[symbol])
+                    df   = getticker(symbol=symbol, mst_id=mst_id)
                     dfwk = DB.select_sql(f"select tick_id from {EXCHANGE}_ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {mst_id[symbol]};")
                     if dfwk.shape[0] == 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
@@ -128,7 +119,7 @@ if __name__ == "__main__":
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
                     dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {mst_id[symbol]};")
-                    df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0], mst_id=mst_id, scale_pre=scale_pre[symbol])
+                    df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0], mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
@@ -153,7 +144,7 @@ if __name__ == "__main__":
                 ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
                 symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
                 DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
-                df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id, scale_pre=scale_pre[symbol])
+                df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
                 if df.shape[0] > 0:
                     df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
                     df       = df.loc[~df["id"].isin(df_exist["id"])]

@@ -10,9 +10,9 @@ I support below exchanges.
 - [bitflyer](https://bitflyer.com/ja-jp/) 
 - [bybit](https://bybit-exchange.github.io/docs/) 
 
-### Install PostgreSQL
+# Install PostgreSQL ( Host )
 
-#### Host Base
+### Install
 
 ```bash
 sudo apt-get update
@@ -22,25 +22,6 @@ sudo apt-get install -y apt-transport-https ca-certificates curl software-proper
 curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 sudo apt-get update
 sudo apt-get install -y postgresql-16 # check "apt search postgresql"
-```
-
-#### Docker Base
-
-```bash
-sudo docker pull ubuntu:22.04
-sudo docker run -itd -v /home/share:/home/share -p 65432:5432 --name postgres ubuntu:22.04 /bin/sh
-sudo docker exec -it postgres /bin/bash
-```
-
-```bash
-apt-get update
-UBUNTU_CODENAME=`cat /etc/os-release | grep UBUNTU_CODENAME | cut -d '=' -f 2`
-echo "deb http://apt.postgresql.org/pub/repos/apt/ ${UBUNTU_CODENAME}-pgdg main" | tee -a /etc/apt/sources.list.d/pgdg.list
-# "focal" is Ubuntu CODE Name. check with `cat /etc/os-release` "UBUNTU_CODENAME"
-apt-get install -y apt-transport-https ca-certificates curl software-properties-common openssh-client vim
-curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
-apt-get update
-apt-get install -y postgresql-16 # check "apt search postgresql"
 ```
 
 ### Locale setting
@@ -130,23 +111,7 @@ exit
 sudo /etc/init.d/postgresql restart
 ```
 
-### Docker Save ( If you need )
-
-```bash
-exit
-sudo docker stop postgres
-sudo docker commit postgres postgres:XX.X # save image
-sudo docker save postgres:XX.X > postgres_XX.X.tar # export tar
-sudo docker rm postgres
-```
-
 ### Create Database
-
-( for docker )
-
-```bash
-sudo docker exec -it postgres /bin/bash
-```
 
 ```bash
 sudo su postgres
@@ -168,44 +133,93 @@ psql
 \q
 ```
 
-### Import schema
+# Install PostgreSQL ( Docker )
 
-#### For Host
+### Docker run
 
 ```bash
+cd ~/kktrade/main/database/
+sudo docker image build -t postgres:16.1.jp .
+sudo mkdir -p /var/local/postgresql/data
+sudo docker run --name postgres \
+    -e POSTGRES_PASSWORD=postgres \
+    -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=ja_JP.utf8" \
+    -e TZ=Asia/Tokyo \
+    -v /var/local/postgresql/data:/var/lib/postgresql/data \
+    -v /home/share:/home/share \
+    --shm-size=4g \
+    -d postgres:16.1.jp
+```
+
+### Other Config
+
+```bash
+sudo docker exec -it postgres /bin/bash
+apt update
+apt install -y vim
+su postgres
 cd ~
-git clone https://github.com/kazukingh01/kktrade.git
-psql -U postgres -d trade -f ~/kktrade/main/database/schema.sql
+vi /var/lib/postgresql/data/postgresql.conf
+```
+
+[Config for memory](#config-for-memory)
+
+```bash
+exit
+exit
+sudo docker restart postgres
+```
+
+### Create Database
+
+```bash
+sudo docker exec --user=postgres postgres /usr/lib/postgresql/16/bin/dropdb --port 55432 trade
+sudo docker exec --user=postgres postgres /usr/lib/postgresql/16/bin/createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 trade
+```
+
+# Schema
+
+### Import Schema
+
+##### For Host
+
+```bash
+psql -U postgres -d trade -f ~/kktrade/main/database/schema_main.sql
 psql -U postgres -d trade -f ~/kktrade/main/database/master_symbol.sql
 ```
 
-#### For Docker 
+##### For Docker 
 
 ```bash
-cp ~/kktrade/main/database/schema.sql /home/share/
-sudo docker exec --user=postgres postgres psql -U postgres -d trade -f /home/share/schema.sql 
+cp ~/kktrade/main/database/schema_main.sql /home/share/schema.sql
+sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
+cp ~/kktrade/main/database/master_symbol.sql /home/share/schema.sql
+sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
 ```
 
 ### Dump Schema
 
-#### For Host 
+##### For Host 
 
 ```bash
 sudo su postgres
 cd ~
-FILEPATH="/var/lib/postgresql/kktrade/main/database/schema.sql"
-pg_dump -U postgres --port 55432 -d trade -s > ${FILEPATH}
+pg_dump -U postgres --port 55432 -d trade -s > ./schema.sql
 ```
 
-#### For Docker 
+##### For Docker 
 
 ```bash
-DBNAME="bitflyer"
-FILEPATH="~/kktrade/main/database/schema.sql"
-sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade -s > ${FILEPATH}
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade --port 55432 -s > ./schema.sql
 ```
 
-### Cron
+### Dump Data
+
+```bash
+sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade --port 55432 -t master_symbol -Fp > ./db_`date "+%Y%m%d"`.dump
+```
+
+# Cron
 
 ```bash
 echo "0   0   * * *   ubuntu  sleep 30 && sudo /etc/init.d/postgresql restart" | sudo tee -a /etc/crontab
