@@ -40,6 +40,7 @@ if __name__ == "__main__":
     assert len(PKEY[args.tbl]) == 1
     dfbase = dfbase.loc[~dfbase[PKEY[args.tbl][0]].isin(dfwk[PKEY[args.tbl][0]].unique())]
     dfbase = dfbase.groupby(PKEY[args.tbl][0]).first().reset_index(drop=False)
+    assert dfbase.shape[0] > 0
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
         sql  = (
