@@ -53,6 +53,7 @@ if __name__ == "__main__":
             f"where main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
         )
         df_insert = DB_from.select_sql(sql)
+        df_insert["unixtime"] = (df_insert["unixtime"] + (60 * 60 * 9)).astype(int)
         for x in [
             'scale_aft_price', 'scale_aft_size','scale_aft_bid', 'scale_aft_ask', 'scale_aft_last_traded_price', 'scale_aft_bid_size', 'scale_aft_ask_size',
             'scale_aft_total_bid_depth', 'scale_aft_total_ask_depth', 'scale_aft_market_bid_size', 'scale_aft_market_ask_size', 'scale_aft_volume', 'scale_aft_volume_by_product'
