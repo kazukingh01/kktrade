@@ -9,7 +9,7 @@ from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 PKEY = {
     "bitflyer_executions": ["id"], #["symbol", "id"],
     "bitflyer_orderbook": ["unixtime"],
-    "bitflyer_ticker": ["tick_id"] #["symbol", "tick_id"]
+    "bitflyer_ticker": ["symbol", "tick_id"]
 }
 
 
@@ -38,9 +38,13 @@ if __name__ == "__main__":
     else:
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
         dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
-    assert len(PKEY[args.tbl]) == 1
-    dfbase = dfbase.loc[~dfbase[PKEY[args.tbl][0]].isin(dfwk[PKEY[args.tbl][0]].unique())]
-    dfbase = dfbase.groupby(PKEY[args.tbl][0]).first().reset_index(drop=False)
+    if len(PKEY[args.tbl]) == 1:
+        dfbase = dfbase.loc[~dfbase[PKEY[args.tbl][0]].isin(dfwk[PKEY[args.tbl][0]].unique())]
+        dfbase = dfbase.groupby(PKEY[args.tbl][0]).first().reset_index(drop=False)
+    else:
+        dfwk["__work"] = 0
+        dfbase = pd.merge(dfbase, dfwk, how="left", on=PKEY[args.tbl])
+        dfbase = dfbase.loc[dfbase["__work"].isna(), PKEY[args.tbl]]
     assert dfbase.shape[0] > 0
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
@@ -49,9 +53,12 @@ if __name__ == "__main__":
             f"scale_pre->>'price' as scale_pre_price,scale_pre->>'size' as scale_pre_size,scale_pre->>'bid' as scale_pre_bid,scale_pre->>'ask' as scale_pre_ask,scale_pre->>'last_traded_price' as scale_pre_last_traded_price,scale_pre->>'bid_size' as scale_pre_bid_size,scale_pre->>'ask_size' as scale_pre_ask_size,scale_pre->>'total_bid_depth' as scale_pre_total_bid_depth,scale_pre->>'total_ask_depth' as scale_pre_total_ask_depth,scale_pre->>'market_bid_size' as scale_pre_market_bid_size,scale_pre->>'market_ask_size' as scale_pre_market_ask_size,scale_pre->>'volume' as scale_pre_volume,scale_pre->>'volume_by_product' as scale_pre_volume_by_product, " + 
             f"scale_aft->>'price' as scale_aft_price,scale_aft->>'size' as scale_aft_size,scale_aft->>'bid' as scale_aft_bid,scale_aft->>'ask' as scale_aft_ask,scale_aft->>'last_traded_price' as scale_aft_last_traded_price,scale_aft->>'bid_size' as scale_aft_bid_size,scale_aft->>'ask_size' as scale_aft_ask_size,scale_aft->>'total_bid_depth' as scale_aft_total_bid_depth,scale_aft->>'total_ask_depth' as scale_aft_total_ask_depth,scale_aft->>'market_bid_size' as scale_aft_market_bid_size,scale_aft->>'market_ask_size' as scale_aft_market_ask_size,scale_aft->>'volume' as scale_aft_volume,scale_aft->>'volume_by_product' as scale_aft_volume_by_product " + 
             f"from {args.tbl} as main " + 
-            f"left join master_symbol as mst on main.symbol = mst.symbol_id " + 
-            f"where main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
+            f"left join master_symbol as mst on main.symbol = mst.symbol_id "
         )
+        if len(PKEY[args.tbl]) == 1:
+            sql += f"where main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
+        else:
+            sql += f"where ({','.join([f'main.{x}' for x in PKEY[args.tbl]])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[PKEY[args.tbl]].values]) + ")"
         df_insert = DB_from.select_sql(sql)
         df_insert["unixtime"] = (df_insert["unixtime"] + (60 * 60 * 9)).astype(int)
         for x in [
