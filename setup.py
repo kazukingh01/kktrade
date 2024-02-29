@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@894ef961d66aff7355bb839d0e6a2156e14ff8eb',
+        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@f201baa0ba37277b216fa5bdda819fc934273384',
         'pandas==1.5.3',
         'numpy==1.24.2',
         'joblib==1.3.2',
