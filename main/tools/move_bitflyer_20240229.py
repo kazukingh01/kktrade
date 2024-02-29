@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--until", type=datetime.datetime.fromisoformat)
     parser.add_argument("--tbl", type=str, help="table name")
     parser.add_argument("--num", type=int, default=10000)
+    parser.add_argument("--njob", type=int, default=1)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
@@ -63,5 +64,5 @@ if __name__ == "__main__":
         if df_insert.columns.isin(["type"]).any():
             df_insert["side"] = df_insert["type"].map({"Buy": 0, "Sell": 1, "BUY": 0, "SELL": 1, "asks": 0, "bids": 1, "mprc": 2}).astype(float).fillna(-1).astype(int) # nan = 板寄せ
         if args.update and df_insert.shape[0] > 0:
-            DB_to.insert_from_df(df_insert, args.tbl, is_select=True, n_jobs=1)
+            DB_to.insert_from_df(df_insert, args.tbl, is_select=True, n_jobs=args.njob)
             DB_to.execute_sql()
