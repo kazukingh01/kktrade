@@ -33,11 +33,11 @@ if __name__ == "__main__":
     DB_to   = Psgre(f"host={args.ipto} port={args.portto} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     if args.since is not None and args.until is not None:
         assert args.since < args.until
-        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())} and unixtime < {int(args.until.timestamp())};")
-        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp()) - (60*60*24*3)} and unixtime < {int(args.until.timestamp()) + (60*60*24*3)};")
+        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())} and unixtime < {int(args.until.timestamp())} group by {','.join(PKEY[args.tbl])};")
+        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp()) - (60*60*24*3)} and unixtime < {int(args.until.timestamp()) + (60*60*24*3)} group by {','.join(PKEY[args.tbl])};")
     else:
-        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
-        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
+        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} group by {','.join(PKEY[args.tbl])};")
+        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} group by {','.join(PKEY[args.tbl])};")
     if len(PKEY[args.tbl]) == 1:
         dfbase = dfbase.loc[~dfbase[PKEY[args.tbl][0]].isin(dfwk[PKEY[args.tbl][0]].unique())]
         dfbase = dfbase.groupby(PKEY[args.tbl][0]).first().reset_index(drop=False)

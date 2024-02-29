@@ -125,6 +125,7 @@ if __name__ == "__main__":
                         DB.execute_sql()
                 time.sleep(10)
     if args.fn in ["getall"]:
+        # python getdata.py --fn getall --fr 20231001 --to 20231012 --sec 30 --cnt 200
         time_since = int(datetime.datetime.fromisoformat(args.fr).timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101").timestamp())
         time_until = int(datetime.datetime.fromisoformat(args.to).timestamp()) if args.to is not None else int(datetime.datetime.now().timestamp())
         over_sec   = args.sec
