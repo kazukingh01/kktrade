@@ -44,7 +44,8 @@ if __name__ == "__main__":
     else:
         dfwk["__work"] = 0
         dfbase = pd.merge(dfbase, dfwk, how="left", on=PKEY[args.tbl])
-        dfbase = dfbase.loc[dfbase["__work"].isna(), PKEY[args.tbl]]
+        dfbase = dfbase.loc[dfbase["__work"].isna()]
+        dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index(drop=False).loc[:, PKEY[args.tbl]]
     assert dfbase.shape[0] > 0
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
