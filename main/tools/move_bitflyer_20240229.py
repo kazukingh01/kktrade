@@ -34,7 +34,7 @@ if __name__ == "__main__":
     if args.since is not None and args.until is not None:
         assert args.since < args.until
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())} and unixtime < {int(args.until.timestamp())};")
-        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())} and unixtime < {int(args.until.timestamp())};")
+        dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp()) - (60*60*24*3)} and unixtime < {int(args.until.timestamp()) + (60*60*24*3)};")
     else:
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
         dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl};")
