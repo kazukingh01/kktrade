@@ -4,16 +4,19 @@
 
 # Schema
 
+```bash
+cp ~/kktrade/main/database/bitflyer/schema.sql /home/share/schema.sql
+```
+
 ##### For Host
 
 ```bash
-psql -U postgres -d trade -f ~/kktrade/main/database/bitflyer/schema.sql
+sudo su - postgres -c 'psql -U postgres -d trade -f /home/share/schema.sql'
 ```
 
 ##### For Docker 
 
 ```bash
-cp ~/kktrade/main/database/bitflyer/schema.sql /home/share/schema.sql
 sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
 ```
 

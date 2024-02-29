@@ -181,20 +181,23 @@ sudo docker exec --user=postgres postgres /usr/lib/postgresql/16/bin/createdb --
 
 ### Import Schema
 
+```bash
+cp ~/kktrade/main/database/schema_main.sql   /home/share/schema_main.sql
+cp ~/kktrade/main/database/master_symbol.sql /home/share/master_symbol.sql
+```
+
 ##### For Host
 
 ```bash
-psql -U postgres -d trade -f ~/kktrade/main/database/schema_main.sql
-psql -U postgres -d trade -f ~/kktrade/main/database/master_symbol.sql
+sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -f /home/share/schema_main.sql'
+sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -f /home/share/master_symbol.sql'
 ```
 
 ##### For Docker 
 
 ```bash
-cp ~/kktrade/main/database/schema_main.sql /home/share/schema.sql
-sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
-cp ~/kktrade/main/database/master_symbol.sql /home/share/schema.sql
-sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
+sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema_main.sql
+sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/master_symbol.sql
 ```
 
 ### Dump Schema
