@@ -7,9 +7,9 @@ from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 
 PKEY = {
-    "bitflyer_executions": ["symbol", "id"],
+    "bitflyer_executions": ["id"], #["symbol", "id"],
     "bitflyer_orderbook": ["unixtime"],
-    "bitflyer_ticker": ["symbol", "tick_id"]
+    "bitflyer_ticker": ["tick_id"] #["symbol", "tick_id"]
 }
 
 
