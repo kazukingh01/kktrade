@@ -29,11 +29,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     assert args.tbl is not None
-    assert args.tbl in PKEY
     tbl2 = args.tbl
     if args.tbl.find("bybit_executions_") >= 0:
         tbl2     = args.tbl
         args.tbl = "bybit_executions"
+    assert args.tbl in PKEY
     DB_from = Psgre(f"host={args.ipfr} port={args.portfr} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     DB_to   = Psgre(f"host={args.ipto} port={args.portto} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     if args.since is not None and args.until is not None:
