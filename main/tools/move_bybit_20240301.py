@@ -58,7 +58,7 @@ if __name__ == "__main__":
         dfwk["__work"] = 0
         dfbase = pd.merge(dfbase, dfwk, how="left", on=PKEY[args.tbl])
         dfbase = dfbase.loc[dfbase["__work"].isna()]
-        dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index(drop=False).loc[:, PKEY[args.tbl]]
+        dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index(drop=False).iloc[:, :-1]
     DB_from.logger.info("delete duplicated data end.")
     assert dfbase.shape[0] > 0
     if "unixtime" in PKEY[args.tbl]:
