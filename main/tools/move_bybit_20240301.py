@@ -62,7 +62,7 @@ if __name__ == "__main__":
             if str.isdigit(val):
                 sql += f"where main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
             else:
-                sql += f"where main.{PKEY[args.tbl][0]} in (" + "','".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
+                sql += f"where main.{PKEY[args.tbl][0]} in ('" + "','".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + "')"
         else:
             sql += f"where ({','.join([f'main.{x}' for x in PKEY[args.tbl]])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[PKEY[args.tbl]].values]) + ")"
         df_insert = DB_from.select_sql(sql)
