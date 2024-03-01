@@ -35,7 +35,9 @@ if __name__ == "__main__":
     if args.since is not None and args.until is not None:
         assert args.since < args.until
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000};")
+        DB_from.logger.info("select end: from.")
         dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())       } and unixtime < {int(args.until.timestamp())       };")
+        DB_from.logger.info("select end: to.")
         dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index()
         dfwk   = dfwk  .groupby(PKEY[args.tbl]).first().reset_index()
     else:
@@ -50,6 +52,7 @@ if __name__ == "__main__":
         dfbase = pd.merge(dfbase, dfwk, how="left", on=PKEY[args.tbl])
         dfbase = dfbase.loc[dfbase["__work"].isna()]
         dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index(drop=False).loc[:, PKEY[args.tbl]]
+    DB_from.logger.info("delete duplicated data end.")
     assert dfbase.shape[0] > 0
     if "unixtime" in PKEY[args.tbl]:
         dfbase = dfbase.sort_values("unixtime").reset_index(drop=True)
@@ -71,7 +74,7 @@ if __name__ == "__main__":
         )
         if len(list_pkey) == 1:
             val = dfwk[list_pkey[0]].iloc[0]
-            if str.isdigit(val):
+            if str.isdigit(val) or ((args.tbl == "bybit_executions") and (list_pkey[0] == "id")):
                 sql += f"and main.{list_pkey[0]} in (" + ",".join(dfwk[list_pkey[0]].astype(str).tolist()) + ")"
             else:
                 sql += f"and main.{list_pkey[0]} in ('" + "','".join(dfwk[list_pkey[0]].astype(str).tolist()) + "')"
