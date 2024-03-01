@@ -12,7 +12,7 @@ mkdir -p ${LOGDIR}
 for COMMAND in "${COMMANDS[@]}"; do
     LOGFILE="${LOGDIR}${EXCHANGE}_${COMMAND}.`date "+%Y%m%d"`.log"
     if ! ps aux | grep -v grep | grep python | grep "${MODULE} --fn ${COMMAND}" > /dev/null; then
-        echo "Process: ${COMMAND} not found! Restarting..."
+        echo "Process: ${COMMAND} not found! Restarting... Command: ${PYTHON} ${MODULE} --fn ${COMMAND} --update"
         touch ${LOGFILE}
         nohup ${PYTHON} ${MODULE} --fn ${COMMAND} --update >> ${LOGFILE} 2>&1 &
     else
