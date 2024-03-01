@@ -67,7 +67,7 @@ if __name__ == "__main__":
             sql += f"where ({','.join([f'main.{x}' for x in PKEY[args.tbl]])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[PKEY[args.tbl]].values]) + ")"
         df_insert = DB_from.select_sql(sql)
         df_insert["unixtime"] = (df_insert["unixtime"] // 1000).astype(int)
-        for x in df_insert.columns[df_insert.columns.str.contains("^scale_aft_", regex=True).fillna(False)].tolist():
+        for x in df_insert.columns[df_insert.columns.str.contains("^scale_aft_", regex=True)].tolist():
             df_insert[x] = df_insert[x].astype(np.float64)
             df_insert[x.replace("scale_aft", "scale_pre")] = df_insert[x.replace("scale_aft", "scale_pre")].astype(np.float64)
             df_insert.loc[df_insert[x].isna(), x] = (1.0 / df_insert.loc[df_insert[x].isna(), x.replace("scale_aft", "scale_pre")].copy())
