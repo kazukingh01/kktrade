@@ -1,4 +1,4 @@
-import argparse, datetime
+import argparse, datetime, copy
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -7,7 +7,7 @@ from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 
 PKEY = {
-    "bybit_executions": ["id"], #["symbol", "id"],
+    "bybit_executions": ["unixtime"], #["id"],
     "bybit_kline": ["symbol", "unixtime", "kline_type", "interval"],
     "bybit_orderbook": ["symbol", "unixtime"],
     "bybit_ticker": ["symbol", "unixtime"],
@@ -51,22 +51,28 @@ if __name__ == "__main__":
     assert dfbase.shape[0] > 0
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
+        list_pkey = PKEY[args.tbl].copy()
+        if "unixtime" in list_pkey:
+            sql_unixtime = f"unixtime >= {int(dfwk['unixtime'].min())} and unixtime <= {int(dfwk['unixtime'].max())}"
+            list_pkey = np.array(list_pkey)[~np.isin(np.array(list_pkey), "unixtime")].tolist()
+        else:
+            sql_unixtime = f"unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000} "
         sql  = (
             f"select main.*, " + 
             f"scale_pre->>'price' as scale_pre_price,scale_pre->>'size' as scale_pre_size,scale_pre->>'bid' as scale_pre_bid,scale_pre->>'ask' as scale_pre_ask,scale_pre->>'last_traded_price' as scale_pre_last_traded_price,scale_pre->>'index_price' as scale_pre_index_price,scale_pre->>'mark_price' as scale_pre_mark_price,scale_pre->>'funding_rate' as scale_pre_funding_rate,scale_pre->>'bid_size' as scale_pre_bid_size,scale_pre->>'ask_size' as scale_pre_ask_size,scale_pre->>'volume' as scale_pre_volume,scale_pre->>'open_interest' as scale_pre_open_interest,scale_pre->>'open_interest_value' as scale_pre_open_interest_value,scale_pre->>'turnover' as scale_pre_turnover,scale_pre->>'price_open' as scale_pre_price_open,scale_pre->>'price_high' as scale_pre_price_high,scale_pre->>'price_low' as scale_pre_price_low,scale_pre->>'price_close' as scale_pre_price_close, " + 
             f"scale_aft->>'price' as scale_aft_price,scale_aft->>'size' as scale_aft_size,scale_aft->>'bid' as scale_aft_bid,scale_aft->>'ask' as scale_aft_ask,scale_aft->>'last_traded_price' as scale_aft_last_traded_price,scale_aft->>'index_price' as scale_aft_index_price,scale_aft->>'mark_price' as scale_aft_mark_price,scale_aft->>'funding_rate' as scale_aft_funding_rate,scale_aft->>'bid_size' as scale_aft_bid_size,scale_aft->>'ask_size' as scale_aft_ask_size,scale_aft->>'volume' as scale_aft_volume,scale_aft->>'open_interest' as scale_aft_open_interest,scale_aft->>'open_interest_value' as scale_aft_open_interest_value,scale_aft->>'turnover' as scale_aft_turnover,scale_aft->>'price_open' as scale_aft_price_open,scale_aft->>'price_high' as scale_aft_price_high,scale_aft->>'price_low' as scale_aft_price_low,scale_aft->>'price_close' as scale_aft_price_close  " + 
             f"from {args.tbl} as main " + 
             f"left join master_symbol as mst on main.symbol = mst.symbol_id " +
-            f"where unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000} "
+            f"where {sql_unixtime} "
         )
-        if len(PKEY[args.tbl]) == 1:
-            val = dfwk[PKEY[args.tbl][0]].iloc[0]
+        if len(list_pkey) == 1:
+            val = dfwk[list_pkey[0]].iloc[0]
             if str.isdigit(val):
-                sql += f"and main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
+                sql += f"and main.{list_pkey[0]} in (" + ",".join(dfwk[list_pkey[0]].astype(str).tolist()) + ")"
             else:
-                sql += f"and main.{PKEY[args.tbl][0]} in ('" + "','".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + "')"
-        else:
-            sql += f"and ({','.join([f'main.{x}' for x in PKEY[args.tbl]])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[PKEY[args.tbl]].values]) + ")"
+                sql += f"and main.{list_pkey[0]} in ('" + "','".join(dfwk[list_pkey[0]].astype(str).tolist()) + "')"
+        elif len(list_pkey) > 1:
+            sql += f"and ({','.join([f'main.{x}' for x in list_pkey])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[list_pkey].values]) + ")"
         df_insert = DB_from.select_sql(sql)
         df_insert["unixtime"] = (df_insert["unixtime"] // 1000).astype(int)
         for x in df_insert.columns[df_insert.columns.str.contains("^scale_aft_", regex=True)].tolist():
