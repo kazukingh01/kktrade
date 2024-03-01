@@ -45,7 +45,8 @@ if __name__ == "__main__":
         dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index()
         dfwk   = dfwk  .groupby(PKEY[args.tbl]).first().reset_index()
         if "unixtime" in PKEY[args.tbl]:
-            dfwk["unixtime"] = (dfwk["unixtime"] * 1000).astype(int)
+            dfbase["_unixtime"] = dfbase["unixtime"].copy()
+            dfbase["unixtime" ] = (dfbase["unixtime"] // 1000).astype(int)
     else:
         assert False
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} group by {','.join(PKEY[args.tbl])};")
@@ -61,6 +62,7 @@ if __name__ == "__main__":
     DB_from.logger.info("delete duplicated data end.")
     assert dfbase.shape[0] > 0
     if "unixtime" in PKEY[args.tbl]:
+        dfbase["unixtime"] = dfbase["_unixtime"].copy()
         dfbase = dfbase.sort_values("unixtime").reset_index(drop=True)
     for index in tqdm(np.array_split(np.arange(dfbase.shape[0]), dfbase.shape[0] // args.num)):
         dfwk = dfbase.iloc[index].copy()
