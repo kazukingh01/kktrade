@@ -58,7 +58,7 @@ if __name__ == "__main__":
             f"left join master_symbol as mst on main.symbol = mst.symbol_id "
         )
         if len(PKEY[args.tbl]) == 1:
-            val = dfwk[PKEY[args.tbl][0]]
+            val = dfwk[PKEY[args.tbl][0]].iloc[0]
             if str.isdigit(val):
                 sql += f"where main.{PKEY[args.tbl][0]} in (" + ",".join(dfwk[PKEY[args.tbl][0]].astype(str).tolist()) + ")"
             else:
