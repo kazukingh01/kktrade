@@ -30,16 +30,22 @@ if __name__ == "__main__":
     print(args)
     assert args.tbl is not None
     assert args.tbl in PKEY
+    tbl2 = args.tbl
+    if args.tbl.find("bybit_executions_") >= 0:
+        tbl2     = args.tbl
+        args.tbl = "bybit_executions"
     DB_from = Psgre(f"host={args.ipfr} port={args.portfr} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     DB_to   = Psgre(f"host={args.ipto} port={args.portto} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     if args.since is not None and args.until is not None:
         assert args.since < args.until
-        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000};")
+        dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {tbl2    } where unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000};")
         DB_from.logger.info("select end: from.")
         dfwk   = DB_to  .select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} where unixtime >= {int(args.since.timestamp())       } and unixtime < {int(args.until.timestamp())       };")
         DB_from.logger.info("select end: to.")
         dfbase = dfbase.groupby(PKEY[args.tbl]).first().reset_index()
         dfwk   = dfwk  .groupby(PKEY[args.tbl]).first().reset_index()
+        if "unixtime" in PKEY[args.tbl]:
+            dfwk["unixtime"] = (dfwk["unixtime"] * 1000).astype(int)
     else:
         assert False
         dfbase = DB_from.select_sql(f"select {','.join(PKEY[args.tbl])} from {args.tbl} group by {','.join(PKEY[args.tbl])};")
@@ -68,7 +74,7 @@ if __name__ == "__main__":
             f"select main.*, " + 
             f"scale_pre->>'price' as scale_pre_price,scale_pre->>'size' as scale_pre_size,scale_pre->>'bid' as scale_pre_bid,scale_pre->>'ask' as scale_pre_ask,scale_pre->>'last_traded_price' as scale_pre_last_traded_price,scale_pre->>'index_price' as scale_pre_index_price,scale_pre->>'mark_price' as scale_pre_mark_price,scale_pre->>'funding_rate' as scale_pre_funding_rate,scale_pre->>'bid_size' as scale_pre_bid_size,scale_pre->>'ask_size' as scale_pre_ask_size,scale_pre->>'volume' as scale_pre_volume,scale_pre->>'open_interest' as scale_pre_open_interest,scale_pre->>'open_interest_value' as scale_pre_open_interest_value,scale_pre->>'turnover' as scale_pre_turnover,scale_pre->>'price_open' as scale_pre_price_open,scale_pre->>'price_high' as scale_pre_price_high,scale_pre->>'price_low' as scale_pre_price_low,scale_pre->>'price_close' as scale_pre_price_close, " + 
             f"scale_aft->>'price' as scale_aft_price,scale_aft->>'size' as scale_aft_size,scale_aft->>'bid' as scale_aft_bid,scale_aft->>'ask' as scale_aft_ask,scale_aft->>'last_traded_price' as scale_aft_last_traded_price,scale_aft->>'index_price' as scale_aft_index_price,scale_aft->>'mark_price' as scale_aft_mark_price,scale_aft->>'funding_rate' as scale_aft_funding_rate,scale_aft->>'bid_size' as scale_aft_bid_size,scale_aft->>'ask_size' as scale_aft_ask_size,scale_aft->>'volume' as scale_aft_volume,scale_aft->>'open_interest' as scale_aft_open_interest,scale_aft->>'open_interest_value' as scale_aft_open_interest_value,scale_aft->>'turnover' as scale_aft_turnover,scale_aft->>'price_open' as scale_aft_price_open,scale_aft->>'price_high' as scale_aft_price_high,scale_aft->>'price_low' as scale_aft_price_low,scale_aft->>'price_close' as scale_aft_price_close  " + 
-            f"from {args.tbl} as main " + 
+            f"from {tbl2} as main " + 
             f"left join master_symbol as mst on main.symbol = mst.symbol_id " +
             f"where {sql_unixtime} "
         )
