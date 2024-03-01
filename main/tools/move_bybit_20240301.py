@@ -74,10 +74,10 @@ if __name__ == "__main__":
         )
         if len(list_pkey) == 1:
             val = dfwk[list_pkey[0]].iloc[0]
-            if str.isdigit(val) or ((args.tbl == "bybit_executions") and (list_pkey[0] == "id")):
-                sql += f"and main.{list_pkey[0]} in (" + ",".join(dfwk[list_pkey[0]].astype(str).tolist()) + ")"
-            else:
+            if (str.isdigit(val) == False) or ((args.tbl == "bybit_executions") and (list_pkey[0] == "id")):
                 sql += f"and main.{list_pkey[0]} in ('" + "','".join(dfwk[list_pkey[0]].astype(str).tolist()) + "')"
+            else:
+                sql += f"and main.{list_pkey[0]} in (" + ",".join(dfwk[list_pkey[0]].astype(str).tolist()) + ")"
         elif len(list_pkey) > 1:
             sql += f"and ({','.join([f'main.{x}' for x in list_pkey])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[list_pkey].values]) + ")"
         df_insert = DB_from.select_sql(sql)
