@@ -80,6 +80,7 @@ def getliveprice(symbol: str="USDJPY.FOREX"):
 
 def correct_df(df: pd.DataFrame):
     df = df.copy()
+    df = df.sort_values("unixtime").reset_index(drop=True)
     for x in ["price_open", "price_high", "price_low", "price_close", "volume"]:
         if df.columns.isin([x]).any() == False: continue
         df[x] = df[x].astype(float)
@@ -139,6 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("--no", type=int, default=-1)
     parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
     parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
+    parser.add_argument("--days",   type=int, help="--days 1", default=1)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
@@ -147,12 +149,16 @@ if __name__ == "__main__":
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn == "getintraday":
         assert args.fr is not None and args.to is not None
-        for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
+        list_dates = [args.fr + datetime.timedelta(days=x) for x in range(0, (args.to - args.fr).days + args.days, args.days)]
+        assert list_dates[-1] >= args.to
+        list_dates[-1] = args.to
+        for i_date, date in enumerate(list_dates):
+            if i_date == (len(list_dates) - 1): break
             for symbol_name, symbol_id in mst_id.items():
-                DB.logger.info(f"{date}, {symbol_name}")
+                DB.logger.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
                 df = getintraday(
                     symbol_name, interval=DICT_INTERVAL[symbol_name]["1m"] if DICT_INTERVAL.get(symbol_name) is not None else "1m",
-                    date_from=date, date_to=(date + datetime.timedelta(days=1))
+                    date_from=date, date_to=list_dates[i_date + 1]
                 )
                 df["symbol"] = symbol_id
                 df = correct_df(df)
