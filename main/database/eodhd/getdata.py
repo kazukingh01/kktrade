@@ -97,7 +97,7 @@ def organize_values(list_values: list, mst_id: dict, DB: Psgre=None):
     df = correct_df(df)
     df["interval"] = 1
     df["symbol"]   = df["symbol"].map(mst_id)
-    if DB is not None and df.shape[0] > 0:
+    if DB is not None and DB.con is not None and df.shape[0] > 0:
         DB.insert_from_df(
             df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close"]],
             f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False
@@ -111,28 +111,32 @@ async def getfromws(symbols: str, mst_id: dict, type: str="forex", is_update: bo
     assert isinstance(symbols, str) or isinstance(symbols, list)
     if isinstance(symbols, str): symbols = [symbols, ]
     uri = f"wss://ws.eodhistoricaldata.com/ws/{type}?api_token={APIKEY_EODHD}"
-    DB  = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200) if is_update else None
-    async with websockets.connect(uri) as ws:
-        await ws.send('{"action": "subscribe", "symbols": "'+",".join(symbols)+'"}')
-        list_values = []
-        message     = await ws.recv()
-        print(message)
-        time_base   = None
-        while True:
-            message = await ws.recv()
-            message = json.loads(message)
-            t       = int(message["t"])
-            if time_base is None:
-                time_base = int(t // 1000)
-                time_base = (time_base - (time_base % 60)) * 1000
-            if (t - time_base) >= (60 * 1000) and len(list_values) > 0:
-                df = organize_values(list_values.copy(), mst_id, DB=DB)
-                print(df)
+    DB  = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}" if is_update else None, max_disp_len=200)
+    for i_trial in range(5):
+        try:
+            async with websockets.connect(uri) as ws:
+                await ws.send('{"action": "subscribe", "symbols": "'+",".join(symbols)+'"}')
                 list_values = []
-                time_base   = int(t // 1000)
-                time_base   = (time_base - (time_base % 60)) * 1000
-            list_values.append(message)
-            print(f"Received: {message}")
+                message     = await ws.recv()
+                DB.logger.info(message)
+                time_base   = None
+                while True:
+                    message = await ws.recv()
+                    message = json.loads(message)
+                    t       = int(message["t"] // 1000)
+                    if time_base is None:
+                        time_base = (t - (t % 60))
+                    if (t - time_base) >= 60 and len(list_values) > 0:
+                        df = organize_values(list_values.copy(), mst_id, DB=DB)
+                        DB.logger.info(f"\n{df}")
+                        list_values = []
+                        time_base = (t - (t % 60))
+                    list_values.append(message)
+                    DB.logger.info(f"Received: {message}")
+        except TimeoutError:
+            DB.logger.info(f"Timeout error. try again: {i_trial}")
+            time.sleep(5)
+    DB.logger.raise_error(f"Timeout error. trial limit is over.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
