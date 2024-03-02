@@ -90,7 +90,7 @@ def organize_values(list_values: list, mst_id: dict, DB: Psgre=None):
     df = pd.DataFrame(list_values)
     df = df.sort_values(["t"]).reset_index(drop=True)
     df["tm"] = (df["t"] // 1000).astype(int)
-    df["tm"] = (df["tm"] - (df["tm"] % 60) + 60) * 1000
+    df["tm"] = (df["tm"] - (df["tm"] % 60) + 60)
     df["m"]  = (df["a"] + df["b"]) / 2.
     df = df.groupby(["s", "tm"])["m"].aggregate(["first", "max", "min", "last"]).reset_index()
     df.columns = ["symbol", "unixtime", "price_open", "price_high", "price_low", "price_close"]
@@ -129,7 +129,7 @@ async def getfromws(symbols: str, mst_id: dict, type: str="forex", is_update: bo
                 df = organize_values(list_values.copy(), mst_id, DB=DB)
                 print(df)
                 list_values = []
-                time_base   = int(t / 1000)
+                time_base   = int(t // 1000)
                 time_base   = (time_base - (time_base % 60)) * 1000
             list_values.append(message)
             print(f"Received: {message}")
