@@ -1,7 +1,7 @@
 import requests, datetime, websockets, asyncio, json, time, argparse
 import pandas as pd
 # local package
-from kktrade.database.psgre import Psgre
+from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.apikey import APIKEY_EODHD
 
@@ -41,7 +41,7 @@ def getsymbollist(exchange: str):
     r = requests.get(f"{URL_BASE}exchange-symbol-list/{exchange}", params=dict({"api_token": APIKEY_EODHD, "fmt": "json"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str, interval: str="1m", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
+def getintraday(symbol: str="USDJPY.FOREX", interval: str="1m", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
     r = None
     for _ in range(3):
         r = requests.get(f"{URL_BASE}intraday/{symbol}", params=dict({
@@ -62,39 +62,38 @@ def getintraday(symbol: str, interval: str="1m", date_from: datetime.datetime=No
     df.columns = columns
     return df
 
-def getliveprice(symbol: str):
+def getliveprice(symbol: str="USDJPY.FOREX"):
     assert isinstance(symbol, str) or isinstance(symbol, list)
     if isinstance(symbol, str): symbol = [symbol, ]
     r = requests.get(f"{URL_BASE}real-time/{symbol[0]}", params=dict({"api_token": APIKEY_EODHD, "fmt": "json", "s": ",".join(symbol[1:]) if len(symbol) > 1 else None}))
     assert r.status_code == 200
     dictwk = [r.json(), ] if isinstance(r.json(), dict) else r.json()
     df = pd.DataFrame(dictwk)
-    df["unixtime"] = df["timestamp"].astype(int)
+    df["unixtime"] = df["timestamp"].replace("NA", "-1").astype(int)
+    df["unixtime"] = df["unixtime"].replace(-1, df["unixtime"].max())
     df["interval"] = 1
+    df = df.replace("NA", float("nan"))
     columns = df.columns.copy()
     for x in ["open", "high", "low", "close"]: columns = columns.str.replace(f"^{x}$", f"price_{x}", regex=True)
     df.columns = columns
     return df
 
-def correct_df(df: pd.DataFrame, scale_pre: dict=None):
+def correct_df(df: pd.DataFrame):
     df = df.copy()
     for x in ["price_open", "price_high", "price_low", "price_close", "volume"]:
         if df.columns.isin([x]).any() == False: continue
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
+        df[x] = df[x].astype(float)
     return df
 
-def organize_values(list_values: list, scale_pre: dict, mst_id: dict, DB: Psgre=None):
+def organize_values(list_values: list, mst_id: dict, DB: Psgre=None):
     df = pd.DataFrame(list_values)
     df = df.sort_values(["t"]).reset_index(drop=True)
-    df["tm"] = (df["t"] / 1000).astype(int)
+    df["tm"] = (df["t"] // 1000).astype(int)
     df["tm"] = (df["tm"] - (df["tm"] % 60) + 60) * 1000
     df["m"]  = (df["a"] + df["b"]) / 2.
     df = df.groupby(["s", "tm"])["m"].aggregate(["first", "max", "min", "last"]).reset_index()
     df.columns = ["symbol", "unixtime", "price_open", "price_high", "price_low", "price_close"]
-    df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("symbol")], axis=0, ignore_index=True)
+    df = correct_df(df)
     df["interval"] = 1
     df["symbol"]   = df["symbol"].map(mst_id)
     if DB is not None and df.shape[0] > 0:
@@ -105,7 +104,7 @@ def organize_values(list_values: list, scale_pre: dict, mst_id: dict, DB: Psgre=
         DB.execute_sql()
     return df
 
-async def getfromws(symbols: str, scale_pre: dict, mst_id: dict, type: str="forex", is_update: bool=False):
+async def getfromws(symbols: str, mst_id: dict, type: str="forex", is_update: bool=False):
     # https://eodhd.com/financial-apis/new-real-time-data-api-websockets/
     assert type in ["forex"]
     assert isinstance(symbols, str) or isinstance(symbols, list)
@@ -116,16 +115,17 @@ async def getfromws(symbols: str, scale_pre: dict, mst_id: dict, type: str="fore
         await ws.send('{"action": "subscribe", "symbols": "'+",".join(symbols)+'"}')
         list_values = []
         message     = await ws.recv()
+        print(message)
         time_base   = None
         while True:
             message = await ws.recv()
             message = json.loads(message)
             t       = int(message["t"])
             if time_base is None:
-                time_base = int(t / 1000)
+                time_base = int(t // 1000)
                 time_base = (time_base - (time_base % 60)) * 1000
             if (t - time_base) >= (60 * 1000) and len(list_values) > 0:
-                df = organize_values(list_values.copy(), scale_pre, mst_id, DB=DB)
+                df = organize_values(list_values.copy(), mst_id, DB=DB)
                 print(df)
                 list_values = []
                 time_base   = int(t / 1000)
@@ -142,10 +142,9 @@ if __name__ == "__main__":
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
-    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}';")
-    mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
+    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}';")
+    mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn == "getintraday":
         assert args.fr is not None and args.to is not None
         for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
@@ -156,7 +155,7 @@ if __name__ == "__main__":
                     date_from=date, date_to=(date + datetime.timedelta(days=1))
                 )
                 df["symbol"] = symbol_id
-                df = correct_df(df, scale_pre=scale_pre[symbol_name])
+                df = correct_df(df)
                 DB.logger.info(f"{df}")
                 if df.shape[0] > 0 and args.update:
                     DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = {df['interval'].iloc[0]} and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
@@ -168,14 +167,14 @@ if __name__ == "__main__":
     elif args.fn == "getliveprice":
         while True:
             df = getliveprice(list(mst_id.keys()))
-            df = pd.concat([correct_df(dfwk, scale_pre=scale_pre[code]) for code, dfwk in df.groupby("code")], axis=0, ignore_index=True)
+            df = correct_df(df)
             df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
             df["symbol"] = df["code"].map(mst_id)
             if df.shape[0] > 0 and args.update:
-                sql = f"delete from {EXCHANGE}_ohlcv where "
+                sql = f"delete from {EXCHANGE}_ohlcv where (symbol, interval, unixtime) in ("
                 for x, y, z in df[["symbol", "interval", "unixtime"]].values:
-                    sql += f"(symbol = {x} and interval = {y} and unixtime = {z}) or "
-                sql = sql[:-4] + ";"
+                    sql += f"({x}, {y}, {z}),"
+                sql = sql[:-1] + ");"
                 DB.set_sql(sql)
                 DB.insert_from_df(
                     df[["symbol", "unixtime", "interval", "price_open", "price_high", "price_low", "price_close", "volume"]],
@@ -186,8 +185,7 @@ if __name__ == "__main__":
     elif args.fn == "getfromws":
         symbols = [x.split(".")[0] for x in list(mst_id.keys()) if x.find(".FOREX") >= 0]
         asyncio.run(getfromws(
-            symbols, {x.split(".")[0]:y for x, y in scale_pre.items()}, 
-            {x.split(".")[0]:y for x, y in mst_id.items()}, 
+            symbols, {x.split(".")[0]:y for x, y in mst_id.items()}, 
             type="forex", is_update=args.update
         ))
 
