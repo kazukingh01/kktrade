@@ -90,15 +90,16 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fn", type=str)
-    parser.add_argument("--fr", type=str, help="--fr 20200101")
-    parser.add_argument("--to", type=str, help="--to 20200101")
+    parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
+    parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--sec", type=int, default=60)
     parser.add_argument("--cnt", type=int, default=20)
+    parser.add_argument("--nloop", type=int, default=5)
     parser.add_argument("--update", action='store_true', default=False)
-    args      = parser.parse_args()
-    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
-    mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
+    args   = parser.parse_args()
+    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getticker", "getexecutions"]:
         while True:
             if "getorderbook" == args.fn:
@@ -126,35 +127,37 @@ if __name__ == "__main__":
                 time.sleep(10)
     if args.fn in ["getall"]:
         # python getdata.py --fn getall --fr 20231001 --to 20231012 --sec 30 --cnt 200
-        time_since = int(datetime.datetime.fromisoformat(args.fr).timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101").timestamp())
-        time_until = int(datetime.datetime.fromisoformat(args.to).timestamp()) if args.to is not None else int(datetime.datetime.now().timestamp())
+        time_since = int(args.fr.timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101T00:00:00Z").timestamp())
+        time_until = int(args.to.timestamp()) if args.to is not None else int(datetime.datetime.now(tz=datetime.UTC).timestamp())
         over_sec   = args.sec
         over_count = args.cnt
-        dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};")
-        if dfwk.shape[0] > 0:
-            dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
-            dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
-            dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
-            dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
-            dfwk["bool"] = (dfwk["diff"] >= over_sec)
-            dfwk = dfwk.sort_values("diff", ascending=False)
-            DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
-            count = 0
-            for index in dfwk.index[dfwk["bool"]]:
-                idb    = dfwk.loc[index, "id"]
-                ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
-                symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
-                DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
-                df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
-                if df.shape[0] > 0:
-                    df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
-                    df       = df.loc[~df["id"].isin(df_exist["id"])]
-                if df.shape[0] > 0:
-                    count = 0
-                    if args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
-                else:
-                    count += 1
-                if count > over_count: break
-                time.sleep(0.6)
+        for _ in range(args.nloop):
+            # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
+            dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};")
+            if dfwk.shape[0] > 0:
+                dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
+                dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
+                dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
+                dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
+                dfwk["bool"] = (dfwk["diff"] >= over_sec)
+                dfwk = dfwk.sort_values("diff", ascending=False)
+                DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
+                count = 0
+                for index in dfwk.index[dfwk["bool"]]:
+                    idb    = dfwk.loc[index, "id"]
+                    ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
+                    symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
+                    DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
+                    df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
+                    if df.shape[0] > 0:
+                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
+                        df       = df.loc[~df["id"].isin(df_exist["id"])]
+                    if df.shape[0] > 0:
+                        count = 0
+                        if args.update:
+                            DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
+                            DB.execute_sql()
+                    else:
+                        count += 1
+                    if count > over_count: break
+                    time.sleep(0.6)
