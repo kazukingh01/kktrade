@@ -94,6 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--sec", type=int, default=60)
     parser.add_argument("--cnt", type=int, default=20)
+    parser.add_argument("--sleep", type=float, default=0.6)
     parser.add_argument("--nloop", type=int, default=5)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
@@ -160,4 +161,4 @@ if __name__ == "__main__":
                     else:
                         count += 1
                     if count > over_count: break
-                    time.sleep(0.6)
+                    time.sleep(args.sleep)
