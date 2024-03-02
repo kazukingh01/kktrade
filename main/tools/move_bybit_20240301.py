@@ -99,7 +99,7 @@ if __name__ == "__main__":
         if df_insert.columns.isin(["type"]).any():
             df_insert["side"] = df_insert["type"].map({"Buy": 0, "Sell": 1, "BUY": 0, "SELL": 1, "asks": 0, "bids": 1, "mprc": 2}).astype(float).fillna(-1).astype(int) # nan = 板寄せ
         if args.isgroupby:
-            df_insert = df_insert.groupby(PKEY[args.tbl]).last().reset_index(frop=False)
+            df_insert = df_insert.groupby(PKEY[args.tbl]).last().reset_index(drop=False)
         if args.update and df_insert.shape[0] > 0:
             DB_to.insert_from_df(df_insert, args.tbl, is_select=True, n_jobs=args.jobs)
             DB_to.execute_sql()
