@@ -160,8 +160,9 @@ if __name__ == "__main__":
                     symbol_name, interval=DICT_INTERVAL[symbol_name]["1m"] if DICT_INTERVAL.get(symbol_name) is not None else "1m",
                     date_from=date, date_to=list_dates[i_date + 1]
                 )
-                df["symbol"] = symbol_id
-                df = correct_df(df)
+                if df.shape[0] > 0:
+                    df["symbol"] = symbol_id
+                    df = correct_df(df)
                 DB.logger.info(f"{df}")
                 if df.shape[0] > 0 and args.update:
                     DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = {df['interval'].iloc[0]} and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
@@ -173,9 +174,10 @@ if __name__ == "__main__":
     elif args.fn == "getliveprice":
         while True:
             df = getliveprice(list(mst_id.keys()))
-            df = correct_df(df)
-            df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
-            df["symbol"] = df["code"].map(mst_id)
+            if df.shape[0] > 0:
+                df = correct_df(df)
+                df.loc[df["code"].isin(list(DICT_INTERVAL.keys())), "interval"] = 5
+                df["symbol"] = df["code"].map(mst_id)
             if df.shape[0] > 0 and args.update:
                 sql = f"delete from {EXCHANGE}_ohlcv where (symbol, interval, unixtime) in ("
                 for x, y, z in df[["symbol", "interval", "unixtime"]].values:
