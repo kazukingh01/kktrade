@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--tbl", type=str, help="table name")
     parser.add_argument("--num", type=int, default=10000)
     parser.add_argument("--jobs", type=int, default=1)
+    parser.add_argument("--useunittime", action='store_true', default=False)
     parser.add_argument("--isgroupby", action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
@@ -70,7 +71,8 @@ if __name__ == "__main__":
         list_pkey = PKEY[args.tbl].copy()
         if "unixtime" in list_pkey:
             sql_unixtime = f"unixtime >= {int(dfwk['unixtime'].min())} and unixtime <= {int(dfwk['unixtime'].max())}"
-            list_pkey = np.array(list_pkey)[~np.isin(np.array(list_pkey), "unixtime")].tolist()
+            if args.useunittime == False:
+                list_pkey = np.array(list_pkey)[~np.isin(np.array(list_pkey), "unixtime")].tolist()
         else:
             sql_unixtime = f"unixtime >= {int(args.since.timestamp()) * 1000} and unixtime < {int(args.until.timestamp()) * 1000} "
         sql  = (
