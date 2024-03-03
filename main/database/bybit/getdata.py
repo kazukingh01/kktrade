@@ -122,8 +122,8 @@ def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=No
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fn", type=str)
-    parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
-    parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
+    parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
+    parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
     DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)

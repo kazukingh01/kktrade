@@ -20,6 +20,15 @@ sudo su - postgres -c 'psql -U postgres -d trade -f /home/share/schema.sql'
 sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema.sql 
 ```
 
+# Drop Table
+
+```bash
+# for host
+sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -c "DROP TABLE bitflyer_executions, bitflyer_orderbook, bitflyer_ticker CASCADE"' 
+# for docker 
+sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -c "DROP TABLE bitflyer_executions, bitflyer_orderbook, bitflyer_ticker CASCADE"
+```
+
 # Cron
 
 ```bash

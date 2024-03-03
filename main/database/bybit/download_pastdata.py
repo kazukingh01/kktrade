@@ -69,6 +69,10 @@ if __name__ == "__main__":
                 DB.logger.warning("Nothing data.")
                 continue
             if df.shape[0] > 0 and args.update:
-                for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                    DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", is_select=True, n_jobs=args.jobs)
+                if df.shape[0] >= args.num:
+                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
+                        DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", is_select=True, n_jobs=args.jobs)
+                        DB.execute_sql()
+                else:
+                    DB.insert_from_df(df, f"{EXCHANGE}_executions", is_select=True, n_jobs=args.jobs)
                     DB.execute_sql()
