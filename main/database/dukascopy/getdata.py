@@ -1,7 +1,7 @@
 import requests, datetime, asyncio, time, argparse
 import pandas as pd
 # local package
-from kktrade.database.psgre import Psgre
+from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.apikey import APIKEY_DUKASCOPY
 
@@ -14,7 +14,7 @@ def getinstrumentlist():
     r = requests.get(f"{URL_BASE}", params=dict({"key": APIKEY_DUKASCOPY, "path": "api/instrumentList"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str, interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
+def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
     df = {}
     for side in ["A", "B"]:
         r = requests.get(f"{URL_BASE}", params=dict({
@@ -25,11 +25,13 @@ def getintraday(symbol: str, interval: str="1min", date_from: datetime.datetime=
         }))
         assert r.status_code == 200
         df[side] = pd.DataFrame(r.json()["candles"])
+        if df[side].shape[0] == 0:
+            return pd.DataFrame()
     df = pd.merge(df["A"], df["B"], how="left", on="timestamp")
     df = df.dropna(how="any", axis=0)
     for x in ["open", "high", "low", "close"]:
         df["price_" + x] = (df["ask_" + x] + df["bid_" + x]) / 2.
-    df["unixtime"] = df["timestamp"].astype(int)
+    df["unixtime"] = df["timestamp"].astype(int) // 1000
     df["interval"] = {"1min": 1, "10m": 10, "1hour": 60, "1day": 24*60}[interval]
     return df
 
@@ -39,57 +41,70 @@ def getlastminutekline():
     df = pd.DataFrame(r.json()).T
     for x in ["open", "high", "low", "close"]:
         df["price_" + x] = (df["ask_" + x].astype(float) + df["bid_" + x].astype(float)) / 2.
-    df["unixtime"] = df["candle_time"].astype(int)
+    df["unixtime"] = df["candle_time"].astype(int) // 1000
     df["interval"] = 1
     return df
 
-def getcurrentprices(symbol: str):
+def getcurrentprices(symbol: str="2032"):
     r = requests.get(f"{URL_BASE}", params=dict({"key": APIKEY_DUKASCOPY, "path": "api/currentPrices", "instruments": symbol}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
+    df["unixtime"] = df["time"].astype(int) // 1000
     return df
 
-def correct_df(df: pd.DataFrame, scale_pre: dict=None):
+def correct_df(df: pd.DataFrame):
     df = df.copy()
     for x in ["price_open", "price_high", "price_low", "price_close", "ask_volume", "bid_volume"]:
-        if df.columns.isin([x]).any() == False: continue
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
+        if not x in df.columns: continue
+        df[x] = df[x].astype(float)
     return df
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fn", type=str)
-    parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
-    parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
+    parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
+    parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
+    parser.add_argument("--days",   type=int, help="--days 1", default=1)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
-    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api';")
-    mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
+    assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
+    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api';")
+    mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn == "getintraday":
         assert args.fr is not None and args.to is not None
+        assert args.fr < args.to
         dict_list = {y:x for x, y in getinstrumentlist()[["id", "name"]].values}
-        for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
+        list_dates = [args.fr + datetime.timedelta(days=x) for x in range(0, (args.to - args.fr).days + args.days, args.days)]
+        assert list_dates[-1] >= args.to
+        list_dates[-1] = args.to
+        for i_date, date in enumerate(list_dates):
+            if i_date == (len(list_dates) - 1): break
             for symbol_name, symbol_id in mst_id.items():
-                df = getintraday(dict_list[symbol_name], date_from=date, date_to=(date + datetime.timedelta(days=1)))
-                df["symbol"] = symbol_id
-                df = correct_df(df, scale_pre=scale_pre[symbol_name])
+                DB.logger.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
+                df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1])
+                if df.shape[0] > 0:
+                    df["symbol"] = symbol_id
+                    df = correct_df(df)
+                else:
+                    DB.logger.warning("data is nothing.")
                 if df.shape[0] > 0 and args.update:
-                    DB.execute_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
+                    DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
                     DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True)
                     DB.execute_sql()
     elif args.fn == "getlastminutekline":
-        df = getlastminutekline()
-        for symbol_name, symbol_id in mst_id.items():
-            dfwk = correct_df(df.loc[[symbol_name]], scale_pre=scale_pre[symbol_name])
-            dfwk["symbol"] = symbol_id
-            if dfwk.shape[0] > 0 and args.update:
-                DB.set_sql(f"DELETE FROM {EXCHANGE}_ohlcv WHERE symbol = {symbol_id} and interval = 1 and unixtime = {dfwk['unixtime'].iloc[0]};")
-                DB.insert_from_df(dfwk[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']], f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False)
+        while True:
+            DB.logger.info("getlastminutekline start")
+            df = getlastminutekline()
+            df = df.loc[list(mst_id.keys())].reset_index()
+            df.columns = ["symbol_name"] + df.columns[1:].tolist()
+            df["symbol"] = df["symbol_name"].map(mst_id).astype(int)
+            df = correct_df(df)
+            DB.logger.info("getlastminutekline end")
+            if df.shape[0] > 0 and args.update:
+                DB.set_sql(f"DELETE FROM {EXCHANGE}_ohlcv WHERE (symbol,interval,unixtime) in (" + ",".join([f"({x},{y},{z})" for x,y,z in df[["symbol","interval","unixtime"]].values]) + ");")
+                DB.insert_from_df(df[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']], f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False)
                 DB.execute_sql()
+            time.sleep(30)

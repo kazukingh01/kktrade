@@ -3,11 +3,42 @@ from typing import List
 from dataclasses import dataclass
 import pandas as pd
 # local package
-from kktrade.database.psgre import Psgre
+from kkpsgre.psgre import Psgre
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 
 
 EXCHANGE = "dukascopy"
+MST_SCALE = {
+    "USA500IDXUSD": {"ask": 0.001,   "bid": 0.001  },
+    "VOLIDXUSD":    {"ask": 0.01,    "bid": 0.01   },
+    "CHIIDXUSD":    {"ask": 0.001,   "bid": 0.001  },
+    "HKGIDXHKD":    {"ask": 0.001,   "bid": 0.001  },
+    "JPNIDXJPY":    {"ask": 0.001,   "bid": 0.001  },
+    "AUSIDXAUD":    {"ask": 0.001,   "bid": 0.001  },
+    "INDIDXUSD":    {},
+    "SGDIDXSGD":    {"ask": 0.001,   "bid": 0.001  },
+    "FRAIDXEUR":    {"ask": 0.001,   "bid": 0.001  },
+    "EUSIDXEUR":    {"ask": 0.001,   "bid": 0.001  },
+    "ESPIDXEUR":    {"ask": 0.001,   "bid": 0.001  },
+    "GBRIDXGBP":    {"ask": 0.001,   "bid": 0.001  },
+    "NLDIDXEUR":    {"ask": 0.001,   "bid": 0.001  },
+    "PLNIDXPLN":    {"ask": 0.001,   "bid": 0.001  },
+    "SOAIDXZAR":    {"ask": 0.01,    "bid": 0.01   },
+    "DEUIDXEUR":    {"ask": 0.001,   "bid": 0.001  },
+    "CHEIDXCHF":    {"ask": 0.001,   "bid": 0.001  },
+    "USDJPY":       {"ask": 0.001,   "bid": 0.001  },
+    "EURUSD":       {"ask": 0.00001, "bid": 0.00001},
+    "GBPUSD":       {"ask": 0.00001, "bid": 0.00001},
+    "USDCHF":       {"ask": 0.00001, "bid": 0.00001},
+    "AUDUSD":       {"ask": 0.00001, "bid": 0.00001},
+    "USDCAD":       {"ask": 0.00001, "bid": 0.00001},
+    "NZDUSD":       {"ask": 0.00001, "bid": 0.00001},
+    "EURGBP":       {"ask": 0.00001, "bid": 0.00001},
+    "EURJPY":       {"ask": 0.001,   "bid": 0.001  },
+    "EURCHF":       {"ask": 0.00001, "bid": 0.00001},
+    "XAUUSD":       {"ask": 0.001,   "bid": 0.001  },
+    "XAGUSD":       {"ask": 0.001,   "bid": 0.001  },
+}
 
 
 @dataclass
@@ -54,36 +85,33 @@ def getticks(symbol: str, date: datetime.datetime, is_throw_exception: bool=Fals
         buffer = lzma.LZMADecompressor().decompress(buffer)
         data   = tokenize(buffer)
         dfwk   = pd.DataFrame(data, columns=['unixtime', 'ask', 'bid', 'ask_size', 'bid_size'])
-        dfwk["unixtime"] = datetime.datetime(date.year, date.month, date.day, int(url[-13:-11]), 0, 0, tzinfo=datetime.timezone.utc).timestamp() + (dfwk["unixtime"] / 1000)
-        dfwk["unixtime"] = (dfwk["unixtime"] * 1000).astype(int)
+        dfwk["unixtime"] = datetime.datetime(date.year, date.month, date.day, int(url[-13:-11]), 0, 0, tzinfo=datetime.timezone.utc).timestamp() + (dfwk["unixtime"] // 1000)
+        dfwk["unixtime"] = dfwk["unixtime"].astype(int)
         df.append(dfwk)
     df = pd.concat(df, axis=0, ignore_index=True, sort=False)
     return df
 
-def correct_df(df: pd.DataFrame, scale_pre: dict=None):
+def correct_df(df: pd.DataFrame, dict_scale: dict=None):
     df = df.copy()
     for x in ['ask', 'bid', 'ask_size', 'bid_size']:
-        if isinstance(scale_pre, dict) and scale_pre.get(x) is not None:
-            df[x] = (df[x].astype(float) * scale_pre[x]).fillna(-1).astype(int)
-            df.loc[df[x] >= 2147483647, x] = -1
-        else:
-            df[x] = df[x].astype(float).fillna(-1).astype(int)
+        df[x] = df[x].astype(float)
+        if dict_scale is not None and x in dict_scale:
+            df[x] = df[x] * dict_scale[x]
     return df
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fr", type=datetime.datetime.fromisoformat, help="--fr 20200101")
-    parser.add_argument("--to", type=datetime.datetime.fromisoformat, help="--to 20200101")
+    parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
+    parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--symbols", type=lambda x: [int(y) for y in x.split(",")], help="--symbols 63,64")
     parser.add_argument("--update", action='store_true', default=False)
-    args      = parser.parse_args()
+    args   = parser.parse_args()
     print(args)
-    DB        = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst    = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     if args.symbols is not None and len(args.symbols) > 0: df_mst = df_mst.loc[df_mst["symbol_id"].isin(args.symbols)]
-    mst_id    = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    scale_pre = {x:y for x, y in df_mst[["symbol_name", "scale_pre"]].values}
+    mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     assert args.fr is not None and args.to is not None
     assert args.fr <= args.to
     for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days + 1)]:
@@ -97,7 +125,7 @@ if __name__ == "__main__":
                 DB.logger.info("No data.")
                 continue
             df["symbol"] = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
-            df = correct_df(df, scale_pre=scale_pre[symbol])
+            df = correct_df(df, dict_scale=MST_SCALE.get(symbol))
             if args.update:
                 DB.set_sql(f'DELETE FROM {EXCHANGE}_ticks where symbol = {df["symbol"].iloc[0]} and unixtime >= {df["unixtime"].min()} and unixtime <= {df["unixtime"].max()};')
                 DB.insert_from_df(df, f"{EXCHANGE}_ticks", set_sql=True, str_null="", is_select=False, n_jobs=8)
