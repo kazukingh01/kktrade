@@ -120,7 +120,11 @@ if __name__ == "__main__":
                 time.sleep(4)
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
-                    dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {mst_id[symbol]};")
+                    # select since 3 days before.
+                    dfwk = DB.select_sql(
+                        f"select max(id) as id from {EXCHANGE}_executions where " + 
+                        f"symbol = {mst_id[symbol]} and unixtime >= {int((datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).timestamp())};"
+                    )
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0], mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
