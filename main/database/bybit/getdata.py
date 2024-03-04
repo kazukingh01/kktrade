@@ -133,6 +133,7 @@ if __name__ == "__main__":
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
+                    DB.logger.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
                         DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
@@ -140,6 +141,7 @@ if __name__ == "__main__":
                 time.sleep(10) # 11 * 6 = 66
             if "getticker" == args.fn:
                 for symbol in mst_id.keys():
+                    DB.logger.info(f"{args.fn}: {symbol}")
                     df   = getticker(symbol=symbol, mst_id=mst_id) # result value is only 1 record.
                     dfwk = DB.select_sql(f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {mst_id[symbol]};")
                     if dfwk.shape[0] == 0 and args.update:
@@ -148,8 +150,8 @@ if __name__ == "__main__":
                 time.sleep(1) # 11 * 60 = 660
             if "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
-                    dfwk = DB.select_sql(f"select max(id) as id from {EXCHANGE}_executions where symbol = {mst_id[symbol]};")
-                    df   = getexecutions(symbol=symbol, mst_id=mst_id)
+                    DB.logger.info(f"{args.fn}: {symbol}")
+                    df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
                         df_exist = DB.select_sql(
                             f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
@@ -163,6 +165,7 @@ if __name__ == "__main__":
             if "getkline" == args.fn:
                 for symbol in mst_id.keys():
                     for kline in ["mark", "index"]:
+                        DB.logger.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, limit=100, mst_id=mst_id)
                         if df.shape[0] > 0:
                             df_exist = DB.select_sql(
@@ -183,7 +186,7 @@ if __name__ == "__main__":
                 time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
                 for symbol in mst_id.keys():
                     for kline in ["mark", "index"]:
-                        print(date, hour, symbol, kline)
+                        DB.logger.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0:
                             df_exist = DB.select_sql(
