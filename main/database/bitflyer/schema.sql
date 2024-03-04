@@ -12,12 +12,6 @@ CREATE TABLE public.bitflyer_executions (
 );
 
 
-ALTER TABLE public.bitflyer_executions OWNER TO postgres;
-
-ALTER TABLE bitflyer_orderbook RENAME TO bitflyer_orderbook_old;
-ALTER INDEX bitflyer_orderbook_0 RENAME TO bitflyer_orderbook_0_old;
-
-
 --
 -- Name: bitflyer_orderbook; Type: TABLE; Schema: public; Owner: postgres
 --
