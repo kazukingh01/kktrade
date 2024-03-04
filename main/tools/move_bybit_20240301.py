@@ -90,7 +90,7 @@ if __name__ == "__main__":
             else:
                 sql += f"and main.{list_pkey[0]} in (" + ",".join(dfwk[list_pkey[0]].astype(str).tolist()) + ")"
         elif len(list_pkey) > 1:
-            sql += f"and ({','.join([f'main.{x}' for x in list_pkey])}) in (" + ",".join([f"({x}, {y})" for x, y in dfwk[list_pkey].values]) + ")"
+            sql += f"and ({','.join([f'main.{x}' for x in list_pkey])}) in (" + ",".join([f"({','.join(x.astype(str).tolist())})" for x in dfwk[list_pkey].values]) + ")"
         df_insert = DB_from.select_sql(sql)
         df_insert["unixtime"] = (df_insert["unixtime"] // 1000).astype(int)
         for x in df_insert.columns[df_insert.columns.str.contains("^scale_aft_", regex=True)].tolist():
