@@ -9,7 +9,7 @@ from kktrade.config.apikey import APIKEY_DUKASCOPY
 
 EXCHANGE = "dukascopy"
 URL_BASE = "https://freeserv.dukascopy.com/2.0/"
-LOGGER   = set_logger(__name__) # only this program
+LOGGER   = set_logger(__name__)
 
 
 def getinstrumentlist():

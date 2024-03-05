@@ -33,6 +33,9 @@ setup(
         'tqdm==4.66.1',
         'websockets==11.0.3',
         'httpx==0.25.0',
+        'beautifulsoup4==4.12.3',
+        'pytest-playwright==0.4.4',
+        'playwright==1.41.2',
     ],
     python_requires='>=3.11.2'
 )
