@@ -16,7 +16,7 @@ def getinstrumentlist():
     r = requests.get(f"{URL_BASE}", params=dict({"key": APIKEY_DUKASCOPY, "path": "api/instrumentList"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None, max_try: int=3):
+def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None, max_try: int=5):
     """
     !!! If requests.get is done twice very quickly, The response is diffenrent. !!!
     !!! Maybe previous data with different syboll is returned. !!!
@@ -84,7 +84,8 @@ if __name__ == "__main__":
     parser.add_argument("--fn", type=str)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
-    parser.add_argument("--days",   type=int, help="--days 1", default=1)
+    parser.add_argument("--days", type=int, help="--days 1", default=1)
+    parser.add_argument("--ntry", type=int, help="--ntry 5", default=5)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
@@ -103,7 +104,7 @@ if __name__ == "__main__":
             if i_date == (len(list_dates) - 1): break
             for symbol_name, symbol_id in mst_id.items():
                 DB.logger.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
-                df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1])
+                df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1], max_try=args.ntry)
                 if df.shape[0] > 0:
                     df["symbol"] = symbol_id
                     df = correct_df(df)
