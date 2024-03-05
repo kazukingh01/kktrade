@@ -25,7 +25,7 @@ def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.da
     dictwk = {"A": "ask", "B": "bid"}
     for side in ["A", "B"]:
         is_success = False
-        for i in range(max_try):
+        for i_try in range(max_try):
             r = requests.get(f"{URL_BASE}", params=dict({
                 "key": APIKEY_DUKASCOPY, "path": "api/historicalPrices", "instrument": symbol, "timeFrame": interval,
                 "start": int(date_from.timestamp() * 1000) if date_from is not None else None,
@@ -35,7 +35,7 @@ def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.da
             assert r.status_code == 200
             dict_json = r.json()
             if not ((dict_json["id"] == symbol) and (dict_json["timeFrame"] == interval) and (dict_json["offerSide"] == dictwk[side])):
-                LOGGER.warning(f"Retry: {i}")
+                LOGGER.warning(f"Retry: {i_try}")
                 LOGGER.warning(f'The input    params: {symbol}, {interval}, {dictwk[side]}')
                 LOGGER.warning(f'The response params: {dict_json["id"]}, {dict_json["timeFrame"]}, {dict_json["offerSide"]}')
                 time.sleep(sec_sleep)
@@ -45,6 +45,8 @@ def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.da
             df[side] = pd.DataFrame(dict_json["candles"])
             if df[side].shape[0] == 0:
                 return pd.DataFrame()
+            if is_success:
+                break # go out of loop
         assert is_success
     df = pd.merge(df["A"], df["B"], how="left", on="timestamp")
     df = df.dropna(how="any", axis=0)
