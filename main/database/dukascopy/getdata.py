@@ -16,7 +16,7 @@ def getinstrumentlist():
     r = requests.get(f"{URL_BASE}", params=dict({"key": APIKEY_DUKASCOPY, "path": "api/instrumentList"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None, max_try: int=5):
+def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None, max_try: int=5, sec_sleep: int=3):
     """
     !!! If requests.get is done twice very quickly, The response is diffenrent. !!!
     !!! Maybe previous data with different syboll is returned. !!!
@@ -38,7 +38,7 @@ def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.da
                 LOGGER.warning(f"Retry: {i}")
                 LOGGER.warning(f'The input    params: {symbol}, {interval}, {dictwk[side]}')
                 LOGGER.warning(f'The response params: {dict_json["id"]}, {dict_json["timeFrame"]}, {dict_json["offerSide"]}')
-                time.sleep(3)
+                time.sleep(sec_sleep)
                 continue
             else:
                 is_success = True
@@ -84,8 +84,9 @@ if __name__ == "__main__":
     parser.add_argument("--fn", type=str)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
-    parser.add_argument("--days", type=int, help="--days 1", default=1)
-    parser.add_argument("--ntry", type=int, help="--ntry 5", default=5)
+    parser.add_argument("--days",  type=int, help="--days 1", default=1)
+    parser.add_argument("--ntry",  type=int, help="--ntry 5", default=5)
+    parser.add_argument("--sleep", type=int, help="--sleep 3", default=3)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
@@ -104,7 +105,7 @@ if __name__ == "__main__":
             if i_date == (len(list_dates) - 1): break
             for symbol_name, symbol_id in mst_id.items():
                 DB.logger.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
-                df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1], max_try=args.ntry)
+                df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1], max_try=args.ntry, sec_sleep=args.sleep)
                 if df.shape[0] > 0:
                     df["symbol"] = symbol_id
                     df = correct_df(df)
@@ -114,7 +115,7 @@ if __name__ == "__main__":
                     DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
                     DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True)
                     DB.execute_sql()
-                time.sleep(3)
+                time.sleep(args.sleep)
     elif args.fn == "getlastminutekline":
         while True:
             DB.logger.info("getlastminutekline start")
