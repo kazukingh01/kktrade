@@ -24,7 +24,7 @@ sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432
 
 ```bash
 # for host
-sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -c "DROP TABLE bitflyer_executions, bitflyer_orderbook, bitflyer_ticker CASCADE"' 
+sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -c "DROP TABLE bitflyer_executions, bitflyer_orderbook, bitflyer_ticker CASCADE"'
 # for docker 
 sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -c "DROP TABLE bitflyer_executions, bitflyer_orderbook, bitflyer_ticker CASCADE"
 ```

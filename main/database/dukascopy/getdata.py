@@ -1,32 +1,51 @@
-import requests, datetime, asyncio, time, argparse
+import requests, datetime, time, argparse
 import pandas as pd
 # local package
 from kkpsgre.psgre import Psgre
+from kkpsgre.util.logger import set_logger
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.apikey import APIKEY_DUKASCOPY
 
 
 EXCHANGE = "dukascopy"
 URL_BASE = "https://freeserv.dukascopy.com/2.0/"
+LOGGER   = set_logger(__name__) # only this program
 
 
 def getinstrumentlist():
     r = requests.get(f"{URL_BASE}", params=dict({"key": APIKEY_DUKASCOPY, "path": "api/instrumentList"}))
     return pd.DataFrame(r.json())
 
-def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None):
+def getintraday(symbol: str="2032", interval: str="1min", date_from: datetime.datetime=None, date_to: datetime.datetime=None, max_try: int=3):
+    """
+    !!! If requests.get is done twice very quickly, The response is diffenrent. !!!
+    !!! Maybe previous data with different syboll is returned. !!!
+    """
     df = {}
+    dictwk = {"A": "ask", "B": "bid"}
     for side in ["A", "B"]:
-        r = requests.get(f"{URL_BASE}", params=dict({
-            "key": APIKEY_DUKASCOPY, "path": "api/historicalPrices", "instrument": symbol, "timeFrame": interval,
-            "start": int(date_from.timestamp() * 1000) if date_from is not None else None,
-            "end":   int(date_to.  timestamp() * 1000) if date_to   is not None else None,
-            "dayStartTime": "UTC", "offerSide": side, "count": 5000,
-        }))
-        assert r.status_code == 200
-        df[side] = pd.DataFrame(r.json()["candles"])
-        if df[side].shape[0] == 0:
-            return pd.DataFrame()
+        is_success = False
+        for i in range(max_try):
+            r = requests.get(f"{URL_BASE}", params=dict({
+                "key": APIKEY_DUKASCOPY, "path": "api/historicalPrices", "instrument": symbol, "timeFrame": interval,
+                "start": int(date_from.timestamp() * 1000) if date_from is not None else None,
+                "end":   int(date_to.  timestamp() * 1000) if date_to   is not None else None,
+                "dayStartTime": "UTC", "offerSide": side, "count": 5000,
+            }))
+            assert r.status_code == 200
+            dict_json = r.json()
+            if not ((dict_json["id"] == symbol) and (dict_json["timeFrame"] == interval) and (dict_json["offerSide"] == dictwk[side])):
+                LOGGER.warning(f"Retry: {i}")
+                LOGGER.warning(f'The input    params: {symbol}, {interval}, {dictwk[side]}')
+                LOGGER.warning(f'The response params: {dict_json["id"]}, {dict_json["timeFrame"]}, {dict_json["offerSide"]}')
+                time.sleep(3)
+                continue
+            else:
+                is_success = True
+            df[side] = pd.DataFrame(dict_json["candles"])
+            if df[side].shape[0] == 0:
+                return pd.DataFrame()
+        assert is_success
     df = pd.merge(df["A"], df["B"], how="left", on="timestamp")
     df = df.dropna(how="any", axis=0)
     for x in ["open", "high", "low", "close"]:
@@ -94,6 +113,7 @@ if __name__ == "__main__":
                     DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
                     DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True)
                     DB.execute_sql()
+                time.sleep(3)
     elif args.fn == "getlastminutekline":
         while True:
             DB.logger.info("getlastminutekline start")
