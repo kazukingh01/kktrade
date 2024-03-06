@@ -49,6 +49,8 @@ def correct_df(df: pd.DataFrame):
     df["actual"]     = df["actual"  ].replace(",", "", regex=True).astype(str).str.extract(r"^([0-9\.\-]+)",  expand=True).astype(float)
     df["forecast"]   = df["forecast"].replace(",", "", regex=True).astype(str).str.extract(r"^([0-9\.\-]+)",  expand=True).astype(float)
     df["name"]       = df["name"    ].replace("'", "''", regex=True)
+    # The table has same data: https://in.investing.com/economic-calendar/?timeFrame=custom&timeZone=55&startDate=1211155200&endDate=1211241600
+    df = df.groupby("id").last().reset_index(drop=False)
     return df
 
 
