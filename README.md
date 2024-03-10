@@ -133,6 +133,7 @@ git clone https://github.com/kazukingh01/kktrade.git
 source ~/venv/bin/activate
 cd ~/kktrade
 pip install -e .
+playwright install
 ```
 
 ### Cron
