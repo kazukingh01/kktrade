@@ -4,7 +4,7 @@ EXCHANGE="bitflyer"
 HOMEDIR="/home/ubuntu"
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
-COMMANDS=("getorderbook" "getexecutions" "getticker")
+COMMANDS=("getorderbook" "getexecutions" "getticker" "getfundingrate")
 PYTHON="${HOMEDIR}/venv/bin/python"
 
 mkdir -p ${LOGDIR}

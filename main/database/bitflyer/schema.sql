@@ -11,6 +11,22 @@ CREATE TABLE public.bitflyer_executions (
     size real
 );
 
+ALTER TABLE public.bitflyer_executions OWNER TO postgres;
+
+
+--
+-- Name: bitflyer_fundingrate; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bitflyer_fundingrate (
+    symbol smallint NOT NULL,
+    unixtime bigint NOT NULL,
+    current_funding_rate real,
+    next_funding_rate_settledate bigint
+);
+
+ALTER TABLE public.bitflyer_fundingrate OWNER TO postgres;
+
 
 --
 -- Name: bitflyer_orderbook; Type: TABLE; Schema: public; Owner: postgres
@@ -431,6 +447,14 @@ ALTER TABLE public.bitflyer_ticker OWNER TO postgres;
 
 ALTER TABLE ONLY public.bitflyer_executions
     ADD CONSTRAINT bitflyer_executions_pkey PRIMARY KEY (symbol, id);
+
+
+--
+-- Name: bitflyer_fundingrate bitflyer_fundingrate_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bitflyer_fundingrate
+    ADD CONSTRAINT bitflyer_fundingrate_pkey PRIMARY KEY (symbol, unixtime);
 
 
 --

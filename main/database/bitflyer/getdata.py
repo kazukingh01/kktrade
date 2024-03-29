@@ -86,6 +86,17 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_
     df["unixtime"] = df["unixtime"].astype(int)
     return df
 
+def getfundingrate(symbol: str="FX_BTC_JPY", mst_id: dict=None):
+    r  = requests.get(f"{URL_BASE}getfundingrate", params={"product_code": symbol})
+    if r.status_code in [400]: return pd.DataFrame()
+    assert r.status_code == 200
+    df = pd.DataFrame([r.json()])
+    if df.shape[0] == 0: return df
+    df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
+    df["unixtime"] = int(datetime.datetime.now(tz=datetime.UTC).timestamp())
+    df["next_funding_rate_settledate"] = pd.to_datetime(df["next_funding_rate_settledate"], utc=True).astype(int) // (10 ** 9)
+    return df
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -101,7 +112,7 @@ if __name__ == "__main__":
     DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    if args.fn in ["getorderbook", "getticker", "getexecutions"]:
+    if args.fn in ["getorderbook", "getticker", "getexecutions", "getfundingrate"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
@@ -130,6 +141,14 @@ if __name__ == "__main__":
                         DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
                         DB.execute_sql()
                 time.sleep(10)
+            elif "getfundingrate" == args.fn:
+                for symbol in mst_id.keys():
+                    if symbol not in ["FX_BTC_JPY"]: continue
+                    df = getfundingrate(symbol=symbol, mst_id=mst_id)
+                    if df.shape[0] > 0 and args.update:
+                        DB.insert_from_df(df, f"{EXCHANGE}_fundingrate", set_sql=True, str_null="", is_select=True, n_round=8)
+                        DB.execute_sql()
+                time.sleep(60 * 10)
     if args.fn in ["getall"]:
         # python getdata.py --fn getall --fr 20231001 --to 20231012 --sec 30 --cnt 200
         time_since = int(args.fr.timestamp()) if args.fr is not None else int(datetime.datetime.fromisoformat("20000101T00:00:00Z").timestamp())
