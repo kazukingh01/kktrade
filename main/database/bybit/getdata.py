@@ -9,14 +9,16 @@ from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 EXCHANGE = "bybit"
 URL_BASE = "https://api.bybit.com/v5/"
 KLINE_TYPE = {
-    "mark": 0,
-    "index": 1,
-    "premium": 2,
+    "normal": 0,
+    "mark": 1,
+    "index": 2,
+    "premium": 3,
 }
 KILNE_URL = {
+    "normal": "kline",
     "mark": "mark-price-kline",
     "index": "index-price-kline",
-    "premium": "premium-index-price-kline"
+    "premium": "premium-index-price-kline",
 }
 
 
@@ -98,13 +100,17 @@ def getexecutions(symbol: str="inverse@BTCUSD", mst_id: dict=None):
     return df
 
 def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=None, end: int=None, limit: int=200, mst_id: dict=None):
-    assert isinstance(kline, str) and kline in ["mark", "index"] # remove "premium" 
+    assert isinstance(kline, str) and kline in ["mark", "index", "normal"] # remove "premium" 
     assert interval in [1, 3, 5, 15, 30, 60, 120, 240, 360, 720, "D", "M", "W"]
-    if fnuc_parse(symbol)["category"] == "spot": return pd.DataFrame()
+    if fnuc_parse(symbol)["category"] == "spot" and kline != "normal": return pd.DataFrame()
     r = requests.get(f"{URL_BASE}market/{KILNE_URL[kline]}", params=dict({"interval": interval, "start": start, "end": end, "limit": limit}, **fnuc_parse(symbol)))
     assert r.status_code == 200
     assert r.json()["retCode"] == 0
-    df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close"])
+    if kline == "normal":
+        df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close", "volume", "turnover"])
+    else:
+        df = pd.DataFrame(r.json()["result"]["list"], columns=["unixtime", "price_open", "price_high", "price_low", "price_close"])
+        for x in ["volume", "turnover"]: df[x] = float("nan")
     if df.shape[0] == 0: return df
     df["unixtime"]   = df["unixtime"].astype(int)
     df["symbol"]     = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
@@ -114,7 +120,7 @@ def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=No
     df = df.sort_values(["symbol", "kline_type", "interval", "unixtime"]).reset_index(drop=True)
     df = df.groupby(["symbol", "kline_type", "interval", "unixtime"]).last().reset_index(drop=False)
     df["unixtime"]   = df["unixtime"] // 1000
-    for x in ["price_open", "price_high", "price_low", "price_close"]:
+    for x in ["price_open", "price_high", "price_low", "price_close", "volume", "turnover"]:
         df[x] = df[x].astype(float)
     return df
     
@@ -164,7 +170,7 @@ if __name__ == "__main__":
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
                 for symbol in mst_id.keys():
-                    for kline in ["mark", "index"]:
+                    for kline in ["mark", "index", "normal"]:
                         DB.logger.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, limit=100, mst_id=mst_id)
                         if df.shape[0] > 0:
@@ -185,7 +191,7 @@ if __name__ == "__main__":
                 time_since = int((date + datetime.timedelta(hours=hour+ 0)).timestamp() * 1000)
                 time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
                 for symbol in mst_id.keys():
-                    for kline in ["mark", "index"]:
+                    for kline in ["mark", "index", "normal"]:
                         DB.logger.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0:

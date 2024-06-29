@@ -401,7 +401,8 @@ CREATE TABLE public.bybit_kline (
     price_open real,
     price_high real,
     price_low real,
-    price_close real
+    price_close real,
+    volume real
 );
 
 
