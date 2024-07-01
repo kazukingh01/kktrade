@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='kktrade',
-    version='1.1.0',
+    version='1.2.0',
     description='python libraries for trade.',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -25,17 +25,15 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@f201baa0ba37277b216fa5bdda819fc934273384',
-        'pandas==1.5.3',
-        'numpy==1.24.2',
+        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@8ebc13408318c33c1bd7ae80e778c80ce67c9832',
+        'pandas==2.2.1',
+        'numpy==1.26.4',
         'joblib==1.3.2',
         'requests==2.31.0',
-        'tqdm==4.66.1',
-        'websockets==11.0.3',
-        'httpx==0.25.0',
+        'tqdm==4.66.4',
+        'websockets==12.0',
+        'httpx==0.27.0',
         'beautifulsoup4==4.12.3',
-        'pytest-playwright==0.4.4',
-        'playwright==1.41.2',
     ],
-    python_requires='>=3.11.2'
+    python_requires='>=3.12.2'
 )
