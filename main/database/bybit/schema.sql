@@ -894,6 +894,13 @@ CREATE INDEX bybit_orderbook_0 ON public.bybit_orderbook USING btree (unixtime);
 
 
 --
+-- Name: bybit_orderbook_1; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX bybit_orderbook_1 ON public.bybit_orderbook USING btree (symbol);
+
+
+--
 -- Name: bybit_ticker_0; Type: INDEX; Schema: public; Owner: postgres
 --
 

@@ -100,7 +100,7 @@ def getexecutions(symbol: str="inverse@BTCUSD", mst_id: dict=None):
     return df
 
 def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=None, end: int=None, limit: int=200, mst_id: dict=None):
-    assert isinstance(kline, str) and kline in ["mark", "index", "normal"] # remove "premium" 
+    assert isinstance(kline, str) and kline in list(KLINE_TYPE.keys())
     assert interval in [1, 3, 5, 15, 30, 60, 120, 240, 360, 720, "D", "M", "W"]
     if fnuc_parse(symbol)["category"] == "spot" and kline != "normal": return pd.DataFrame()
     r = requests.get(f"{URL_BASE}market/{KILNE_URL[kline]}", params=dict({"interval": interval, "start": start, "end": end, "limit": limit}, **fnuc_parse(symbol)))
@@ -115,7 +115,7 @@ def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=No
     df["unixtime"]   = df["unixtime"].astype(int)
     df["symbol"]     = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["kline_type"] = KLINE_TYPE[kline]
-    df["interval"]   = {"D": 60*24, "W": 60*24*7, "M": -1}[interval] if isinstance(interval, str) else interval
+    df["interval"]   = {"D": 60*60*24, "W": 60*60*24*7, "M": -1}[interval] if isinstance(interval, str) else (interval * 60)
     # It might not be unique with symbol, unixtime, kline_type, interval. so gorupby.last() is better solution.
     df = df.sort_values(["symbol", "kline_type", "interval", "unixtime"]).reset_index(drop=True)
     df = df.groupby(["symbol", "kline_type", "interval", "unixtime"]).last().reset_index(drop=False)
@@ -170,7 +170,7 @@ if __name__ == "__main__":
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
                 for symbol in mst_id.keys():
-                    for kline in ["mark", "index", "normal"]:
+                    for kline in list(KLINE_TYPE.keys()):
                         DB.logger.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, limit=100, mst_id=mst_id)
                         if df.shape[0] > 0:
@@ -191,7 +191,7 @@ if __name__ == "__main__":
                 time_since = int((date + datetime.timedelta(hours=hour+ 0)).timestamp() * 1000)
                 time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
                 for symbol in mst_id.keys():
-                    for kline in ["mark", "index", "normal"]:
+                    for kline in list(KLINE_TYPE.keys()):
                         DB.logger.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0:

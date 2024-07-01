@@ -173,8 +173,8 @@ sudo docker restart postgres
 ### Create Database
 
 ```bash
-sudo docker exec --user=postgres postgres /usr/lib/postgresql/16/bin/dropdb --port 55432 trade
-sudo docker exec --user=postgres postgres /usr/lib/postgresql/16/bin/createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 trade
+sudo docker exec --user=postgres postgres dropdb --port 55432 trade
+sudo docker exec --user=postgres postgres createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 trade
 ```
 
 # Schema
