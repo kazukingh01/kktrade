@@ -1,11 +1,11 @@
 #!/bin/bash
 
 EXCHANGE="binance"
-HOMEDIR="${HOME}"
+HOMEDIR="/home/ubuntu" # It's done by root user via cron.
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
 COMMANDS=("getorderbook" "getexecutions" "getkline" "getfundingrate" "getopeninterest" "getlongshortratio" "gettakervolume")
-PYTHON="${HOMEDIR}/kktrade/venv/bin/python"
+PYTHON="${HOMEDIR}/venv/bin/python"
 
 mkdir -p ${LOGDIR}
 

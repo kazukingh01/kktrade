@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXCHANGE="bitflyer"
-HOMEDIR="${HOME}"
+HOMEDIR="/home/ubuntu" # It's done by root user via cron.
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
 COMMANDS=("getorderbook" "getexecutions" "getticker" "getfundingrate")
