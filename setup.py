@@ -29,11 +29,12 @@ setup(
         'pandas==2.2.1',
         'numpy==1.26.4',
         'joblib==1.3.2',
-        'requests==2.31.0',
+        'requests==2.32.0',
         'tqdm==4.66.4',
         'websockets==12.0',
         'httpx==0.27.0',
         'beautifulsoup4==4.12.3',
+        'playwright==1.43.0',
     ],
     python_requires='>=3.12.2'
 )
