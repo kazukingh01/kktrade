@@ -82,6 +82,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_
     df["side"]   = df["side"].map({"BUY": 0, "SELL": 1}).astype(float).fillna(-1).astype(int) # nan = 板寄せ
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
+    df.loc[df["exec_date"].str.find(".") < 0, "exec_date"] += ".000" # Error. ValueError: time data "2024-07-02T12:18:50" doesn't match format "%Y-%m-%dT%H:%M:%S.%f", at position 1. You might want to try
     df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"], utc=True).dt.to_pydatetime())
     df["unixtime"] = df["unixtime"].astype(int)
     return df
