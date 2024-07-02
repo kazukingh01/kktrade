@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXCHANGE="bybit"
-HOMEDIR="/home/ubuntu"
+HOMEDIR="${HOME}"
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
 COMMANDS=("getorderbook" "getexecutions" "getticker" "getkline")
