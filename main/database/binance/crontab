@@ -1,4 +1,3 @@
 */1 *   * * *   ubuntu  bash /home/ubuntu/kktrade/main/database/binance/monitor.sh
 0   0   * * *   ubuntu  sleep 10 && pkill python
 0   0   * * *   ubuntu  /home/ubuntu/venv/bin/python /home/ubuntu/kktrade/main/log/remove.py --path /home/ubuntu/kktrade/main/log/*YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
-0   1   * * *   ubuntu  nohup /home/ubuntu/venv/bin/python /home/ubuntu/kktrade/main/database/binance/download_pastdata.py --fr `date "+\%Y\%m\%d" --date '2 day ago'` --to `date "+\%Y\%m\%d" --date '1 day ago'` --num 10000 --jobs 2 --update > /home/ubuntu/kktrade/main/log/binance_download.`date "+\%Y\%m\%d"`.log 2>&1 &
