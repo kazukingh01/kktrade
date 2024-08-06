@@ -1044,5 +1044,3 @@ CREATE INDEX binance_taker_volume_1 ON public.binance_taker_volume USING btree (
 --
 
 CREATE INDEX binance_taker_volume_2 ON public.binance_taker_volume USING btree ("interval");
-
-

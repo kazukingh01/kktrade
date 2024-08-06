@@ -98,13 +98,11 @@ sudo apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev li
 git clone https://github.com/pyenv/pyenv.git ~/.pyenv
 cd ~/.pyenv/plugins/python-build
 sudo bash ./install.sh
-INSTALL_PYTHON_VERSION="3.11.2"
+INSTALL_PYTHON_VERSION="3.12.4"
 /usr/local/bin/python-build -v ${INSTALL_PYTHON_VERSION} ~/local/python-${INSTALL_PYTHON_VERSION}
 echo 'export PATH="$HOME/local/python-'${INSTALL_PYTHON_VERSION}'/bin:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 cd ~
-python -m venv ~/venv
-source ~/venv/bin/activate
 ```
 
 ### Other
@@ -130,6 +128,7 @@ sudo docker exec postgres /etc/init.d/postgresql restart
 ```bash
 cd ~
 git clone https://github.com/kazukingh01/kktrade.git
+python -m venv ~/venv
 source ~/venv/bin/activate
 cd ~/kktrade
 pip install -e .
