@@ -1,9 +1,8 @@
-import datetime, requests, time, argparse
+import datetime, requests, time, argparse, json
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
+from kkpsgre.util.logger import set_logger
 
 
 EXCHANGE = "bybit"
@@ -20,6 +19,7 @@ KILNE_URL = {
     "index": "index-price-kline",
     "premium": "premium-index-price-kline",
 }
+LOGGER = set_logger(__name__)
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -132,56 +132,63 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
+    df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getticker", "getexecutions", "getkline"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
-                    DB.logger.info(f"{args.fn}: {symbol}")
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(10) # 11 * 6 = 66
             if "getticker" == args.fn:
                 for symbol in mst_id.keys():
-                    DB.logger.info(f"{args.fn}: {symbol}")
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     df   = getticker(symbol=symbol, mst_id=mst_id) # result value is only 1 record.
-                    dfwk = DB.select_sql(f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {mst_id[symbol]};")
+                    res  = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {mst_id[symbol]};"}, headers={'Content-type': 'application/json'})
+                    dfwk = pd.DataFrame(json.loads(res.json()))
                     if dfwk.shape[0] == 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ticker", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(1) # 11 * 60 = 660
             if "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
-                    DB.logger.info(f"{args.fn}: {symbol}")
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
-                        df_exist = DB.select_sql(
-                            f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
-                            f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        res = requests.post(
+                            "http://127.0.0.1:8000/select", json={"sql":(
+                                f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
+                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            )}, headers={'Content-type': 'application/json'}
                         )
+                        df_exist = pd.DataFrame(json.loads(res.json()))
                         df = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
                 for symbol in mst_id.keys():
                     for kline in list(KLINE_TYPE.keys()):
-                        DB.logger.info(f"{args.fn}: {symbol}, {kline}")
+                        LOGGER.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, limit=100, mst_id=mst_id)
                         if df.shape[0] > 0:
-                            df_exist = DB.select_sql(
-                                f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
-                                f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            res = requests.post(
+                                "http://127.0.0.1:8000/select", json={"sql":(
+                                    f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
+                                    f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                                )}, headers={'Content-type': 'application/json'}
                             )
+                            df_exist = pd.DataFrame(json.loads(res.json()))
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:
-                            DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
-                            DB.execute_sql()
+                            res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True}, headers={'Content-type': 'application/json'})
+                            assert res.status_code == 200
                 time.sleep(60)
     if "getallkline" == args.fn:
         assert args.fr is not None and args.to is not None
@@ -192,15 +199,17 @@ if __name__ == "__main__":
                 time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
                 for symbol in mst_id.keys():
                     for kline in list(KLINE_TYPE.keys()):
-                        DB.logger.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
+                        LOGGER.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0:
-                            df_exist = DB.select_sql(
-                                f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
-                                f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            res = requests.post(
+                                "http://127.0.0.1:8000/select", json={"sql":(
+                                    f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
+                                    f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                                )}, headers={'Content-type': 'application/json'}
                             )
+                            df_exist = pd.DataFrame(json.loads(res.json()))
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:
-                            DB.insert_from_df(df, f"{EXCHANGE}_kline", set_sql=True, str_null="", is_select=True)
-                            DB.execute_sql()
-                
+                            res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True}, headers={'Content-type': 'application/json'})
+                            assert res.status_code == 200

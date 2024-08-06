@@ -252,3 +252,9 @@ psql bitflyer -c "DELETE FROM ticker;"
 psql bitflyer -c "DELETE FROM executions;"
 pg_restore -a -d bitflyer -t orderbook -t ticker -t executions -Fc /home/share/db_bitflyer_20231007.dump
 ```
+
+# Fastapi
+
+```bash
+cd ~/kktrade/main/database && nohup ~/kktrade/venv/bin/uvicorn dbapi:app > dbapi.log &
+```

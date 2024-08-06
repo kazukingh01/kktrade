@@ -35,6 +35,8 @@ setup(
         'httpx==0.27.0',
         'beautifulsoup4==4.12.3',
         'playwright==1.43.0',
+        'fastapi==0.112.0',
+        'uvicorn==0.30.5',
     ],
     python_requires='>=3.12.2'
 )

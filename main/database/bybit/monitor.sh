@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXCHANGE="bybit"
-HOMEDIR="/home/ubuntu" # It's done by root user via cron.
+HOMEDIR="${HOME}" # It's done by root user via cron.
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
 COMMANDS=("getorderbook" "getexecutions" "getticker" "getkline")

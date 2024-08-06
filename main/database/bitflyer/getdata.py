@@ -1,9 +1,8 @@
-import datetime, requests, time, argparse
+import datetime, requests, time, argparse, json
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
+from kkpsgre.util.logger import set_logger
 
 
 EXCHANGE = "bitflyer"
@@ -17,9 +16,11 @@ STATE = {
     "AWAITING SQ": 5,
     "MATURED": 6,
 }
+LOGGER = set_logger(__name__)
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
+
 
 def getmarkets():
     r  = requests.get(f"{URL_BASE}getmarkets")
@@ -64,7 +65,7 @@ def getticker(symbol: str="BTC_JPY", mst_id: dict=None):
         "market_bid_size", "market_ask_size", "volume", "volume_by_product", "last_traded_price",
     ]:
         df[x] = df[x].astype(float)
-    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["timestamp"], utc=True).dt.to_pydatetime())
+    df["unixtime"] = pd.to_datetime(df["timestamp"], utc=True).apply(lambda x: x.timestamp())
     df["unixtime"] = df["unixtime"].astype(int)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["state"]    = df["state"].map(STATE).fillna(-1).astype(int)
@@ -83,7 +84,7 @@ def getexecutions(symbol: str="BTC_JPY", before: int=None, after: int=None, mst_
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
     df.loc[df["exec_date"].str.find(".") < 0, "exec_date"] += ".000" # Error. ValueError: time data "2024-07-02T12:18:50" doesn't match format "%Y-%m-%dT%H:%M:%S.%f", at position 1. You might want to try
-    df["unixtime"] = func_to_unixtime(pd.to_datetime(df["exec_date"], utc=True).dt.to_pydatetime())
+    df["unixtime"] = pd.to_datetime(df["exec_date"], utc=True).apply(lambda x: x.timestamp())
     df["unixtime"] = df["unixtime"].astype(int)
     return df
 
@@ -110,45 +111,57 @@ if __name__ == "__main__":
     parser.add_argument("--nloop", type=int, default=5)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
+    df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getticker", "getexecutions", "getfundingrate"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_orderbook", set_sql=True, str_null="")
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(10)
             elif "getticker" == args.fn:
                 for symbol in mst_id.keys():
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     df   = getticker(symbol=symbol, mst_id=mst_id)
-                    dfwk = DB.select_sql(f"select tick_id from {EXCHANGE}_ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {mst_id[symbol]};")
+                    res  = requests.post(
+                        "http://127.0.0.1:8000/select", json={"sql":(
+                            f"select tick_id from {EXCHANGE}_ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {mst_id[symbol]};"
+                        )}, headers={'Content-type': 'application/json'}
+                    )
+                    dfwk = pd.DataFrame(json.loads(res.json()))
                     if dfwk.shape[0] == 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_ticker", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ticker", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(4)
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     # select since 3 days before.
-                    dfwk = DB.select_sql(
-                        f"select max(id) as id from {EXCHANGE}_executions where " + 
-                        f"symbol = {mst_id[symbol]} and unixtime >= {int((datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).timestamp())};"
+                    res  = requests.post(
+                        "http://127.0.0.1:8000/select", json={"sql":(
+                            f"select max(id) as id from {EXCHANGE}_executions where " + 
+                            f"symbol = {mst_id[symbol]} and unixtime >= {int((datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).timestamp())};"
+                        )}, headers={'Content-type': 'application/json'}
                     )
+                    dfwk = pd.DataFrame(json.loads(res.json()))
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0], mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(10)
             elif "getfundingrate" == args.fn:
                 for symbol in mst_id.keys():
+                    LOGGER.info(f"{args.fn}: {symbol}")
                     if symbol not in ["FX_BTC_JPY"]: continue
                     df = getfundingrate(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        DB.insert_from_df(df, f"{EXCHANGE}_fundingrate", set_sql=True, str_null="", is_select=True, n_round=8)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_fundingrate", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
                 time.sleep(60 * 10)
     if args.fn in ["getall"]:
         # python getdata.py --fn getall --fr 20231001 --to 20231012 --sec 30 --cnt 200
@@ -158,7 +171,12 @@ if __name__ == "__main__":
         over_count = args.cnt
         for _ in range(args.nloop):
             # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
-            dfwk = DB.select_sql(f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};")
+            res  = requests.post(
+                "http://127.0.0.1:8000/select", json={"sql":(
+                    f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};"
+                )}, headers={'Content-type': 'application/json'}
+            )
+            dfwk = pd.DataFrame(json.loads(res.json()))
             if dfwk.shape[0] > 0:
                 dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
                 dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
@@ -166,22 +184,27 @@ if __name__ == "__main__":
                 dfwk["diff"] = dfwk["unixtime"] - dfwk["unixtime_prev"]
                 dfwk["bool"] = (dfwk["diff"] >= over_sec)
                 dfwk = dfwk.sort_values("diff", ascending=False)
-                DB.logger.info(f'Target num: {dfwk["bool"].sum()}')
+                LOGGER.info(f'Target num: {dfwk["bool"].sum()}')
                 count = 0
                 for index in dfwk.index[dfwk["bool"]]:
                     idb    = dfwk.loc[index, "id"]
                     ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > 0 else None
                     symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
-                    DB.logger.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
+                    LOGGER.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
                     df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
                     if df.shape[0] > 0:
-                        df_exist = DB.select_sql(f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});")
+                        res      = requests.post(
+                            "http://127.0.0.1:8000/select", json={"sql":(
+                                f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});"
+                            )}, headers={'Content-type': 'application/json'}
+                        )
+                        df_exist = pd.DataFrame(json.loads(res.json()))
                         df       = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0:
                         count = 0
                         if args.update:
-                            DB.insert_from_df(df, f"{EXCHANGE}_executions", set_sql=True, str_null="", is_select=True)
-                            DB.execute_sql()
+                            res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                            assert res.status_code == 200
                     else:
                         count += 1
                     if count > over_count: break
