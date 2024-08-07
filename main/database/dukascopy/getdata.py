@@ -1,9 +1,7 @@
-import requests, datetime, time, argparse
+import requests, datetime, time, argparse, json
 import pandas as pd
 # local package
-from kkpsgre.psgre import Psgre
 from kkpsgre.util.logger import set_logger
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.apikey import APIKEY_DUKASCOPY
 
 
@@ -93,8 +91,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
-    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
-    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api';")
+    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api'"}, headers={'Content-type': 'application/json'})
+    df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn == "getintraday":
         assert args.fr is not None and args.to is not None
@@ -106,29 +104,38 @@ if __name__ == "__main__":
         for i_date, date in enumerate(list_dates):
             if i_date == (len(list_dates) - 1): break
             for symbol_name, symbol_id in mst_id.items():
-                DB.logger.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
+                LOGGER.info(f"{date}, {list_dates[i_date + 1]}, {symbol_name}")
                 df = getintraday(dict_list[symbol_name], date_from=date, date_to=list_dates[i_date + 1], max_try=args.ntry, sec_sleep=args.sleep)
                 if df.shape[0] > 0:
                     df["symbol"] = symbol_id
                     df = correct_df(df)
                 else:
-                    DB.logger.warning("data is nothing.")
+                    LOGGER.warning("data is nothing.")
                 if df.shape[0] > 0 and args.update:
-                    DB.set_sql(f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};")
-                    DB.insert_from_df(df, f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=True)
-                    DB.execute_sql()
+                    res = requests.post("http://127.0.0.1:8000/insert", json={
+                        "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ohlcv", "is_select": True,
+                        "add_sql": (
+                            f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};"
+                        )
+                    }, headers={'Content-type': 'application/json'})
+                    assert res.status_code == 200
                 time.sleep(args.sleep)
     elif args.fn == "getlastminutekline":
         while True:
-            DB.logger.info("getlastminutekline start")
+            LOGGER.info("getlastminutekline start")
             df = getlastminutekline()
             df = df.loc[list(mst_id.keys())].reset_index()
             df.columns = ["symbol_name"] + df.columns[1:].tolist()
             df["symbol"] = df["symbol_name"].map(mst_id).astype(int)
             df = correct_df(df)
-            DB.logger.info("getlastminutekline end")
+            LOGGER.info("getlastminutekline end")
             if df.shape[0] > 0 and args.update:
-                DB.set_sql(f"DELETE FROM {EXCHANGE}_ohlcv WHERE (symbol,interval,unixtime) in (" + ",".join([f"({x},{y},{z})" for x,y,z in df[["symbol","interval","unixtime"]].values]) + ");")
-                DB.insert_from_df(df[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']], f"{EXCHANGE}_ohlcv", set_sql=True, str_null="", is_select=False)
-                DB.execute_sql()
+                res = requests.post("http://127.0.0.1:8000/insert", json={
+                    "data": df[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']].replace({float("nan"): None}).to_dict(),
+                    "tblname": f"{EXCHANGE}_ohlcv", "is_select": False,
+                    "add_sql": (
+                        f"DELETE FROM {EXCHANGE}_ohlcv WHERE (symbol,interval,unixtime) in (" + ",".join([f"({x},{y},{z})" for x,y,z in df[["symbol","interval","unixtime"]].values]) + ");"
+                    )
+                }, headers={'Content-type': 'application/json'})
+                assert res.status_code == 200
             time.sleep(30)

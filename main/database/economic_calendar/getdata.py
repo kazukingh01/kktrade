@@ -1,9 +1,8 @@
-import bs4, datetime, argparse
+import bs4, datetime, argparse, requests
 import pandas as pd
 from playwright.sync_api import sync_playwright
-from kkpsgre.psgre import Psgre
+# local package
 from kkpsgre.util.logger import set_logger
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 
 
 BASE_URL = "https://in.investing.com/economic-calendar/?timeFrame=custom&timeZone=55"
@@ -63,7 +62,6 @@ if __name__ == "__main__":
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
-    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
     if args.fn == "geteconomicalcalendar":
         assert args.fr is not None and args.to is not None
         assert args.fr < args.to
@@ -71,10 +69,12 @@ if __name__ == "__main__":
         assert list_dates[-1] >= args.to
         for i_date, date in enumerate(list_dates):
             if i_date == (len(list_dates) - 1): break
-            DB.logger.info(f"{date}, {list_dates[i_date + 1]}")
+            LOGGER.info(f"{date}, {list_dates[i_date + 1]}")
             df = geteconomicalcalendar(date, list_dates[i_date + 1])
             df = correct_df(df)
             if df.shape[0] > 0 and args.update:
-                DB.set_sql(f"delete from economic_calendar where (id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");")
-                DB.insert_from_df(df, "economic_calendar", set_sql=True, str_null="", is_select=True)
-                DB.execute_sql()
+                res = requests.post("http://127.0.0.1:8000/insert", json={
+                    "data": df.replace({float("nan"): None}).to_dict(), "tblname": "economic_calendar", "is_select": True,
+                    "add_sql": f"delete from economic_calendar where (id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");"
+                }, headers={'Content-type': 'application/json'})
+                assert res.status_code == 200

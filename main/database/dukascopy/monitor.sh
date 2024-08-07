@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EXCHANGE="dukascopy"
-HOMEDIR="/home/ubuntu"
+HOMEDIR="${HOME}"
 LOGDIR="${HOMEDIR}/kktrade/main/log/"
 MODULE="${HOMEDIR}/kktrade/main/database/${EXCHANGE}/getdata.py"
 COMMANDS=("getlastminutekline")
