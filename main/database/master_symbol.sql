@@ -1,4 +1,4 @@
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) VALUES
+INSERT INTO master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) VALUES
 (0, 'BTC_JPY', 'bitflyer', 'BTC', 'JPY', 't', NULL),
 (1, 'XRP_JPY', 'bitflyer', 'XRP', 'JPY', 't', NULL),
 (2, 'ETH_JPY', 'bitflyer', 'ETH', 'JPY', 't', NULL),
@@ -119,7 +119,7 @@ INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, curren
 (117, 'WIG20.INDX', 'eodhd', 'WIG20', 'PLN', 'f', 'Poland 20 index (Not available)'),
 (118, 'XAGUSD.FOREX', 'eodhd', 'XAG', 'USD', 't', NULL);
 
-INSERT INTO public.master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) VALUES
+INSERT INTO master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) VALUES
 (119, 'SPOT@BTCUSDT', 'binance', 'BTC', 'USDT', 't', NULL),
 (120, 'SPOT@ETHUSDC', 'binance', 'ETH', 'USDC', 't', NULL),
 (121, 'SPOT@BTCUSDC', 'binance', 'BTC', 'USDC', 't', NULL),
