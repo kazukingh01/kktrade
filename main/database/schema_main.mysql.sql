@@ -5,7 +5,7 @@ CREATE TABLE master_symbol (
     base VARCHAR(30) NOT NULL,
     currency VARCHAR(30) NOT NULL,
     is_active BOOLEAN NOT NULL,
-    `explain` TEXT, -- `explain` は MySQL で予約語なのでバックティックで囲みます
+    `explain` TEXT, -- `explain`is reserved word in MySQL.
     sys_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

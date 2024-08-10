@@ -1,4 +1,3 @@
-
 # Database Install
 
 see: https://github.com/kazukingh01/kkpsgre/blob/30d7022749b70cdae939707aad9448430fdd70f8/README.md
@@ -24,13 +23,6 @@ sudo docker exec --user=postgres postgres createdb --encoding=UTF8 --locale=ja_J
 
 ### MySQL
 
-( Host )
-
-```bash
-# mysql --password=mysql -e "DROP DATABASE trade;"
-mysql --password=mysql -e "CREATE DATABASE trade;"
-```
-
 ( Docker )
 
 ```bash
@@ -46,7 +38,7 @@ sudo docker exec mysql mysql --password=mysql -e "CREATE DATABASE trade;"
 
 ```bash
 sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/schema_main.psgre.sql'
-sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/master_symbol.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/master_symbol.psgre.sql'
 sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/binance/schema.psgre.sql'
 sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/bitflyer/schema.psgre.sql'
 sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/bybit/schema.psgre.sql'
@@ -58,8 +50,7 @@ sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/databas
 
 ```bash
 cp ~/kktrade/main/database/schema_main.psgre.sql              /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
-cp ~/kktrade/main/database/schema_main.psgre.sql              /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
-cp ~/kktrade/main/database/master_symbol.sql                  /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/master_symbol.psgre.sql            /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 cp ~/kktrade/main/database/binance/schema.psgre.sql           /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 cp ~/kktrade/main/database/bitflyer/schema.psgre.sql          /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 cp ~/kktrade/main/database/bybit/schema.psgre.sql             /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
@@ -71,6 +62,15 @@ cp ~/kktrade/main/database/economic_calendar/schema.psgre.sql /home/share/psgre.
 
 ( Docker )
 
+```bash
+cp ~/kktrade/main/database/schema_main.mysql.sql              /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/master_symbol.mysql.sql            /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/binance/schema.mysql.sql           /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/bitflyer/schema.mysql.sql          /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/bybit/schema.mysql.sql             /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/dukascopy/schema.mysql.sql         /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+cp ~/kktrade/main/database/economic_calendar/schema.mysql.sql /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
+```
 
 
 ### Import Schema
