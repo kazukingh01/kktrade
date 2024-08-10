@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='kktrade',
-    version='1.2.0',
+    version='1.2.1',
     description='python libraries for trade.',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@8ebc13408318c33c1bd7ae80e778c80ce67c9832',
+        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@30d7022749b70cdae939707aad9448430fdd70f8',
         'pandas==2.2.1',
         'numpy==1.26.4',
         'joblib==1.3.2',

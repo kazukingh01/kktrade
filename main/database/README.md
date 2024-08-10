@@ -1,183 +1,77 @@
-# Database
 
-There are 2 options.
+# Database Install
 
-- Create database by using docker 
-- Create database on host server
+see: https://github.com/kazukingh01/kkpsgre/blob/30d7022749b70cdae939707aad9448430fdd70f8/README.md
 
-I support below exchanges.
+# Create Database
 
-- [bitflyer](https://bitflyer.com/ja-jp/) 
-- [bybit](https://bybit-exchange.github.io/docs/) 
+### PostgreSQL
 
-# Install PostgreSQL ( Host )
-
-### Install
-
-```bash
-sudo apt-get update
-UBUNTU_CODENAME=`cat /etc/os-release | grep UBUNTU_CODENAME | cut -d '=' -f 2`
-echo "deb http://apt.postgresql.org/pub/repos/apt/ ${UBUNTU_CODENAME}-pgdg main" | sudo tee -a /etc/apt/sources.list.d/pgdg.list
-sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
-sudo apt-get update
-sudo apt-get install -y postgresql-16 # check "apt search postgresql"
-```
-
-### Locale setting
-
-```bash
-sudo apt-get install -y language-pack-ja
-locale -a
-# C
-# C.utf8
-# POSIX
-# ja_JP.utf8
-```
-
-### DB initialize
+( Host )
 
 ```bash
 sudo su postgres
-cd ~
-mkdir /var/lib/postgresql/data
-/usr/lib/postgresql/16/bin/initdb -D /var/lib/postgresql/data -E UTF8
+# dropdb --port 5432 trade
+createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 5432 trade
 ```
 
-### Start & Check
+( Docker )
 
 ```bash
-exit
-sudo /etc/init.d/postgresql restart # for ubuntu user
-sudo su postgres
-psql
-\l
-# postgres=# \l
-#                                                    List of databases
-#    Name    |  Owner   | Encoding | Locale Provider | Collate |  Ctype  | ICU Locale | ICU Rules |   Access privileges
-# -----------+----------+----------+-----------------+---------+---------+------------+-----------+-----------------------
-#  postgres  | postgres | UTF8     | libc            | C.UTF-8 | C.UTF-8 |            |           |
-#  template0 | postgres | UTF8     | libc            | C.UTF-8 | C.UTF-8 |            |           | =c/postgres          +
-#            |          |          |                 |         |         |            |           | postgres=CTc/postgres
-#  template1 | postgres | UTF8     | libc            | C.UTF-8 | C.UTF-8 |            |           | =c/postgres          +
-#            |          |          |                 |         |         |            |           | postgres=CTc/postgres
-# (3 rows)
-\q
+# sudo docker exec --user=postgres postgres dropdb --port 5432 trade
+sudo docker exec --user=postgres postgres createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 5432 trade
 ```
 
-### PostgreSQL password setting
+### MySQL
+
+( Host )
 
 ```bash
-psql
-alter role postgres with password 'postgres';
-\q
+# mysql --password=mysql -e "DROP DATABASE trade;"
+mysql --password=mysql -e "CREATE DATABASE trade;"
 ```
 
-### Config for connection
-
-In order to be accessed all user, setting below.
+( Docker )
 
 ```bash
-echo 'host    all             all             0.0.0.0/0               md5' >> /etc/postgresql/16/main/pg_hba.conf
+# sudo docker exec mysql mysql --password=mysql -e "DROP DATABASE trade;"
+sudo docker exec mysql mysql --password=mysql -e "CREATE DATABASE trade;"
 ```
 
-To protect network.
+# Insert SQL
+
+### PostgreSQL
+
+( Host )
 
 ```bash
-echo 'host    all             all             172.128.128.0/24        md5' >> /etc/postgresql/16/main/pg_hba.conf
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/schema_main.psgre.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/master_symbol.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/binance/schema.psgre.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/bitflyer/schema.psgre.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/bybit/schema.psgre.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/dukascopy/schema.psgre.sql'
+sudo su - postgres -c 'psql -d trade --port 5432 -f ${HOME}/kktrade/main/database/economic_calendar/schema.psgre.sql'
 ```
 
-### Config for memory
+( Docker )
 
 ```bash
-vi /etc/postgresql/16/main/postgresql.conf
+cp ~/kktrade/main/database/schema_main.psgre.sql              /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/schema_main.psgre.sql              /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/master_symbol.sql                  /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/binance/schema.psgre.sql           /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/bitflyer/schema.psgre.sql          /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/bybit/schema.psgre.sql             /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/dukascopy/schema.psgre.sql         /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/economic_calendar/schema.psgre.sql /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 ```
 
-```
-shared_buffers = 2GB                    # Set 40% of RAM
-work_mem = 256MB                        # min 64kB
-effective_cache_size = 16GB
-listen_addresses = '*'                  # what IP address(es) to listen on;
-port = 55432                            # (change requires restart)
-autovacuum = on                         # Enable autovacuum subprocess?  'on'
-autovacuum_max_workers = 4              # max number of autovacuum subprocesses
-maintenance_work_mem = 1GB              # min 1MB
-autovacuum_work_mem = -1                # min 1MB, or -1 to use maintenance_work_mem
-max_wal_size = 8GB
-```
+### MySQL
 
-```bash
-exit
-sudo /etc/init.d/postgresql restart
-```
+( Docker )
 
-### Create Database
 
-```bash
-sudo su postgres
-cd ~
-/usr/lib/postgresql/16/bin/createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 trade
-psql
-\l
-# postgres=# \l
-#                                                        List of databases
-#    Name    |  Owner   | Encoding | Locale Provider |   Collate   |    Ctype    | ICU Locale | ICU Rules |   Access privileges
-# -----------+----------+----------+-----------------+-------------+-------------+------------+-----------+-----------------------
-#  postgres  | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           |
-#  template0 | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           | =c/postgres          +
-#            |          |          |                 |             |             |            |           | postgres=CTc/postgres
-#  template1 | postgres | UTF8     | libc            | en_US.UTF-8 | en_US.UTF-8 |            |           | =c/postgres          +
-#            |          |          |                 |             |             |            |           | postgres=CTc/postgres
-#  trade     | postgres | UTF8     | libc            | ja_JP.utf8  | ja_JP.utf8  |            |           |
-# (4 rows)
-\q
-```
-
-# Install PostgreSQL ( Docker )
-
-### Docker run
-
-```bash
-cd ~/kktrade/main/database/
-sudo docker image build -t postgres:16.1.jp .
-sudo mkdir -p /var/local/postgresql/data
-sudo docker run --name postgres \
-    -e POSTGRES_PASSWORD=postgres \
-    -e POSTGRES_INITDB_ARGS="--encoding=UTF8 --locale=ja_JP.utf8" \
-    -e TZ=Asia/Tokyo \
-    -v /var/local/postgresql/data:/var/lib/postgresql/data \
-    -v /home/share:/home/share \
-    --shm-size=4g \
-    -d postgres:16.1.jp
-```
-
-### Other Config
-
-```bash
-sudo docker exec -it postgres /bin/bash
-apt update
-apt install -y vim
-su postgres
-cd ~
-vi /var/lib/postgresql/data/postgresql.conf
-```
-
-[Config for memory](#config-for-memory)
-
-```bash
-exit
-exit
-sudo docker restart postgres
-```
-
-### Create Database
-
-```bash
-sudo docker exec --user=postgres postgres dropdb --port 55432 trade
-sudo docker exec --user=postgres postgres createdb --encoding=UTF8 --locale=ja_JP.utf8 --template=template0 --port 55432 trade
-```
-
-# Schema
 
 ### Import Schema
 
