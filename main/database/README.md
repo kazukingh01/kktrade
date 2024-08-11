@@ -72,50 +72,6 @@ cp ~/kktrade/main/database/dukascopy/schema.mysql.sql         /home/share/mysql.
 cp ~/kktrade/main/database/economic_calendar/schema.mysql.sql /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
 ```
 
-
-### Import Schema
-
-```bash
-cp ~/kktrade/main/database/schema_main.sql   /home/share/schema_main.sql
-cp ~/kktrade/main/database/master_symbol.sql /home/share/master_symbol.sql
-```
-
-##### For Host
-
-```bash
-sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -f /home/share/schema_main.sql'
-sudo su - postgres -c 'psql -U postgres -d trade --port 55432 -f /home/share/master_symbol.sql'
-```
-
-##### For Docker 
-
-```bash
-sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/schema_main.sql
-sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 55432 -f /home/share/master_symbol.sql
-```
-
-### Dump Schema
-
-##### For Host 
-
-```bash
-sudo su postgres
-cd ~
-pg_dump -U postgres --port 55432 -d trade -s > ./schema.sql
-```
-
-##### For Docker 
-
-```bash
-sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade --port 55432 -s > ./schema.sql
-```
-
-### Dump Data
-
-```bash
-sudo docker exec --user=postgres postgres pg_dump -U postgres -d trade --port 55432 -t master_symbol -Fp > ./db_`date "+%Y%m%d"`.dump
-```
-
 # Cron
 
 ```bash

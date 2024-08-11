@@ -2,12 +2,12 @@ from fastapi import FastAPI
 import pandas as pd
 from pydantic import BaseModel
 # local package
-from kkpsgre.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
+from kkpsgre.psgre import DBConnector
+from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
 app = FastAPI()
-DB  = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", max_disp_len=200)
+DB  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
 
 
 class Insert(BaseModel):
