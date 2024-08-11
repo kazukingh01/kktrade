@@ -7,4 +7,4 @@ then
 else
     # found
     nohup uvicorn dbapi:app > ../log/dbapi.log &
-
+fi
