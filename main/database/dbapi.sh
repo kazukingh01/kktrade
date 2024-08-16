@@ -1,5 +1,6 @@
 #!/bin/bash
 
+pkill uvicorn
 if ! command -v uvicorn &> /dev/null
 then
     # No found uvicorn
