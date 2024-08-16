@@ -10,7 +10,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='kktrade',
-    version='1.2.1',
+    version='1.2.2',
     description='python libraries for trade.',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -34,7 +34,7 @@ setup(
         'websockets==12.0',
         'httpx==0.27.0',
         'beautifulsoup4==4.12.3',
-        'playwright==1.43.0',
+        'playwright==1.46.0',
         'fastapi==0.112.0',
         'uvicorn==0.30.5',
     ],
