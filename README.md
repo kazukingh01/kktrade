@@ -65,6 +65,13 @@ source ~/.bashrc
 date
 ```
 
+### Remove sound when type TAB key
+
+```bash
+sudo sed -i 's/^# set bell-style none/set bell-style none/' /etc/inputrc
+echo "set belloff=all" >> ~/.vimrc
+```
+
 ### Docker ( If you need )
 
 see: https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenience-script
@@ -73,6 +80,54 @@ see: https://docs.docker.com/engine/install/ubuntu/#install-using-the-convenienc
 sudo apt install curl
 curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
+```
+
+### Cron
+
+```bash
+sudo apt-get update && sudo apt-get install -y cron rsyslog
+```
+
+In order to get cron log, rsyslog config is changed.
+
+```bash
+sudo vi /etc/rsyslog.d/50-default.conf
+```
+
+change below.
+
+```
+cron.*                         /var/log/cron.log
+```
+
+```bash
+sudo cp /etc/crontab /etc/crontab.`date "+%Y%m%d%H%M%S"`
+sudo /etc/init.d/cron stop
+sudo systemctl restart rsyslog
+sudo /etc/init.d/cron start
+```
+
+### Local Network Setting
+
+```bash
+ip a
+sudo vi /etc/netplan/50-cloud-init.yaml
+```
+
+add below. ( mac address should be changed the number as same as one which can be checked by 'ip a' )
+
+```
+        eth1:
+            addresses:
+            - 172.128.128.10/24
+            set-name: eth1
+            match:
+                macaddress: fa:16:3e:94:58:36
+```
+
+```bash
+sudo netplan apply
+ip a
 ```
 
 ### Set NO automatic upgrede
@@ -128,52 +183,21 @@ sudo docker exec postgres /etc/init.d/postgresql restart
 ```bash
 cd ~
 git clone https://github.com/kazukingh01/kktrade.git
-python -m venv ~/venv
-source ~/venv/bin/activate
+python -m venv ~/kktrade/venv
+source ~/kktrade/venv/bin/activate
 cd ~/kktrade
 pip install -e .
 playwright install
 ```
 
-### Cron
-
-In order to get cron log, rsyslog config is changed.
+### Cron Schedule
 
 ```bash
-sudo vi /etc/rsyslog.d/50-default.conf
-```
-
-change below.
-
-```
-cron.*                         /var/log/cron.log
-```
-
-```bash
-sudo cp /etc/crontab /etc/crontab.`date "+%Y%m%d%H%M%S"`
-# cat ~/kktrade/main/bitflyer/crontab | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/crontab                   | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/binance/crontab           | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/bitflyer/crontab          | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/bybit/crontab             | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/dukascopy/crontab         | sudo tee -a /etc/crontab > /dev/null
+cat ~/kktrade/main/database/economic_calendar/crontab | sudo tee -a /etc/crontab > /dev/null
 sudo /etc/init.d/cron restart
-sudo systemctl restart rsyslog
-```
-
-# Local Network Setting
-
-```bash
-sudo vi /etc/netplan/50-cloud-init.yaml
-```
-
-add below. ( mac address should be changed the number as same as one which can be checked by 'ip a' )
-
-```
-        eth1:
-            addresses:
-            - 172.128.128.10/24
-            set-name: eth1
-            match:
-                macaddress: fa:16:3e:94:58:36
-```
-
-```bash
-sudo netplan apply
-ip a
 ```

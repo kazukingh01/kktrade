@@ -1,3 +1,4 @@
+import argparse, requests, json
 from fastapi import FastAPI
 import pandas as pd
 from pydantic import BaseModel
@@ -7,7 +8,8 @@ from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
 app = FastAPI()
-DB  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
+if __name__ != "__main__":
+    DB = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
 
 
 class Insert(BaseModel):
@@ -34,3 +36,27 @@ class Select(BaseModel):
 async def select(select: Select):
     df = DB.select_sql(select.sql)
     return df.to_json()
+
+
+@app.post('/disconnect/')
+async def disconnect(disconnect: BaseModel):
+    DB.__del__()
+    return True
+
+
+@app.post('/test/')
+async def test(test: BaseModel):
+    df = DB.read_table_layout()
+    return df.to_json()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--disconnect", action='store_true', default=False)
+    parser.add_argument("--test", action='store_true', default=False)
+    args   = parser.parse_args()
+    if args.disconnect:
+        res = requests.post("http://127.0.0.1:8000/disconnect", json={}, headers={'Content-type': 'application/json'})
+    if args.test:
+        res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
+        print(pd.DataFrame(json.loads(res.json())))

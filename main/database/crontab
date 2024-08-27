@@ -1,0 +1,8 @@
+HOMETRADE="/home/ubuntu/kktrade"
+PYTHONPATH=${HOMETRADE}/venv/bin
+PATH=${PYTHONPATH}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 */1   * * *   ubuntu  bash ${HOMETRADE}/main/database/dbapi.sh
+0   0   * * *   ubuntu  sleep 10 && pkill python
+0   0   * * *   ubuntu  ${PYTHONPATH}/python ${HOMETRADE}/main/log/remove.py --path ${HOMETRADE}/main/log/*YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
+0   0   * * *   ubuntu  ${PYTHONPATH}/python ${HOMETRADE}/main/log/remove.py --path ${HOMETRADE}/main/log/dbapi.YYYYMMDD*.log --rm --ut `date "+\%Y\%m\%d" --date '2 day ago'`
