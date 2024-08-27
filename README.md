@@ -194,10 +194,16 @@ playwright install
 
 ```bash
 cat ~/kktrade/main/database/crontab                   | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 cat ~/kktrade/main/database/binance/crontab           | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 cat ~/kktrade/main/database/bitflyer/crontab          | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 cat ~/kktrade/main/database/bybit/crontab             | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 cat ~/kktrade/main/database/dukascopy/crontab         | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 cat ~/kktrade/main/database/economic_calendar/crontab | sudo tee -a /etc/crontab > /dev/null
+sudo bash -c "echo \"\" >> /etc/crontab"
 sudo /etc/init.d/cron restart
 ```
