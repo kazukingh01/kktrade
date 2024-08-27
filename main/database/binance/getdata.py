@@ -225,7 +225,7 @@ if __name__ == "__main__":
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
                     LOGGER.info(f"{args.fn}: {symbol}")
-                    df = getorderbook(symbol=symbol, count_max=100, mst_id=mst_id)
+                    df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
                         res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
