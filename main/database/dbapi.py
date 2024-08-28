@@ -28,6 +28,7 @@ async def insert(insert: Insert):
             DB.set_sql(insert.add_sql)
         DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
         DB.execute_sql()
+    return True
 
 
 class Select(BaseModel):
