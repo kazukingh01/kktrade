@@ -11,20 +11,23 @@ app = FastAPI()
 if __name__ != "__main__":
     DB  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
 
+
 class Insert(BaseModel):
     data: dict
     tblname: str
     is_select: bool
     add_sql: str = None
-
-
-@app.post('/insert/')
-async def insert(insert: Insert):
+    
+def sync_insert(insert: Insert):
     df = pd.DataFrame(insert.data)
     if insert.add_sql is not None:
         DB.set_sql(insert.add_sql)
     DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
     DB.execute_sql()
+
+@app.post('/insert/')
+async def insert(insert: Insert):
+    sync_insert(insert)
 
 
 class Select(BaseModel):
