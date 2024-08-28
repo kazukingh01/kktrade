@@ -1,15 +1,15 @@
 #!/bin/bash
 
 cd ${HOME}/kktrade/main/database
-python dbapi.py --disconnect
-sleep 5
-pkill uvicorn
-sleep 5
-if ! command -v uvicorn &> /dev/null
-then
-    # No found uvicorn
-    nohup ~/venv/bin/uvicorn dbapi:app > ../log/dbapi.`date "+%Y%m%d%H%M%S"`.log &
+if ! ps aux | grep -v grep | grep uvicorn > /dev/null; then
+    python dbapi.py --connect --logfilepath ../log/dbapi.`date "+%Y%m%d%H%M%S"`.log
 else
-    # found
-    nohup uvicorn dbapi:app > ../log/dbapi.`date "+%Y%m%d%H%M%S"`.log &
+    if ! command -v uvicorn &> /dev/null
+    then
+        # No found uvicorn
+        ~/kktrade/venv/bin/uvicorn dbapi:app
+    else
+        # found
+        uvicorn dbapi:app
+    fi
 fi
