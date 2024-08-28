@@ -1,4 +1,4 @@
-import argparse, requests, json
+import argparse, requests, json, asyncio
 from fastapi import FastAPI
 import pandas as pd
 from pydantic import BaseModel
@@ -7,9 +7,10 @@ from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
-app = FastAPI()
+app  = FastAPI()
+lock = asyncio.Lock()
 if __name__ != "__main__":
-    DB  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
+    DB = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
 
 
 class Insert(BaseModel):
@@ -18,16 +19,15 @@ class Insert(BaseModel):
     is_select: bool
     add_sql: str = None
     
-def sync_insert(insert: Insert):
-    df = pd.DataFrame(insert.data)
-    if insert.add_sql is not None:
-        DB.set_sql(insert.add_sql)
-    DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
-    DB.execute_sql()
 
 @app.post('/insert/')
 async def insert(insert: Insert):
-    sync_insert(insert)
+    df = pd.DataFrame(insert.data)
+    async with lock:
+        if insert.add_sql is not None:
+            DB.set_sql(insert.add_sql)
+        DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
+        DB.execute_sql()
 
 
 class Select(BaseModel):
@@ -36,7 +36,8 @@ class Select(BaseModel):
 
 @app.post('/select/')
 async def select(select: Select):
-    df = DB.select_sql(select.sql)
+    async with lock:
+        df = DB.select_sql(select.sql)
     return df.to_json()
 
 
@@ -45,25 +46,26 @@ class ReConnect(BaseModel):
     log_level: str="info"
     is_newlogfile: bool=False
 
-def sync_connect(reconnect: ReConnect):
-    DB.__del__()
-    DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
 
 @app.post('/reconnect/')
 async def connect(reconnect: ReConnect):
-    sync_connect(reconnect)
+    async with lock:
+        DB.__del__()
+        DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
     return True
 
 
 @app.post('/disconnect/')
 async def disconnect(disconnect: BaseModel):
-    DB.__del__()
+    async with lock:
+        DB.__del__()
     return True
 
 
 @app.post('/test/')
 async def test(test: BaseModel):
-    df = DB.read_table_layout()
+    async with lock:
+        df = DB.read_table_layout()
     return df.to_json()
 
 

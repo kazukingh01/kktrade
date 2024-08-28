@@ -1,7 +1,15 @@
+if [ -z "$EXCHANGE" ]; then
+  exit 0
+fi
+if [ -z "$COMMANDS" ]; then
+  exit 0
+fi
+
 LOGDIR="../../log/"
 HOMETRADE="${HOME}/kktrade"
 MODULE="${HOMETRADE}/main/database/${EXCHANGE}/getdata.py"
 
+cd ${HOMETRADE}/main/database/${EXCHANGE}
 mkdir -p ${LOGDIR}
 
 for COMMAND in "${COMMANDS[@]}"; do
