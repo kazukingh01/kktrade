@@ -38,14 +38,15 @@ async def select(select: Select):
 
 
 class ReConnect(BaseModel):
-    logfilepath: str=None,
-    is_newlogfile: bool=False,
+    logfilepath: str=None
+    log_level: str="info"
+    is_newlogfile: bool=False
 
 
 @app.post('/reconnect/')
 async def connect(reconnect: ReConnect):
     DB.__del__()
-    DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, is_newlogfile=reconnect.is_newlogfile)
+    DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
     return True
 
 
@@ -65,12 +66,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reconnect",     action='store_true', default=False)
     parser.add_argument("--logfilepath",   type=str)
+    parser.add_argument("--log_level",     type=str, default="info")
     parser.add_argument("--is_newlogfile", action='store_true', default=False)
     parser.add_argument("--disconnect",    action='store_true', default=False)
     parser.add_argument("--test",          action='store_true', default=False)
     args   = parser.parse_args()
     if   args.reconnect:
-        res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
+        res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
         print(res.text)
     elif args.disconnect:
         res = requests.post("http://127.0.0.1:8000/disconnect", json={}, headers={'Content-type': 'application/json'})
