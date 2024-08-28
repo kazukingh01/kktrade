@@ -81,10 +81,10 @@ if __name__ == "__main__":
     args   = parser.parse_args()
     if   args.reconnect:
         res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
-        print(res.text)
+        print(f"status_code: {res.status_code}")
     elif args.disconnect:
         res = requests.post("http://127.0.0.1:8000/disconnect", json={}, headers={'Content-type': 'application/json'})
-        print(res.text)
+        print(f"status_code: {res.status_code}")
     elif args.test:
         res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
         print(pd.DataFrame(json.loads(res.json())))

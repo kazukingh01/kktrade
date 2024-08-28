@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eu
 
-VAR_NAME=${EXCHANGE:-}
+VAR_NAME=${HOMETRADE:-}
 if [ -z "$VAR_NAME" ]; then
   HOMETRADE="${HOME}/kktrade"
 fi
