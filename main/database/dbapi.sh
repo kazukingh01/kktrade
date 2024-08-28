@@ -11,5 +11,5 @@ if ! ps aux | grep -v grep | grep uvicorn > /dev/null; then
         uvicorn dbapi:app
     fi
 else
-    python dbapi.py --connect --logfilepath ../log/dbapi.`date "+%Y%m%d%H%M%S"`.log
+    python dbapi.py --reconnect --logfilepath ../log/dbapi.`date "+%Y%m%d%H%M%S"`.log
 fi
