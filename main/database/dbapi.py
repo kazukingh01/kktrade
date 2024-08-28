@@ -45,11 +45,13 @@ class ReConnect(BaseModel):
     log_level: str="info"
     is_newlogfile: bool=False
 
+def sync_connect(reconnect: ReConnect):
+    DB.__del__()
+    DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
 
 @app.post('/reconnect/')
 async def connect(reconnect: ReConnect):
-    DB.__del__()
-    DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
+    sync_connect(reconnect)
     return True
 
 
