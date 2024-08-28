@@ -1,6 +1,11 @@
 #!/bin/bash
 set -eu
 
+VAR_NAME=${EXCHANGE:-}
+if [ -z "$VAR_NAME" ]; then
+  HOMETRADE="${HOME}/kktrade"
+fi
+
 EXCHANGE="binance"
 COMMANDS=("getorderbook" "getexecutions" "getkline" "getfundingrate" "getopeninterest" "getlongshortratio" "gettakervolume")
-source ../monitor.base.sh
+source ${HOMETRADE}/main/database/monitor.base.sh

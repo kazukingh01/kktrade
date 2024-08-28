@@ -1,12 +1,17 @@
+if [ -z "$HOMETRADE" ]; then
+  echo "Not declare HOMETRADE"
+  exit 0
+fi
 if [ -z "$EXCHANGE" ]; then
+  echo "Not declare EXCHANGE"
   exit 0
 fi
 if [ -z "$COMMANDS" ]; then
+  echo "Not declare COMMANDS"
   exit 0
 fi
 
-LOGDIR="../../log/"
-HOMETRADE="${HOME}/kktrade"
+LOGDIR="${HOMETRADE}/main/log/"
 MODULE="${HOMETRADE}/main/database/${EXCHANGE}/getdata.py"
 
 cd ${HOMETRADE}/main/database/${EXCHANGE}
