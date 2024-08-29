@@ -1,57 +1,120 @@
-import bs4, datetime, argparse, requests, time
+import bs4, datetime, argparse, requests, time, re
 import pandas as pd
+import playwright
 from playwright.sync_api import sync_playwright
 # local package
 from kkpsgre.util.logger import set_logger
 
 
-BASE_URL = "https://in.investing.com/economic-calendar/?timeFrame=custom&timeZone=55"
+BASE_URL = "https://tradingeconomics.com/calendar"
 LOGGER   = set_logger(__name__)
 
 
-def get_html_via_playwright(url):
+def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.datetime=None, headless: bool=True):
+    assert date_fr is None or isinstance(date_fr, datetime.datetime)
+    assert date_to is None or isinstance(date_to, datetime.datetime)
+    if date_fr is not None: assert date_to is not None
+    assert isinstance(headless, bool)
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=headless)
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         )
         page = context.new_page()
-        _    = page.goto(url, wait_until='networkidle')
-        page.wait_for_selector('section.instrument')
+        page.goto(BASE_URL)
         time.sleep(1)
-        html = page.content()
+        page.locator("#DropDownListTimezone").select_option("0")
+        page.get_by_role("button", name="   Category").click()
+        page.get_by_role("link", name="All Events").click()
+        page.get_by_role("button", name="  Countries").click()
+        page.locator("#te-c-main-countries span").filter(has_text="All").click()
+        page.get_by_text("Save").click()
+        page.get_by_role("button", name="  Impact").click()
+        if date_fr is not None:
+            page.get_by_role("cell", name="  Recent    Impact").get_by_role("list").locator("a").first.click()
+            page.get_by_role("button", name="  Recent").click()
+            page.get_by_role("menuitem", name="  Custom").click()
+            page.locator("#startDate").click()
+            page.locator("#startDate").fill(date_fr.strftime("%Y-%m-%d"))
+            page.locator("#endDate").click()
+            page.locator("#endDate").fill(date_to.strftime("%Y-%m-%d"))
+            page.get_by_role("button", name="Submit").click()
+        boolwk = False
+        try:
+            page.wait_for_selector('table#calendar', timeout=1000)
+        except playwright._impl._errors.TimeoutError:
+            div = page.locator('div.table-responsive > div', has_text="No Events Scheduled")
+            if div.count() > 0: boolwk = True
+        if boolwk:
+            html = None
+        else:
+            page.wait_for_selector('table#calendar')
+            html = page.content()
     return html
 
 def geteconomicalcalendar(date_fr: datetime.datetime, date_to: datetime.datetime):
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)
-    url = f"{BASE_URL}&startDate={int(date_fr.timestamp())}&endDate={int(date_to.timestamp())}"
-    LOGGER.info(f"start: {url}")
-    html       = get_html_via_playwright(url)
-    soup       = bs4.BeautifulSoup(html, 'html.parser')
-    sptbl      = soup.find("section", class_="instrument").find("table", class_="common-table").find("tbody")
-    sptrs      = sptbl.find_all("tr", class_="common-table-item")
-    sptrs      = [x for x in sptrs if "is-holiday" not in x.attrs["class"]]
-    names      = [x.find("td", class_="col-event").text.strip() for x in sptrs]
-    df         = pd.DataFrame(names, columns=["name"])
-    df["country"]    = [x.find("td", class_="col-country").text.strip() for x in sptrs]
-    df["importance"] = [x.find("td", class_="col-importance").find("div", class_="common-rating").attrs["data-print-value"].strip() for x in sptrs]
-    df["actual"]     = [x.find("td", class_="col-actual").text.strip().replace("Act:", "").strip() for x in sptrs]
-    df["forecast"]   = [x.find("td", class_="col-forecast").text.strip().replace("Cons:", "").strip() for x in sptrs]
-    df["id"]         = [x.attrs["data-e-id"] for x in sptrs]
-    df["unixtime"]   = [x.attrs["data-timestamp"] for x in sptrs]
+    LOGGER.info(f"url: {BASE_URL}, from: {date_fr}, to: {date_to} # utc")
+    html   = get_html_via_playwright(date_fr=date_fr, date_to=date_to)
+    if html is None:
+        LOGGER.warning("No result.")
+        return pd.DataFrame()
+    soup   = bs4.BeautifulSoup(html, 'html.parser')
+    sptbl  = soup.find("table", id="calendar")
+    theads = sptbl.find_all("thead", class_="table-header", recursive=False)
+    tbodys = sptbl.find_all("tbody", recursive=False)
+    assert len(theads) == len(tbodys)
+    df = None
+    for thead, tbody in zip(theads, tbodys):
+        dfwk = pd.DataFrame()
+        dfwk["unixtime"]   = [y.text.strip() for y in [x.find_all("td", recursive=False)[0] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["unixtime"]   = dfwk["unixtime"].str.strip().replace("", "11:59 PM")
+        dfwk["unixtime"]   = thead.find_all("th")[0].text.strip() + " " + dfwk["unixtime"] + " +0000"
+        dfwk["unixtime"]   = dfwk["unixtime"].apply(lambda x: str(int(datetime.datetime.strptime(x, "%A %B %d %Y %I:%M %p %z").timestamp())) + " ")
+        dfwk["country"]    = [y.text.strip() for y in [x.find_all("td", recursive=False)[1] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["name"]       = [y.text.strip() for y in [x.find_all("td", recursive=False)[2] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["actual"]     = [y.text.strip() for y in [x.find_all("td", recursive=False)[3] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["previous"]   = [y.text.strip() for y in [x.find_all("td", recursive=False)[4] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["consensus"]  = [y.text.strip() for y in [x.find_all("td", recursive=False)[5] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["forecast"]   = [y.text.strip() for y in [x.find_all("td", recursive=False)[6] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["importance"] = [y.find("span").get("class") for y in [x.find_all("td", recursive=False)[0] for x in tbody.find_all("tr", recursive=False)]]
+        dfwk["importance"] = dfwk["importance"].str[0].str[-1].fillna(-1)
+        dfwk["id"]         = [x.get("data-id") for x in tbody.find_all("tr", recursive=False)]
+        if df is None: df = dfwk.copy()
+        else: df = pd.concat([df, dfwk], ignore_index=True, sort=False)
     return df
 
 def correct_df(df: pd.DataFrame):
     df["unixtime"  ] = df["unixtime"  ].astype(int)
     df["importance"] = df["importance"].astype(int)
     df["id"        ] = df["id"        ].astype(int)
-    df["unit"]       = df["actual"  ].replace(",", "", regex=True).astype(str).str.extract(r"([^0-9\.\-]+$)", expand=True)
-    df["actual"]     = df["actual"  ].replace(",", "", regex=True).astype(str).str.extract(r"^([0-9\.\-]+)",  expand=True).astype(float)
-    df["forecast"]   = df["forecast"].replace(",", "", regex=True).astype(str).str.extract(r"^([0-9\.\-]+)",  expand=True).astype(float)
-    df["name"]       = df["name"    ].replace("'", "''", regex=True)
-    # The table has same data: https://in.investing.com/economic-calendar/?timeFrame=custom&timeZone=55&startDate=1211155200&endDate=1211241600
-    df = df.groupby("id").last().reset_index(drop=False)
+    for x in ["actual", "previous", "consensus", "forecast"]:
+        df[x] = df[x].str.strip().replace(r"\s", "", regex=True).str.replace("®", "")
+    df["unit1"] = ""
+    for strfind, strunit in zip(
+        [
+            r"^\$[0-9]", r"^€[0-9]", r"^DKK[0-9]", r"^ARS[0-9]", r"^£[0-9]", r"^A[0-9]", r"^¥[0-9]", r"^IS[0-9]", r"^CD[0-9]", r"^C[0-9]", r"^ES[0-9]",
+            r"^SE[0-9]", r"^NO[0-9]", 
+        ],
+        ["$", "€", "DKK", "ARS", "£", "A", "¥", "IS", "CD", "C", "ES", "SE", "NO"]
+    ):
+        for colname in ["consensus", "forecast", "previous", "actual"]:
+            df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
+            df.loc[df["tmp"].str.len() >= 1, "unit1"] = strunit
+            df[colname] = df[colname].str.replace(strunit, "")
+    df["unit2"] = ""
+    for strfind, strunit in zip(
+        [r"[0-9]%$", r"[0-9]K$", r"[0-9]M$", r"[0-9]B$", r"[0-9]cf$", r"[0-9]\(R\)$"],
+        ["%", "K", "M", "B", "cf", "(R)"]
+    ):
+        for colname in ["consensus", "forecast", "previous", "actual"]:
+            df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
+            df.loc[df["tmp"].str.len() >= 1, "unit2"] = strunit
+            df[colname] = df[colname].str.replace(strunit, "")
+    for colname in ["consensus", "forecast", "previous", "actual"]:
+        df[colname] = df[colname].replace("", float("nan")).astype(float)
+    df["name"] = df["name"].replace("'", "''", regex=True)
     return df
 
 
@@ -71,9 +134,10 @@ if __name__ == "__main__":
         assert list_dates[-1] >= args.to
         for i_date, date in enumerate(list_dates):
             if i_date == (len(list_dates) - 1): break
-            LOGGER.info(f"{date}, {list_dates[i_date + 1]}")
-            df = geteconomicalcalendar(date, list_dates[i_date + 1])
-            df = correct_df(df)
+            date_fr, date_to = date, list_dates[i_date + 1]
+            LOGGER.info(f"{date_fr}, {date_to}")
+            df = geteconomicalcalendar(date_fr, date_to)
+            if df.shape[0] > 0: df = correct_df(df.copy())
             if df.shape[0] > 0 and args.update:
                 res = requests.post("http://127.0.0.1:8000/insert", json={
                     "data": df.replace({float("nan"): None}).to_dict(), "tblname": "economic_calendar", "is_select": True,
