@@ -1,12 +1,15 @@
 CREATE TABLE economic_calendar (
-    id SMALLINT NOT NULL,
+    id INT NOT NULL,
     unixtime BIGINT NOT NULL,
     name VARCHAR(255),
     country VARCHAR(255),
     importance SMALLINT NOT NULL,
     actual FLOAT,
+    previous FLOAT,
+    consensus FLOAT,
     forecast FLOAT,
     unit VARCHAR(255),
+    unit2 VARCHAR(255),
     PRIMARY KEY (id, unixtime)
 );
 

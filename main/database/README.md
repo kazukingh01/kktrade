@@ -74,6 +74,7 @@ mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade <
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bitflyer/schema.mysql.sql
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bybit/schema.mysql.sql
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/dukascopy/schema.mysql.sql
+mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade -e "DROP TABLE economic_calendar CASCADE;"
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/economic_calendar/schema.mysql.sql
 ```
 

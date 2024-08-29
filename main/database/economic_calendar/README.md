@@ -1,8 +1,10 @@
 # Economic Calendar
 
-[investing](https://in.investing.com/)
+https://tradingeconomics.com/calendar
 
-I'm not sure if this is same as investing.com.
+~~[investing](https://in.investing.com/)~~
+
+~~I'm not sure if this is same as investing.com.~~
 
 # Schema
 

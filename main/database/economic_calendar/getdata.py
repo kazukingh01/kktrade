@@ -91,7 +91,7 @@ def correct_df(df: pd.DataFrame):
     df["id"        ] = df["id"        ].astype(int)
     for x in ["actual", "previous", "consensus", "forecast"]:
         df[x] = df[x].str.strip().replace(r"\s", "", regex=True).str.replace("®", "")
-    df["unit1"] = ""
+    df["unit2"] = ""
     for strfind, strunit in zip(
         [
             r"^\$[0-9]", r"^€[0-9]", r"^DKK[0-9]", r"^ARS[0-9]", r"^£[0-9]", r"^A[0-9]", r"^¥[0-9]", r"^IS[0-9]", r"^CD[0-9]", r"^C[0-9]", r"^ES[0-9]",
@@ -101,20 +101,21 @@ def correct_df(df: pd.DataFrame):
     ):
         for colname in ["consensus", "forecast", "previous", "actual"]:
             df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
-            df.loc[df["tmp"].str.len() >= 1, "unit1"] = strunit
+            df.loc[df["tmp"].str.len() >= 1, "unit2"] = strunit
             df[colname] = df[colname].str.replace(strunit, "")
-    df["unit2"] = ""
+    df["unit"] = ""
     for strfind, strunit in zip(
         [r"[0-9]%$", r"[0-9]K$", r"[0-9]M$", r"[0-9]B$", r"[0-9]cf$", r"[0-9]\(R\)$"],
         ["%", "K", "M", "B", "cf", "(R)"]
     ):
         for colname in ["consensus", "forecast", "previous", "actual"]:
             df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
-            df.loc[df["tmp"].str.len() >= 1, "unit2"] = strunit
+            df.loc[df["tmp"].str.len() >= 1, "unit"] = strunit
             df[colname] = df[colname].str.replace(strunit, "")
     for colname in ["consensus", "forecast", "previous", "actual"]:
         df[colname] = df[colname].replace("", float("nan")).astype(float)
     df["name"] = df["name"].replace("'", "''", regex=True)
+    df = df.loc[:, df.columns != "tmp"]
     return df
 
 

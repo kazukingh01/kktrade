@@ -1,12 +1,15 @@
 CREATE TABLE public.economic_calendar (
-    id smallint NOT NULL,
+    id integer NOT NULL,
     unixtime bigint NOT NULL,
     name text,
     country text,
     importance smallint NOT NULL,
     actual real,
+    previous real,
+    consensus real,
     forecast real,
-    unit text
+    unit text,
+    unit2 text
 );
 
 ALTER TABLE public.economic_calendar OWNER TO postgres;
