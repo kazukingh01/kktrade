@@ -79,7 +79,7 @@ def geteconomicalcalendar(date_fr: datetime.datetime, date_to: datetime.datetime
         dfwk["consensus"]  = [y.text.strip() for y in [x.find_all("td", recursive=False)[5] for x in tbody.find_all("tr", recursive=False)]]
         dfwk["forecast"]   = [y.text.strip() for y in [x.find_all("td", recursive=False)[6] for x in tbody.find_all("tr", recursive=False)]]
         dfwk["importance"] = [y.find("span").get("class") for y in [x.find_all("td", recursive=False)[0] for x in tbody.find_all("tr", recursive=False)]]
-        dfwk["importance"] = dfwk["importance"].str[0].str[-1].fillna(-1)
+        dfwk["importance"] = dfwk["importance"].str[0].fillna(" ").str[-1].str.strip().replace("", float("nan")).fillna(-1)
         dfwk["id"]         = [x.get("data-id") for x in tbody.find_all("tr", recursive=False)]
         if df is None: df = dfwk.copy()
         else: df = pd.concat([df, dfwk], ignore_index=True, sort=False)
@@ -91,31 +91,18 @@ def correct_df(df: pd.DataFrame):
     df["id"        ] = df["id"        ].astype(int)
     for x in ["actual", "previous", "consensus", "forecast"]:
         df[x] = df[x].str.strip().replace(r"\s", "", regex=True).str.replace("®", "")
+    df["unit"]  = ""
     df["unit2"] = ""
-    for strfind, strunit in zip(
-        [
-            r"^\$[0-9]", r"^€[0-9]", r"^DKK[0-9]", r"^ARS[0-9]", r"^£[0-9]", r"^A[0-9]", r"^¥[0-9]", r"^IS[0-9]", r"^CD[0-9]", r"^C[0-9]", r"^ES[0-9]",
-            r"^SE[0-9]", r"^NO[0-9]", 
-        ],
-        ["$", "€", "DKK", "ARS", "£", "A", "¥", "IS", "CD", "C", "ES", "SE", "NO"]
-    ):
-        for colname in ["consensus", "forecast", "previous", "actual"]:
-            df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
-            df.loc[df["tmp"].str.len() >= 1, "unit2"] = strunit
-            df[colname] = df[colname].str.replace(strunit, "")
-    df["unit"] = ""
-    for strfind, strunit in zip(
-        [r"[0-9]%$", r"[0-9]K$", r"[0-9]M$", r"[0-9]B$", r"[0-9]cf$", r"[0-9]\(R\)$"],
-        ["%", "K", "M", "B", "cf", "(R)"]
-    ):
-        for colname in ["consensus", "forecast", "previous", "actual"]:
-            df["tmp"] = df[colname].str.findall(strfind, flags=re.IGNORECASE)
-            df.loc[df["tmp"].str.len() >= 1, "unit"] = strunit
-            df[colname] = df[colname].str.replace(strunit, "")
+    for colname in ["consensus", "forecast", "previous", "actual"]:
+        df["tmp1"] = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[ 0].str.strip()
+        df["tmp2"] = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[-1].str.strip()
+        df.loc[df["tmp2"] != "",  "unit"] = df.loc[df["tmp2"] != "", "tmp2"]
+        df.loc[df["tmp1"] != "", "unit2"] = df.loc[df["tmp1"] != "", "tmp1"]
+        df[colname] = df[colname].str.findall(r"[0-9\.\-]+", flags=re.IGNORECASE).str[0]
     for colname in ["consensus", "forecast", "previous", "actual"]:
         df[colname] = df[colname].replace("", float("nan")).astype(float)
     df["name"] = df["name"].replace("'", "''", regex=True)
-    df = df.loc[:, df.columns != "tmp"]
+    df = df.loc[:, ~df.columns.isin(["tmp1", "tmp2"])]
     return df
 
 
@@ -127,15 +114,14 @@ if __name__ == "__main__":
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
-    assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
+    assert args.days <= 7 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
     if args.fn == "geteconomicalcalendar":
         assert args.fr is not None and args.to is not None
         assert args.fr < args.to
-        list_dates = [args.fr + datetime.timedelta(days=x) for x in range(0, (args.to - args.fr).days + args.days, args.days)]
-        assert list_dates[-1] >= args.to
-        for i_date, date in enumerate(list_dates):
-            if i_date == (len(list_dates) - 1): break
-            date_fr, date_to = date, list_dates[i_date + 1]
+        list_dates1 = [args.fr + datetime.timedelta(days=x) for x in range(0,             (args.to - args.fr).days,             args.days)]
+        list_dates2 = [args.fr + datetime.timedelta(days=x) for x in range(args.days - 1, (args.to - args.fr).days + args.days, args.days)]
+        assert list_dates2[-1] >= args.to
+        for date_fr, date_to in zip(list_dates1, list_dates2):
             LOGGER.info(f"{date_fr}, {date_to}")
             df = geteconomicalcalendar(date_fr, date_to)
             if df.shape[0] > 0: df = correct_df(df.copy())

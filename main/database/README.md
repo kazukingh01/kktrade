@@ -63,7 +63,7 @@ cp ~/kktrade/main/database/economic_calendar/schema.psgre.sql /home/share/psgre.
 ( Host )
 
 ```bash
-sudo apt update && sudo apt-get install mysql-client
+sudo apt update && sudo apt-get install -y mysql-client
 MYSQLPASS="AAAAAAAAAAAAAAA"
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS}
 mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} -e "DROP DATABASE trade;"
