@@ -1,4 +1,4 @@
-import argparse, requests, json, asyncio
+import argparse, requests, json, asyncio, datetime
 from fastapi import FastAPI
 import pandas as pd
 from pydantic import BaseModel
@@ -43,13 +43,14 @@ async def select(select: Select):
 
 
 class ReConnect(BaseModel):
-    logfilepath: str=None
+    logfilepath: str=""
     log_level: str="info"
     is_newlogfile: bool=False
 
 
 @app.post('/reconnect/')
 async def connect(reconnect: ReConnect):
+    if reconnect.logfilepath == "": reconnect.logfilepath = None
     async with lock:
         DB.__del__()
         DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
@@ -73,18 +74,31 @@ async def test(test: BaseModel):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--reconnect",     action='store_true', default=False)
-    parser.add_argument("--logfilepath",   type=str)
+    parser.add_argument("--logfilepath",   type=str, default="")
     parser.add_argument("--log_level",     type=str, default="info")
     parser.add_argument("--is_newlogfile", action='store_true', default=False)
     parser.add_argument("--disconnect",    action='store_true', default=False)
     parser.add_argument("--test",          action='store_true', default=False)
+    parser.add_argument("--check",         action='store_true', default=False)
     args   = parser.parse_args()
-    if   args.reconnect:
+    def manual_connect(args):
         res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
-        print(f"status_code: {res.status_code}")
+        return res
+    if   args.reconnect:
+        res = manual_connect(args)
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}")
     elif args.disconnect:
         res = requests.post("http://127.0.0.1:8000/disconnect", json={}, headers={'Content-type': 'application/json'})
-        print(f"status_code: {res.status_code}")
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}")
     elif args.test:
         res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
         print(pd.DataFrame(json.loads(res.json())))
+    elif args.check:
+        res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
+        if res.status_code != 200:
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} try to reconnect...")
+            res = manual_connect(args)
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
+        else:
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status is fine. status_code: {res.status_code}.")
