@@ -6,15 +6,12 @@ if [ -z "$VAR_NAME" ]; then
 fi
 
 cd ${HOMETRADE}/main/database
-if ! ps aux | grep -v grep | grep uvicorn > /dev/null; then
-    if ! command -v uvicorn &> /dev/null
-    then
-        # No found uvicorn
-        nohup ${HOMETRADE}/venv/bin/uvicorn dbapi:app >/dev/null 2>&1 &
-    else
-        # found
-        nohup uvicorn dbapi:app >/dev/null 2>&1 &
-    fi
-    sleep 5
-fi
+pkill python
+sleep 5
+python ${HOMETRADE}/main/database/dbapi.py --disconnect
+sleep 5
+pkill uvicorn
+sleep 5
+nohup uvicorn dbapi:app >/dev/null 2>&1 &
+sleep 5
 python dbapi.py --reconnect --logfilepath ../log/dbapi.log
