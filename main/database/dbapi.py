@@ -97,8 +97,14 @@ if __name__ == "__main__":
     elif args.check:
         res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
         if res.status_code != 200:
-            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} try to reconnect...")
+            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} try to reconnect... [1]")
             res = manual_connect(args)
             print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
         else:
-            print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status is fine. status_code: {res.status_code}.")
+            df = pd.DataFrame(json.loads(res.json()))
+            if df.shape[0] == 0:
+                print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} try to reconnect... [2]")
+                res = manual_connect(args)
+                print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
+            else:
+                print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status is fine. status_code: {res.status_code}.")
