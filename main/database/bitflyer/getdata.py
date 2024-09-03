@@ -123,7 +123,7 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
-                time.sleep(10)
+                time.sleep(12)
             elif "getticker" == args.fn:
                 for symbol in mst_id.keys():
                     LOGGER.info(f"{args.fn}: {symbol}")
@@ -137,7 +137,7 @@ if __name__ == "__main__":
                     if dfwk.shape[0] == 0 and args.update:
                         res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ticker", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
-                time.sleep(4)
+                time.sleep(5)
             elif "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
                     LOGGER.info(f"{args.fn}: {symbol}")
@@ -153,7 +153,7 @@ if __name__ == "__main__":
                     if df.shape[0] > 0 and args.update:
                         res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
-                time.sleep(10)
+                time.sleep(12)
             elif "getfundingrate" == args.fn:
                 for symbol in mst_id.keys():
                     LOGGER.info(f"{args.fn}: {symbol}")

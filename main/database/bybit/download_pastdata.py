@@ -1,11 +1,10 @@
-import datetime, requests, gzip, argparse
+import datetime, requests, gzip, argparse, json
 from tqdm import tqdm
 from io import StringIO
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.psgre import Psgre
-from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
+from kkpsgre.util.logger import set_logger
 from getdata import EXCHANGE
 
 
@@ -18,6 +17,7 @@ MST_CONV = {
     "linear@XRPUSDT": "XRPUSDT",
     "inverse@XRPUSD": "XRPUSD",
 }
+LOGGER = set_logger(__name__)
 
 
 def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./test.gz", mst_id: dict=None):
@@ -52,27 +52,26 @@ if __name__ == "__main__":
         "keepalives_count": 100,
     }
     args   = parser.parse_args()
-    DB     = Psgre(f"host={HOST} port={PORT} dbname={DBNAME} user={USER} password={PASS}", kwargs_psgre=kwargs_psgre, max_disp_len=200)
-    df_mst = DB.select_sql(f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
+    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
+    df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     date_st, date_ed = args.fr, args.to
     assert date_st <= date_ed
     for date in [date_st + datetime.timedelta(days=x) for x in range((date_ed - date_st).days + 1)]:
         for symbol in mst_id.keys():
-            DB.logger.info(f"date: {date}, symbol: {symbol}")
+            LOGGER.info(f"date: {date}, symbol: {symbol}")
             if MST_CONV.get(symbol) is None: continue
             df = download_trade(symbol, date, mst_id=mst_id)
             if df.shape[0] > 0:
-                df_exist = DB.select_sql(f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};")
-                df = df.loc[~df["id"].isin(df_exist["id"])]
+                res      = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"}, headers={'Content-type': 'application/json'})
+                df_exist = pd.DataFrame(json.loads(res.json()))
+                df       = df.loc[~df["id"].isin(df_exist["id"])]
             else:
-                DB.logger.warning("Nothing data.")
+                LOGGER.warning("Nothing data.")
                 continue
             if df.shape[0] > 0 and args.update:
                 if df.shape[0] >= args.num:
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                        DB.insert_from_df(df.iloc[indexes], f"{EXCHANGE}_executions", is_select=True, n_jobs=args.jobs)
-                        DB.execute_sql()
+                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.iloc[indexes].replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
                 else:
-                    DB.insert_from_df(df, f"{EXCHANGE}_executions", is_select=True, n_jobs=args.jobs)
-                    DB.execute_sql()
+                    res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
