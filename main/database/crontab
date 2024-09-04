@@ -3,7 +3,8 @@ PYTHONPATH=${HOMETRADE}/venv/bin
 # below path must be not used !!!environment variable!!!. x ${PYTHONPATH}:/usr/local/nvi... o /root/master/bin:/usr/local/nvi...
 PATH=/home/ubuntu/kktrade/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-0   0   * * *   ubuntu  sleep 60 && bash ${HOMETRADE}/main/database/dbapi.sh
+0   0   * * *   ubuntu  sleep 60  && bash ${HOMETRADE}/main/database/dbapi.sh 1 >  ${HOMETRADE}/main/log/dbapi.cron.log
+*/3 0   * * *   ubuntu  sleep 120 && bash ${HOMETRADE}/main/database/dbapi.sh 2 >> ${HOMETRADE}/main/log/dbapi.cron.log
 */1 *   * * *   ubuntu  python ${HOMETRADE}/main/database/dbapi.py --check --logfilepath ${HOMETRADE}/main/log/dbapi.log >> ${HOMETRADE}/main/log/dbcheck.`date "+\%Y\%m\%d"`.log
 0   */1 * * *   ubuntu  cp ${HOMETRADE}/main/log/dbapi.log ${HOMETRADE}/main/log/dbapi.`date "+\%Y\%m\%d\%H\%M\%S"`.log && truncate -s 0 ${HOMETRADE}/main/log/dbapi.log
 0   0   * * *   ubuntu  python ${HOMETRADE}/main/log/remove.py --path ${HOMETRADE}/main/log/*YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
