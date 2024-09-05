@@ -80,6 +80,7 @@ if __name__ == "__main__":
     parser.add_argument("--disconnect",    action='store_true', default=False)
     parser.add_argument("--test",          action='store_true', default=False)
     parser.add_argument("--check",         action='store_true', default=False)
+    parser.add_argument("--db",            action='store_true', default=False)
     args   = parser.parse_args()
     def manual_connect(args):
         res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
@@ -108,3 +109,5 @@ if __name__ == "__main__":
                 print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
             else:
                 print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status is fine. status_code: {res.status_code}.")
+    elif args.db:
+        DB = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
