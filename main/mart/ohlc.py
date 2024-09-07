@@ -48,26 +48,15 @@ if __name__ == "__main__":
             dfwk["ave"]   = dfwk["amount"] / dfwk["size"]
             for side, name in zip([0, 1], ["ask", "bid"]):
                 df_ohlc[[f"size_{name}", f"ntx_{name}", f"amount_{name}"]] = dfwk.loc[(slice(None), slice(None), side)][["size", "ntx", "amount"]]
+                df_ohlc[[f"size_{name}", f"ntx_{name}", f"amount_{name}"]] = df_ohlc[[f"size_{name}", f"ntx_{name}", f"amount_{name}"]].fillna(0)
             df_ohlc[[f"size_sum",  f"ntx_sum",  f"amount_sum" ]] = dfwk.loc[(slice(None), slice(None), 0)][["size", "ntx", "amount"]] + dfwk.loc[(slice(None), slice(None), 1)][["size", "ntx", "amount"]]
             df_ohlc[[f"size_diff", f"ntx_diff", f"amount_diff"]] = dfwk.loc[(slice(None), slice(None), 0)][["size", "ntx", "amount"]] - dfwk.loc[(slice(None), slice(None), 1)][["size", "ntx", "amount"]]
-            ndfwk         = np.arange(0.1, 1.0, 0.2)
-            dfwk          = df.groupby(["symbol", "timegrp", "side"])[["amount", "cumsum"]].quantile(ndfwk)
+            df_ohlc[[f"size_sum",  f"ntx_sum",  f"amount_sum" ]] = df_ohlc[[f"size_sum",  f"ntx_sum",  f"amount_sum" ]].fillna(0)
+            df_ohlc[[f"size_diff", f"ntx_diff", f"amount_diff"]] = df_ohlc[[f"size_diff", f"ntx_diff", f"amount_diff"]].fillna(0)
+            df_ohlc["ave"] = (df_ohlc["amount_sum"] / df_ohlc["size_sum"]).replace(float("inf"), float("nan"))
+            ndfwk          = np.arange(0.1, 1.0, 0.2)
+            dfwk           = df.groupby(["symbol", "timegrp", "side"])[["amount", "cumsum"]].quantile(ndfwk)
             for x in ndfwk:
                 for side, name in zip([0, 1], ["ask", "bid"]):
                     df_ohlc[f"amount_q{str(int(x * 100)).zfill(2)}_{name}"] = dfwk.loc[(slice(None), slice(None), side, x)]["amount"] / df_ohlc[f"amount_{name}"]
                     df_ohlc[f"cumsum_q{str(int(x * 100)).zfill(2)}_{name}"] = dfwk.loc[(slice(None), slice(None), side, x)]["cumsum"] / df_ohlc[f"amount_{name}"]
-            raise
-            ndf_idx = pd.DataFrame(dfwk.index).iloc[:, 0].str[0].unique()
-            ndf_idx = np.concatenate([np.repeat(ndf_idx, ndf_tg.shape[0]).reshape(-1, 1), np.tile(ndf_tg, ndf_idx.shape[0]).reshape(-1, 1)], axis=-1)
-            dfwkwk  = pd.DataFrame(np.concatenate([np.repeat(ndf_idx, 2, axis=0), np.tile([0, 1], ndf_idx.shape[0]).reshape(-1, 1)], axis=-1), columns=["symbol", "timegrp", "side"])
-            dfwkwk  = dfwkwk.set_index(["symbol", "timegrp", "side"])
-            dfwkwk[["open", "high", "low", "close", "ave"]] = dfwk[  ["first", "max", "min", "last", "ave"]].copy()
-            dfwkwk[["open", "high", "low", "close", "ave"]] = dfwkwk[["open", "high", "low", "close", "ave"]].groupby(["symbol", "timegrp"]).bfill().groupby(["symbol", "timegrp"]).ffill()
-            dfwkwk[["size", "amount", "ntx"]] = dfwk[  ["size", "amount", "ntx"]].copy()
-            dfwkwk[["size", "amount", "ntx"]] = dfwkwk[["size", "amount", "ntx"]].fillna(0)
-            df_ohlc = pd.DataFrame(ndf_idx, columns=["symbol", "timegrp"]).set_index(["symbol", "timegrp"])
-            raise
-            df_ohlc
-            dfwk    = dfwk.reset_index()
-            df_ohlc = pd.merge(df_ohlc, dfwk, how="left", on=["symbol", "timegrp"])
-            raise
