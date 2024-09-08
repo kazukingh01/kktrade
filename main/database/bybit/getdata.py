@@ -162,8 +162,7 @@ if __name__ == "__main__":
                     if df.shape[0] > 0:
                         res = requests.post(
                             "http://127.0.0.1:8000/select", json={"sql":(
-                                f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                                f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                             )}, headers={'Content-type': 'application/json'}
                         )
                         df_exist = pd.DataFrame(json.loads(res.json()))
