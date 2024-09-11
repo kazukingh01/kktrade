@@ -103,15 +103,21 @@ class MyLogger(logging.Logger):
         f_handler.setFormatter(_formatter_outfile)
         f_handler.set_name("logfile_logger")
         self.addHandler(f_handler)
+    
+    def close(self):
+        handlers: list[logging.Handler] = self.handlers
+        for x in handlers:
+            if hasattr(x, "close"):
+                x.close()
 
 
 def set_logger(
     name: str, log_level: str="info", 
     internal_log: bool=False, logfilepath: str=None, is_newlogfile: bool=False,
-    color_info:    str | list[str]=None,
-    color_debug:   str | list[str]=None,
-    color_warning: str | list[str]=["BOLD", "YELLOW"],
-    color_error:   str | list[str]= ["BOLD", "RED"],
+    color_info:    str | list[str] = None,
+    color_debug:   str | list[str] = None,
+    color_warning: str | list[str] = ["BOLD", "YELLOW"],
+    color_error:   str | list[str] = ["BOLD", "RED"],
 ) -> MyLogger:
     """
     Return the address in the logging namespace
