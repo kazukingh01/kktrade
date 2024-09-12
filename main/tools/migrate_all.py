@@ -1,6 +1,6 @@
 import argparse, datetime
 # local package
-from .dbconf import HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, DBTYPE_FR, HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, DBTYPE_TO
+from dbconf import HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, DBTYPE_FR, HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, DBTYPE_TO
 from kkpsgre.psgre import DBConnector
 from kkpsgre.migration import migrate
 from kkpsgre.util.logger import set_logger
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
-    DB_to   = DBConnector(HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, dbtype=DBTYPE_FR, max_disp_len=200)
-    DB_from = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
+    DB_from = DBConnector(HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, dbtype=DBTYPE_FR, max_disp_len=200)
+    DB_to   = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
     for date in [args.fr + datetime.timedelta(days=x) for x in range((args.to - args.fr).days)]:
         LOGGER.info(f"date: {date}", color=["BOLD", "GREEN"])
         utime_fr = int( date.                              timestamp())
