@@ -45,6 +45,7 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=convdatetime, help="--to 20200101", required=True)
     parser.add_argument("--tbl", type=str, help="table name", required=True)
     parser.add_argument("--num", type=int, default=10000)
+    parser.add_argument("--split",  action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
@@ -56,5 +57,5 @@ if __name__ == "__main__":
         utime_to = int((date + datetime.timedelta(days=1)).timestamp()) - 1
         df_from, df_exist, df_insert = migrate(
             DB_from, DB_to, args.tbl, f"unixtime >= {utime_fr} and unixtime <= {utime_to}",
-            pkeys=TABLES[args.tbl], n_split=args.num, is_error_when_different=True, is_delete=False, is_update=args.update
+            pkeys=TABLES[args.tbl], n_split=args.num, is_error_when_different=True, is_delete=False, is_update=args.update, use_split_select=args.split
         )
