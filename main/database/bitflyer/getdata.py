@@ -130,7 +130,7 @@ if __name__ == "__main__":
                     df   = getticker(symbol=symbol, mst_id=mst_id)
                     res  = requests.post(
                         "http://127.0.0.1:8000/select", json={"sql":(
-                            f"select tick_id from {EXCHANGE}_ticker where tick_id = {df['tick_id'].iloc[0]} and symbol = {mst_id[symbol]};"
+                            f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {mst_id[symbol]};"
                         )}, headers={'Content-type': 'application/json'}
                     )
                     dfwk = pd.DataFrame(json.loads(res.json()))

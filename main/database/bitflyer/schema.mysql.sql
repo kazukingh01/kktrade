@@ -297,8 +297,7 @@ CREATE TABLE bitflyer_ticker (
     market_ask_size FLOAT,
     last_traded_price FLOAT,
     volume FLOAT,
-    volume_by_product FLOAT,
-    PRIMARY KEY (symbol, tick_id)
+    volume_by_product FLOAT
 );
 
 

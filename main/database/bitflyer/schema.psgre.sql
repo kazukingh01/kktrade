@@ -339,13 +339,6 @@ ALTER TABLE ONLY public.bitflyer_fundingrate
 
 
 --
--- Name: bitflyer_ticker bitflyer_ticker_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.bitflyer_ticker
-    ADD CONSTRAINT bitflyer_ticker_pkey PRIMARY KEY (symbol, tick_id);
-
---
 -- Name: bitflyer_executions_0; Type: INDEX; Schema: public; Owner: postgres
 --
 
