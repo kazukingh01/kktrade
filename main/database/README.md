@@ -1,6 +1,6 @@
 # Database Install
 
-see: https://github.com/kazukingh01/kkpsgre/blob/650a12e6f90c499a7e8e55a53c5386f748af15d6/README.md
+see: https://github.com/kazukingh01/kkpsgre/blob/79824e407326b27fc8edafd0a3a7744416a9cc91/README.md
 
 # Create Database
 
@@ -65,17 +65,19 @@ cp ~/kktrade/main/database/economic_calendar/schema.psgre.sql /home/share/psgre.
 ```bash
 sudo apt update && sudo apt-get install -y mysql-client
 MYSQLPASS="AAAAAAAAAAAAAAA"
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS}
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} -e "DROP DATABASE trade;"
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} -e "CREATE DATABASE trade;"
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/schema_main.tidb.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/master_symbol.mysql.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/binance/schema.mysql.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bitflyer/schema.mysql.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bybit/schema.mysql.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/dukascopy/schema.mysql.sql
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade -e "DROP TABLE economic_calendar CASCADE;"
-mysql -h 192.168.10.1 -P 4000 -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/economic_calendar/schema.mysql.sql
+MYSQLPORT=3306
+MYSQLIP="192.168.10.1"
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS}
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} -e "DROP DATABASE trade;"
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} -e "CREATE DATABASE trade;"
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/schema_main.tidb.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/master_symbol.mysql.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/binance/schema.mysql.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bitflyer/schema.mysql.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/bybit/schema.mysql.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/dukascopy/schema.mysql.sql
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade -e "DROP TABLE economic_calendar CASCADE;"
+mysql -h ${MYSQLIP} -P ${MYSQLPORT} -u root --password=${MYSQLPASS} --database=trade < ~/kktrade/main/database/economic_calendar/schema.mysql.sql
 ```
 
 ( Docker )
