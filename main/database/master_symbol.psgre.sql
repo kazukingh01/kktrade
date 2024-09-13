@@ -131,3 +131,17 @@ INSERT INTO master_symbol (symbol_id, symbol_name, exchange, base, currency, is_
 (127, 'COIN@BTCUSD_PERP', 'binance', 'BTC', 'USD', 't', NULL),
 (128, 'COIN@ETHUSD_PERP', 'binance', 'ETH', 'USD', 't', NULL),
 (129, 'COIN@XRPUSD_PERP', 'binance', 'XRP', 'USD', 't', NULL);
+
+
+INSERT INTO master_symbol (symbol_id, symbol_name, exchange, base, currency, is_active, explain) VALUES
+(130, 'SPOT@SOLUSDT', 'binance', 'SOL', 'USDT', 't', NULL),
+(131, 'SPOT@BNBUSDT', 'binance', 'BNB', 'USDT', 't', NULL),
+(132, 'USDS@SOLUSDT', 'binance', 'SOL', 'USDT', 't', NULL),
+(133, 'USDS@BNBUSDT', 'binance', 'BNB', 'USDT', 't', NULL),
+(134, 'COIN@SOLUSD_PERP', 'binance', 'SOL', 'USD', 't', NULL),
+(135, 'COIN@BNBUSD_PERP', 'binance', 'BNB', 'USD', 't', NULL),
+(136, 'spot@SOLUSDT',   'bybit', 'SOL', 'USDT', 't', NULL),
+(137, 'linear@SOLUSDT', 'bybit', 'SOL', 'USDT', 't', NULL),
+(138, 'inverse@SOLUSD', 'bybit', 'SOL', 'USD',  't', NULL),
+(139, 'spot@BNBUSDT',   'bybit', 'BNB', 'USDT', 't', NULL),
+(140, 'linear@BNBUSDT', 'bybit', 'BNB', 'USDT', 't', NULL);
