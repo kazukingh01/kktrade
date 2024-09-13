@@ -43,14 +43,23 @@ if __name__ == "__main__":
     else:
         args.fr = str_to_datetime(args.fr) if args.fr is not None else datetime.datetime(1900,1,1)
         args.ut = str_to_datetime(args.ut) if args.ut is not None else datetime.datetime(1900,1,1)
-        path = args.path.replace("YYYY", "*").replace("MM", "*").replace("DD", "*")
+        path = args.path.replace("YYYY", "*").replace("MM", "*").replace("DD", "*").replace("X", "*")
         list_files = glob.glob(path)
-        regex = args.path.replace("*", ".*").replace("YYYY", "(?P<year>[0-9][0-9][0-9][0-9])").replace("MM", "(?P<month>[0-9][0-9])").replace("DD", "(?P<day>[0-9][0-9])")
+        regex = args.path.replace(".", r"\.").replace("*", ".*"). \
+                    replace("YYYY", "(?P<year>[0-9][0-9][0-9][0-9])"). \
+                    replace("MM",   "(?P<month>[0-9][0-9])"). \
+                    replace("DD",   "(?P<day>[0-9][0-9])"). \
+                    replace("X",    "[0-9]")
         def work(x, regex):
             m = re.search(regex, x)
-            return datetime.datetime(int(m.group("year")), int(m.group("month")), int(m.group("day")))
+            if m is None:
+                return False
+            else:
+                return datetime.datetime(int(m.group("year")), int(m.group("month")), int(m.group("day")))
         list_date = [work(x, regex) for x in list_files]
         for x, y in zip(list_files, list_date):
+            if isinstance(y, bool) and y == False:
+                continue
             if args.fr <= y <= args.ut:
                 print(f"remove: {x}")
                 if args.rm: os.remove(x)
