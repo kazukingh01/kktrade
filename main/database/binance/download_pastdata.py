@@ -25,7 +25,7 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
     LOGGER.info(f"download from: {url}")
     r   = requests.get(url, allow_redirects=True)
     if r.status_code != 200:
-        LOGGER.warning("something is wrong. Data is missing.")
+        LOGGER.warning(f"something is wrong. Data is missing. [{r.status_code}]")
         return pd.DataFrame()
     open(tmp_file_path, 'wb').write(r.content)
     with ZipFile(tmp_file_path, mode="r") as zip_file:
@@ -55,7 +55,7 @@ def download_index(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
     LOGGER.info(f"download from: {url}")
     r   = requests.get(url, allow_redirects=True)
     if r.status_code != 200:
-        LOGGER.warning("something is wrong. Data is missing.")
+        LOGGER.warning(f"something is wrong. Data is missing. [{r.status_code}]")
         return (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
     open(tmp_file_path, 'wb').write(r.content)
     with ZipFile(tmp_file_path, mode="r") as zip_file:
@@ -89,8 +89,8 @@ def download_fundingrate(symbol: str, date: datetime.datetime, tmp_file_path: st
     LOGGER.info(f"download from: {url}")
     r   = requests.get(url, allow_redirects=True)
     if r.status_code != 200:
-        LOGGER.warning("something is wrong. Data is missing.")
-        return (pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame())
+        LOGGER.warning(f"something is wrong. Data is missing. [{r.status_code}]")
+        return pd.DataFrame()
     open(tmp_file_path, 'wb').write(r.content)
     with ZipFile(tmp_file_path, mode="r") as zip_file:
         with zip_file.open(zip_file.filelist[0].filename) as f:
