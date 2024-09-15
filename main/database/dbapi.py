@@ -42,6 +42,18 @@ async def select(select: Select):
     return df.to_json()
 
 
+class Exec(BaseModel):
+    sql: str | list[str]
+
+
+@app.post('/exec/')
+async def exec(exec: Exec):
+    async with lock:
+        DB.set_sql(exec.sql)
+        DB.execute_sql()
+    return True
+
+
 class ReConnect(BaseModel):
     logfilepath: str=""
     log_level: str="info"

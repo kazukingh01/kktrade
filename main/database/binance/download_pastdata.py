@@ -110,12 +110,6 @@ if __name__ == "__main__":
     parser.add_argument("--num", type=int, default=1000)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--update", action='store_true', default=False)
-    kwargs_psgre = {
-        "keepalives": 1,
-        "keepalives_idle": 30,
-        "keepalives_interval": 5,
-        "keepalives_count": 100,
-    }
     args   = parser.parse_args()
     res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
     df_mst = pd.DataFrame(json.loads(res.json()))
