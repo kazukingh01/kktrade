@@ -6,8 +6,15 @@ if [ -z "$VAR_NAME" ]; then
 fi
 
 # Check number of args
-if [ "$#" -lt 1 ]; then
-  echo "Usage: $0 arg1"
+IP="127.0.0.1"
+PORT=8000
+if [ "$#" -eq 1 ]; then
+  echo "[START]"
+elif [ "$#" -eq 2 ]; then
+  echo "[START]"
+  PORT=$2
+else
+  echo "Usage: $0 procNo portNo"
   exit 1
 fi
 
@@ -15,27 +22,26 @@ cd ${HOMETRADE}/main/database
 
 case "$1" in
   1)
-    echo "force to restart."
-    pkill python
+    echo "force to restart. ${IP}:${PORT}"
+    python dbapi.py --ip ${IP} --port ${PORT} --disconnect
     sleep 5
-    python ${HOMETRADE}/main/database/dbapi.py --disconnect
+    kill $(ps aux | grep -v grep | grep uvicorn | grep -- "--port ${PORT}" | awk '{print $2}' | head -n 1)
     sleep 5
-    pkill uvicorn
+    nohup uvicorn dbapi:app --port ${PORT} >/dev/null 2>&1 &
     sleep 5
-    nohup uvicorn dbapi:app >/dev/null 2>&1 &
-    sleep 5
-    python dbapi.py --reconnect --logfilepath ../log/dbapi.log
+    python dbapi.py --ip ${IP} --port ${PORT} --reconnect --logfilepath ../log/dbapi.log
     ;;
   2)
-    echo "Restart if there is no uvicorn process."
-    if ! ps aux | grep -v grep | grep uvicorn > /dev/null; then
+    echo "Restart if there is no uvicorn process. ${IP}:${PORT}"
+    if ! ps aux | grep -v grep | grep uvicorn | grep -- "--port ${PORT}" > /dev/null; then
       echo "uvicorn process is not found. Restart..."
-      nohup uvicorn dbapi:app >/dev/null 2>&1 &
+      nohup uvicorn dbapi:app --port ${PORT} >/dev/null 2>&1 &
       sleep 5
-      python dbapi.py --reconnect --logfilepath ../log/dbapi.log
+      python dbapi.py --ip ${IP} --port ${PORT} --reconnect --logfilepath ../log/dbapi.log
     else
       echo "uvicorn process is found."
     fi
     ;;
 esac
 
+echo "[END]"

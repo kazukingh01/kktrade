@@ -215,9 +215,11 @@ if __name__ == "__main__":
     parser.add_argument("--fn", type=str)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
+    parser.add_argument("--ip",   type=str, default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
+    res    = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
     df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getexecutions", "getkline", "getfundingrate", "getopeninterest", "getlongshortratio", "gettakervolume"]:
@@ -227,7 +229,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(10) # 11 * 6 = 66
             if "getexecutions" == args.fn:
@@ -236,7 +238,7 @@ if __name__ == "__main__":
                     df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
                         res = requests.post(
-                            "http://127.0.0.1:8000/select", json={"sql":(
+                            f"http://{args.ip}:{args.port}/select", json={"sql":(
                                 f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
                                 f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                             )}, headers={'Content-type': 'application/json'}
@@ -244,7 +246,7 @@ if __name__ == "__main__":
                         df_exist = pd.DataFrame(json.loads(res.json()))
                         df = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
@@ -253,7 +255,7 @@ if __name__ == "__main__":
                         LOGGER.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval="1m", limit=99, mst_id=mst_id)
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post("http://127.0.0.1:8000/insert", json={
+                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                                 "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True,
                                 "add_sql": (
                                     f"delete from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
@@ -267,7 +269,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getfundingrate(symbol=symbol, limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                             "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_funding_rate", "is_select": True,
                             "add_sql": (
                                 f"delete from {EXCHANGE}_funding_rate where symbol = {df['symbol'].iloc[0]} and " + 
@@ -281,7 +283,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getopeninterest(symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                             "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_open_interest", "is_select": True,
                             "add_sql": (
                                 f"delete from {EXCHANGE}_open_interest where symbol = {df['symbol'].iloc[0]} and " + 
@@ -296,7 +298,7 @@ if __name__ == "__main__":
                         LOGGER.info(f"{args.fn}: {ls_type}, {symbol}")
                         df = getlongshortratio(ls_type, symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post("http://127.0.0.1:8000/insert", json={
+                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                                 "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_long_short", "is_select": True,
                                 "add_sql": (
                                     f"delete from {EXCHANGE}_long_short where symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and " + 
@@ -310,7 +312,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = gettakervolume(symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                             "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_taker_volume", "is_select": True,
                             "add_sql": (
                                 f"delete from {EXCHANGE}_taker_volume where symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
@@ -332,7 +334,7 @@ if __name__ == "__main__":
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0:
                             res = requests.post(
-                                "http://127.0.0.1:8000/select", json={"sql":(
+                                f"http://{args.ip}:{args.port}/select", json={"sql":(
                                     f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
                                     f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                                 )}, headers={'Content-type': 'application/json'}
@@ -340,5 +342,5 @@ if __name__ == "__main__":
                             df_exist = pd.DataFrame(json.loads(res.json()))
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True}, headers={'Content-type': 'application/json'})
+                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True}, headers={'Content-type': 'application/json'})
                             assert res.status_code == 200

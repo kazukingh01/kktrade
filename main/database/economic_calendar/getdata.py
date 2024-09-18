@@ -112,6 +112,8 @@ if __name__ == "__main__":
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
+    parser.add_argument("--ip",    type=str, default="127.0.0.1")
+    parser.add_argument("--port",  type=int, default=8000)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.days <= 7 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
@@ -126,7 +128,7 @@ if __name__ == "__main__":
             df = geteconomicalcalendar(date_fr, date_to)
             if df.shape[0] > 0: df = correct_df(df.copy())
             if df.shape[0] > 0 and args.update:
-                res = requests.post("http://127.0.0.1:8000/insert", json={
+                res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                     "data": df.replace({float("nan"): None}).to_dict(), "tblname": "economic_calendar", "is_select": True,
                     "add_sql": f"delete from economic_calendar where (id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");"
                 }, headers={'Content-type': 'application/json'})

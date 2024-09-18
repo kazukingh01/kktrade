@@ -88,6 +88,8 @@ if __name__ == "__main__":
     parser.add_argument("--reconnect",     action='store_true', default=False)
     parser.add_argument("--logfilepath",   type=str, default="")
     parser.add_argument("--log_level",     type=str, default="info")
+    parser.add_argument("--ip",            type=str, default="127.0.0.1")
+    parser.add_argument("--port",          type=int, default=8000)
     parser.add_argument("--is_newlogfile", action='store_true', default=False)
     parser.add_argument("--disconnect",    action='store_true', default=False)
     parser.add_argument("--test",          action='store_true', default=False)
@@ -95,20 +97,20 @@ if __name__ == "__main__":
     parser.add_argument("--db",            action='store_true', default=False)
     args   = parser.parse_args()
     def manual_connect(args):
-        res = requests.post("http://127.0.0.1:8000/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
+        res = requests.post(f"http://{args.ip}:{args.port}/reconnect", json={"logfilepath": args.logfilepath, "log_level": args.log_level, "is_newlogfile": args.is_newlogfile}, headers={'Content-type': 'application/json'})
         return res
     if   args.reconnect:
         res = manual_connect(args)
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}")
     elif args.disconnect:
-        res = requests.post("http://127.0.0.1:8000/disconnect", json={}, headers={'Content-type': 'application/json'})
+        res = requests.post(f"http://{args.ip}:{args.port}/disconnect", json={}, headers={'Content-type': 'application/json'})
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}")
     elif args.test:
-        res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
+        res = requests.post(f"http://{args.ip}:{args.port}/test", json={}, headers={'Content-type': 'application/json'})
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
         print(pd.DataFrame(json.loads(res.json())))
     elif args.check:
-        res = requests.post("http://127.0.0.1:8000/test", json={}, headers={'Content-type': 'application/json'})
+        res = requests.post(f"http://{args.ip}:{args.port}/test", json={}, headers={'Content-type': 'application/json'})
         if res.status_code != 200:
             print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} try to reconnect... [1]")
             res = manual_connect(args)

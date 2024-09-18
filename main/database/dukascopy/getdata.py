@@ -87,11 +87,13 @@ if __name__ == "__main__":
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
     parser.add_argument("--ntry",  type=int, help="--ntry 5", default=5)
     parser.add_argument("--sleep", type=int, help="--sleep 3", default=3)
+    parser.add_argument("--ip",    type=str, default="127.0.0.1")
+    parser.add_argument("--port",  type=int, default=8000)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     print(args)
     assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
-    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api'"}, headers={'Content-type': 'application/json'})
+    res    = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api'"}, headers={'Content-type': 'application/json'})
     df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn == "getintraday":
@@ -112,7 +114,7 @@ if __name__ == "__main__":
                 else:
                     LOGGER.warning("data is nothing.")
                 if df.shape[0] > 0 and args.update:
-                    res = requests.post("http://127.0.0.1:8000/insert", json={
+                    res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                         "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ohlcv", "is_select": True,
                         "add_sql": (
                             f"delete from {EXCHANGE}_ohlcv where symbol = {symbol_id} and interval = 1 and unixtime >= {df['unixtime'].min()} and unixtime <= {df['unixtime'].max()};"
@@ -130,7 +132,7 @@ if __name__ == "__main__":
             df = correct_df(df)
             LOGGER.info("getlastminutekline end")
             if df.shape[0] > 0 and args.update:
-                res = requests.post("http://127.0.0.1:8000/insert", json={
+                res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
                     "data": df[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']].replace({float("nan"): None}).to_dict(),
                     "tblname": f"{EXCHANGE}_ohlcv", "is_select": False,
                     "add_sql": (

@@ -109,9 +109,11 @@ if __name__ == "__main__":
     parser.add_argument("--cnt", type=int, default=20)
     parser.add_argument("--sleep", type=float, default=0.6)
     parser.add_argument("--nloop", type=int, default=5)
+    parser.add_argument("--ip",    type=str, default="127.0.0.1")
+    parser.add_argument("--port",  type=int, default=8000)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    res    = requests.post("http://127.0.0.1:8000/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
+    res    = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
     df_mst = pd.DataFrame(json.loads(res.json()))
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getticker", "getexecutions", "getfundingrate"]:
@@ -121,7 +123,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(12)
             elif "getticker" == args.fn:
@@ -129,13 +131,13 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df   = getticker(symbol=symbol, mst_id=mst_id)
                     res  = requests.post(
-                        "http://127.0.0.1:8000/select", json={"sql":(
+                        f"http://{args.ip}:{args.port}/select", json={"sql":(
                             f"select unixtime from {EXCHANGE}_ticker where unixtime = {df['unixtime'].iloc[0]} and symbol = {mst_id[symbol]};"
                         )}, headers={'Content-type': 'application/json'}
                     )
                     dfwk = pd.DataFrame(json.loads(res.json()))
                     if dfwk.shape[0] == 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ticker", "is_select": True}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_ticker", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(5)
             elif "getexecutions" == args.fn:
@@ -143,7 +145,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     # select since 3 days before.
                     res  = requests.post(
-                        "http://127.0.0.1:8000/select", json={"sql":(
+                        f"http://{args.ip}:{args.port}/select", json={"sql":(
                             f"select max(id) as id from {EXCHANGE}_executions where " + 
                             f"symbol = {mst_id[symbol]} and unixtime >= {int((datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).timestamp())};"
                         )}, headers={'Content-type': 'application/json'}
@@ -151,7 +153,7 @@ if __name__ == "__main__":
                     dfwk = pd.DataFrame(json.loads(res.json()))
                     df   = getexecutions(symbol=symbol, after=dfwk["id"].iloc[0], mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(12)
             elif "getfundingrate" == args.fn:
@@ -160,7 +162,7 @@ if __name__ == "__main__":
                     if symbol not in ["FX_BTC_JPY"]: continue
                     df = getfundingrate(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_fundingrate", "is_select": True}, headers={'Content-type': 'application/json'})
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_fundingrate", "is_select": True}, headers={'Content-type': 'application/json'})
                         assert res.status_code == 200
                 time.sleep(60 * 10)
     if args.fn in ["getall"]:
@@ -172,7 +174,7 @@ if __name__ == "__main__":
         for _ in range(args.nloop):
             # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
             res  = requests.post(
-                "http://127.0.0.1:8000/select", json={"sql":(
+                f"http://{args.ip}:{args.port}/select", json={"sql":(
                     f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= {time_until} and unixtime >= {time_since};"
                 )}, headers={'Content-type': 'application/json'}
             )
@@ -194,7 +196,7 @@ if __name__ == "__main__":
                     df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
                     if df.shape[0] > 0:
                         res      = requests.post(
-                            "http://127.0.0.1:8000/select", json={"sql":(
+                            f"http://{args.ip}:{args.port}/select", json={"sql":(
                                 f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ({','.join(df['id'].astype(str).tolist())});"
                             )}, headers={'Content-type': 'application/json'}
                         )
@@ -203,7 +205,7 @@ if __name__ == "__main__":
                     if df.shape[0] > 0:
                         count = 0
                         if args.update:
-                            res = requests.post("http://127.0.0.1:8000/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
                             assert res.status_code == 200
                     else:
                         count += 1
