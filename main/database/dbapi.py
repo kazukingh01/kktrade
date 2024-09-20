@@ -84,7 +84,7 @@ async def test(_: BaseModel):
 
 
 @app.post('/dbinfo/')
-async def test(_: BaseModel):
+async def dbinfo(_: BaseModel):
     dictwk = None
     async with lock:
         dictwk = copy.deepcopy(DB.dbinfo)
