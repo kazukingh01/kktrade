@@ -1,4 +1,4 @@
-import argparse, requests, json, asyncio, datetime
+import argparse, requests, json, asyncio, datetime, copy
 from fastapi import FastAPI
 import pandas as pd
 from pydantic import BaseModel
@@ -77,10 +77,18 @@ async def disconnect(disconnect: BaseModel):
 
 
 @app.post('/test/')
-async def test(test: BaseModel):
+async def test(_: BaseModel):
     async with lock:
         df = DB.read_table_layout()
     return df.to_json()
+
+
+@app.post('/dbinfo/')
+async def test(_: BaseModel):
+    dictwk = None
+    async with lock:
+        dictwk = copy.deepcopy(DB.dbinfo)
+    return dictwk
 
 
 if __name__ == "__main__":
@@ -106,6 +114,9 @@ if __name__ == "__main__":
         res = requests.post(f"http://{args.ip}:{args.port}/disconnect", json={}, headers={'Content-type': 'application/json'})
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}")
     elif args.test:
+        res = requests.post(f"http://{args.ip}:{args.port}/dbinfo", json={}, headers={'Content-type': 'application/json'})
+        print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
+        print(res.text)
         res = requests.post(f"http://{args.ip}:{args.port}/test", json={}, headers={'Content-type': 'application/json'})
         print(f"{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} status_code: {res.status_code}.")
         print(pd.DataFrame(json.loads(res.json())))
