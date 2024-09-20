@@ -108,6 +108,7 @@ if __name__ == "__main__":
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101", required=True)
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101", required=True)
     parser.add_argument("--num", type=int, default=1000)
+    parser.add_argument("--fn",  type=lambda x: x.split(","), default="trade,index,fundingrate")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--update", action='store_true', default=False)
@@ -117,56 +118,61 @@ if __name__ == "__main__":
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     date_st, date_ed = args.fr, args.to
     assert date_st <= date_ed
+    assert isinstance(args.fn, list)
+    for x in args.fn: assert x in ["trade", "index", "fundingrate"]
     for date in [date_st + datetime.timedelta(days=x) for x in range((date_ed - date_st).days + 1)]:
         for symbol in mst_id.keys():
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             # executions
-            df = download_trade(symbol, date, mst_id=mst_id)
-            if df.shape[0] > 0:
-                res      = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"}, headers={'Content-type': 'application/json'})
-                df_exist = pd.DataFrame(json.loads(res.json()))
-                df       = df.loc[~df["id"].isin(df_exist["id"])]
-            else:
-                LOGGER.warning("Nothing data.")
-                continue
-            if df.shape[0] > 0 and args.update:
-                if df.shape[0] >= args.num:
-                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.iloc[indexes].replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+            if "trade" in args.fn:
+                df = download_trade(symbol, date, mst_id=mst_id)
+                if df.shape[0] > 0:
+                    res      = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"}, headers={'Content-type': 'application/json'})
+                    df_exist = pd.DataFrame(json.loads(res.json()))
+                    df       = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
-                    res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
-                    assert res.status_code == 200
+                    LOGGER.warning("Nothing data.")
+                    continue
+                if df.shape[0] > 0 and args.update:
+                    if df.shape[0] >= args.num:
+                        for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
+                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.iloc[indexes].replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                            assert res.status_code == 200
+                    else:
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
             # other index
-            df_oi, df_ls_n, df_ls_ta, df_ls_tp = download_index(symbol, date, mst_id=mst_id)
-            df = df_oi.copy()
-            if df.shape[0] > 0 and args.update:
-                res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                    "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_open_interest", "is_select": True,
-                    "add_sql": (
-                        f"delete from {EXCHANGE}_open_interest where symbol = {df['symbol'].iloc[0]} and " + 
-                        f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
-                    ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                }, headers={'Content-type': 'application/json'})
-                assert res.status_code == 200
-            for df in [df_ls_n, df_ls_ta, df_ls_tp]:
+            if "index" in args.fn:
+                df_oi, df_ls_n, df_ls_ta, df_ls_tp = download_index(symbol, date, mst_id=mst_id)
+                df = df_oi.copy()
                 if df.shape[0] > 0 and args.update:
                     res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                        "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_long_short", "is_select": True,
+                        "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_open_interest", "is_select": True,
                         "add_sql": (
-                            f"delete from {EXCHANGE}_long_short where symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and " + 
+                            f"delete from {EXCHANGE}_open_interest where symbol = {df['symbol'].iloc[0]} and " + 
                             f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
                         ) # latest data is more accurete. The data within 60s wouldn't be completed.
                     }, headers={'Content-type': 'application/json'})
                     assert res.status_code == 200
+                for df in [df_ls_n, df_ls_ta, df_ls_tp]:
+                    if df.shape[0] > 0 and args.update:
+                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
+                            "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_long_short", "is_select": True,
+                            "add_sql": (
+                                f"delete from {EXCHANGE}_long_short where symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and " + 
+                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                        }, headers={'Content-type': 'application/json'})
+                        assert res.status_code == 200
             # funding rate
-            df = download_fundingrate(symbol, date, mst_id=mst_id)
-            if df.shape[0] > 0 and args.update:
-                res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                    "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_funding_rate", "is_select": True,
-                    "add_sql": (
-                        f"delete from {EXCHANGE}_funding_rate where symbol = {df['symbol'].iloc[0]} and " + 
-                        f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
-                    ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                }, headers={'Content-type': 'application/json'})
-                assert res.status_code == 200
+            if "fundingrate" in args.fn:
+                df = download_fundingrate(symbol, date, mst_id=mst_id)
+                if df.shape[0] > 0 and args.update:
+                    res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
+                        "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_funding_rate", "is_select": True,
+                        "add_sql": (
+                            f"delete from {EXCHANGE}_funding_rate where symbol = {df['symbol'].iloc[0]} and " + 
+                            f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                    }, headers={'Content-type': 'application/json'})
+                    assert res.status_code == 200

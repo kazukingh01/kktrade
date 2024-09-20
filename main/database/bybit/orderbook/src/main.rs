@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufReader, BufRead, Write};
+use chrono::{Utc, TimeZone};
 
 #[derive(Debug, Deserialize, Serialize)]
 struct OrderBookUpdate {
@@ -76,18 +77,31 @@ impl OrderBook {
             println!("{}: {}", price, amount);
         }
         println!("Asks:");
-        for (price, amount) in &self.asks {
+        for (price, amount) in self.asks.iter().rev() {
             println!("{}: {}", price, amount);
         }
+    }
+
+    fn to_csv(&self, ts: i64) -> String {
+        let mut csv_str = String::new();
+        for (price, amount) in self.bids.iter().rev() {
+            csv_str.push_str(&format!("{},1,{},{}\n", ts, price, amount));
+        }
+        for (price, amount) in self.asks.iter().rev() {
+            csv_str.push_str(&format!("{},0,{},{}\n", ts, price, amount));
+        }
+        csv_str
     }
 }
 
 fn main() -> std::io::Result<()> {
-    // 読み込み対象のファイル名
     let file = File::open("2024-09-01_ETHUSDT_ob500.data")?;
     let reader = BufReader::new(file);
 
     let mut order_book = OrderBook::new();
+    let mut csv_str = String::new();
+    csv_str.push_str("unixtime,side,price,size\n");
+    let mut bool_tmp = true;
 
     for line in reader.lines() {
         let line = line?;
@@ -99,15 +113,30 @@ fn main() -> std::io::Result<()> {
                 order_book.apply_snapshot(&update.data);
             }
             "delta" => {
-                println!("Applying delta...");
+                // println!("Applying delta...");
                 order_book.apply_delta(&update.data);
             }
             _ => println!("Unknown update type"),
         }
 
-        // 常に最新のオーダーブック状態を表示
-        order_book.display();
+        let unixtime: i64 = (update.ts / 1000).try_into().expect("Value out of range for i64");
+        if (unixtime % 10) == 0 {
+            if bool_tmp {
+                csv_str += &order_book.to_csv(unixtime);
+                bool_tmp = false;
+                let datetime_utc = Utc.timestamp_opt(unixtime, 0)
+                                        .single()
+                                        .expect("Invalid timestamp");
+                println!("unixtime: {}, {}, {}", unixtime, unixtime % 10, datetime_utc);    
+            }
+        } else {
+            bool_tmp = true;
+        }
+
     }
+    // write to CSV file.
+    let mut file = File::create("tmp.csv")?;
+    file.write_all(csv_str.as_bytes())?;
 
     Ok(())
 }
