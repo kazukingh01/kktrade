@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
+use std::env;
 use std::fs::File;
 use std::io::{BufReader, BufRead, Write};
 use chrono::{Utc, TimeZone};
@@ -95,7 +96,18 @@ impl OrderBook {
 }
 
 fn main() -> std::io::Result<()> {
-    let file = File::open("2024-09-01_ETHUSDT_ob500.data")?;
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 || args.len() > 3 {
+        eprintln!("Usage: {} <input_file>", args[0]);
+        std::process::exit(1);
+    }
+
+    let mut output = "tmp.csv";
+    if args.len() == 3 {
+        output = &args[2];
+    }
+
+    let file = File::open(&args[1])?;
     let reader = BufReader::new(file);
 
     let mut order_book = OrderBook::new();
@@ -135,7 +147,7 @@ fn main() -> std::io::Result<()> {
 
     }
     // write to CSV file.
-    let mut file = File::create("tmp.csv")?;
+    let mut file = File::create(output)?;
     file.write_all(csv_str.as_bytes())?;
 
     Ok(())
