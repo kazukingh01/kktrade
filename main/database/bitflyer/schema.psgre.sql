@@ -1514,13 +1514,6 @@ CREATE TABLE public.bitflyer_ticker (
 
 ALTER TABLE public.bitflyer_ticker OWNER TO postgres;
 
---
--- Name: bitflyer_executions bitflyer_executions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.bitflyer_executions
-    ADD CONSTRAINT bitflyer_executions_pkey PRIMARY KEY (symbol, id);
-
 
 --
 -- Name: bitflyer_fundingrate bitflyer_fundingrate_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres

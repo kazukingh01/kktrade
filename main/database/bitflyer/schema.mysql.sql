@@ -4,8 +4,7 @@ CREATE TABLE bitflyer_executions (
     side SMALLINT NOT NULL,
     unixtime BIGINT,
     price FLOAT,
-    size FLOAT,
-    PRIMARY KEY (symbol, id)
+    size FLOAT
 )
 PARTITION BY RANGE (unixtime) (
     PARTITION bitflyer_executions_00000000 VALUES LESS THAN (1546300800),
