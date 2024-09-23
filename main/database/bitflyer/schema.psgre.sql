@@ -9,7 +9,7 @@ CREATE TABLE public.bitflyer_executions (
     unixtime bigint,
     price real,
     size real
-);
+) PARTITION BY RANGE (unixtime);
 
 ALTER TABLE public.bitflyer_executions OWNER TO postgres;
 
