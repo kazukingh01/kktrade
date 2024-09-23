@@ -6,7 +6,10 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
+from kktrade.util.database import select, insert, exec
 from getdata import EXCHANGE
+from kkpsgre.psgre import DBConnector
+from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
 BASEURL  = "https://public.bybit.com/"
@@ -80,10 +83,11 @@ if __name__ == "__main__":
     parser.add_argument("--fn",  type=lambda x: x.split(","), default="trade")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    res    = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
-    df_mst = pd.DataFrame(json.loads(res.json()))
+    src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
+    df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     date_st, date_ed = args.fr, args.to
     assert date_st <= date_ed
@@ -96,8 +100,7 @@ if __name__ == "__main__":
                 df = download_trade(symbol, date, mst_id=mst_id)
                 if df.shape[0] > 0 and symbol.split("@")[0] in ["linear", "inverse"]:
                     # Be careful !! Spot data ID is different from the one that is obtained via API.
-                    res      = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"}, headers={'Content-type': 'application/json'})
-                    df_exist = pd.DataFrame(json.loads(res.json()))
+                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};")
                     df       = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
                     LOGGER.warning("Nothing data.")
@@ -105,23 +108,22 @@ if __name__ == "__main__":
                 if df.shape[0] > 0 and args.update:
                     if symbol.split("@")[0] == "spot":
                         # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
-                        res = requests.post(f"http://{args.ip}:{args.port}/exec", json={"sql": f"DELETE FROM {EXCHANGE}_executions WHERE symbol = {df['symbol'].iloc[0]} AND unixtime >= {int(df['unixtime'].min())} AND unixtime <= {int(df['unixtime'].max())};"}, headers={'Content-type': 'application/json'})
+                        exec(src, f"DELETE FROM {EXCHANGE}_executions WHERE symbol = {df['symbol'].iloc[0]} AND unixtime >= {int(df['unixtime'].min())} AND unixtime <= {int(df['unixtime'].max())};")
                     if df.shape[0] >= args.num:
                         for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.iloc[indexes].replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                            insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
                     else:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
+                        insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
             if "orderbook" in args.fn:
                 df = download_orderbook(symbol, date, mst_id=mst_id)
                 if df.shape[0] > 0:
-                    res      = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select unixtime from {EXCHANGE}_orderbook where symbol = {df['symbol'].iloc[0]} and unixtime in ({','.join(df['unixtime'].unique().astype(str).tolist())});"}, headers={'Content-type': 'application/json'})
-                    df_exist = pd.DataFrame(json.loads(res.json()))
+                    df_exist = select(src, f"select unixtime from {EXCHANGE}_orderbook where symbol = {df['symbol'].iloc[0]} and unixtime in ({','.join(df['unixtime'].unique().astype(str).tolist())});")
                     df       = df.loc[~df["unixtime"].isin(df_exist["unixtime"].unique())]
                 else:
                     LOGGER.warning("Nothing data.")
                     continue
                 if df.shape[0] >= args.num:
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.iloc[indexes].replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": True}, headers={'Content-type': 'application/json'})
+                        insert(src, df.iloc[indexes], f"{EXCHANGE}_orderbook", True, add_sql=None)
                 else:
-                    res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": True}, headers={'Content-type': 'application/json'})
+                    insert(src, df, f"{EXCHANGE}_orderbook", True, add_sql=None)
