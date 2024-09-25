@@ -5,7 +5,7 @@
         "exchange": "bitflyer",
         "base": "BTC",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -14,7 +14,7 @@
         "exchange": "bitflyer",
         "base": "XRP",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -23,7 +23,7 @@
         "exchange": "bitflyer",
         "base": "ETH",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -32,7 +32,7 @@
         "exchange": "bitflyer",
         "base": "XLM",
         "currency": "JPY",
-        "is_active": 0,
+        "is_active": false,
         "explain": null
     },
     {
@@ -41,7 +41,7 @@
         "exchange": "bitflyer",
         "base": "MONA",
         "currency": "JPY",
-        "is_active": 0,
+        "is_active": false,
         "explain": null
     },
     {
@@ -50,7 +50,7 @@
         "exchange": "bitflyer",
         "base": "BTC_FX",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -59,7 +59,7 @@
         "exchange": "bybit",
         "base": "BTC",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -68,7 +68,7 @@
         "exchange": "bybit",
         "base": "ETH",
         "currency": "USDC",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -77,7 +77,7 @@
         "exchange": "bybit",
         "base": "BTC",
         "currency": "USDC",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -86,7 +86,7 @@
         "exchange": "bybit",
         "base": "ETH",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -95,7 +95,7 @@
         "exchange": "bybit",
         "base": "XRP",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -104,7 +104,7 @@
         "exchange": "bybit",
         "base": "BTC",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -113,7 +113,7 @@
         "exchange": "bybit",
         "base": "ETH",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -122,7 +122,7 @@
         "exchange": "bybit",
         "base": "XRP",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -131,7 +131,7 @@
         "exchange": "bybit",
         "base": "BTC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -140,7 +140,7 @@
         "exchange": "bybit",
         "base": "ETH",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -149,7 +149,7 @@
         "exchange": "bybit",
         "base": "XRP",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -158,7 +158,7 @@
         "exchange": "eodhd",
         "base": "USD",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -167,7 +167,7 @@
         "exchange": "eodhd",
         "base": "EUR",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -176,7 +176,7 @@
         "exchange": "eodhd",
         "base": "GBP",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -185,7 +185,7 @@
         "exchange": "eodhd",
         "base": "USD",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -194,7 +194,7 @@
         "exchange": "eodhd",
         "base": "AUD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -203,7 +203,7 @@
         "exchange": "eodhd",
         "base": "USD",
         "currency": "CAD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -212,7 +212,7 @@
         "exchange": "eodhd",
         "base": "NZD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -221,7 +221,7 @@
         "exchange": "eodhd",
         "base": "EUR",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -230,7 +230,7 @@
         "exchange": "eodhd",
         "base": "EUR",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -239,7 +239,7 @@
         "exchange": "eodhd",
         "base": "EUR",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -248,7 +248,7 @@
         "exchange": "eodhd",
         "base": "XAU",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -257,7 +257,7 @@
         "exchange": "eodhd",
         "base": "GSPC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "S&P 500"
     },
     {
@@ -266,7 +266,7 @@
         "exchange": "eodhd",
         "base": "DJI",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Dow Jones"
     },
     {
@@ -275,7 +275,7 @@
         "exchange": "eodhd",
         "base": "IXIC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "NASDAQ Index"
     },
     {
@@ -284,7 +284,7 @@
         "exchange": "eodhd",
         "base": "BUK100P",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Cboe UK 100"
     },
     {
@@ -293,7 +293,7 @@
         "exchange": "eodhd",
         "base": "VIX",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "CBOE Volatility Index"
     },
     {
@@ -302,7 +302,7 @@
         "exchange": "eodhd",
         "base": "GDAXI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Germany 40 index"
     },
     {
@@ -311,7 +311,7 @@
         "exchange": "eodhd",
         "base": "FCHI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "France 40 index"
     },
     {
@@ -320,7 +320,7 @@
         "exchange": "eodhd",
         "base": "STOXX50E",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Europe 50 index"
     },
     {
@@ -329,7 +329,7 @@
         "exchange": "eodhd",
         "base": "N100",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Euronext 100 Index"
     },
     {
@@ -338,7 +338,7 @@
         "exchange": "eodhd",
         "base": "BFX",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Brussels 20 Index"
     },
     {
@@ -347,7 +347,7 @@
         "exchange": "eodhd",
         "base": "IMOEX",
         "currency": "RUB",
-        "is_active": 0,
+        "is_active": false,
         "explain": "Russia 50 Index"
     },
     {
@@ -356,7 +356,7 @@
         "exchange": "eodhd",
         "base": "N225",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Nikkei 225"
     },
     {
@@ -365,7 +365,7 @@
         "exchange": "eodhd",
         "base": "HSI",
         "currency": "HKD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Hong Kong 40 Index"
     },
     {
@@ -374,7 +374,7 @@
         "exchange": "eodhd",
         "base": "SSEC",
         "currency": "",
-        "is_active": 0,
+        "is_active": false,
         "explain": null
     },
     {
@@ -383,7 +383,7 @@
         "exchange": "eodhd",
         "base": "AORD",
         "currency": "AUD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Australlia 500 index"
     },
     {
@@ -392,7 +392,7 @@
         "exchange": "eodhd",
         "base": "BSESN",
         "currency": "INR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "india 30 index"
     },
     {
@@ -401,7 +401,7 @@
         "exchange": "eodhd",
         "base": "JKSE",
         "currency": "IDR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Jakarta all Index"
     },
     {
@@ -410,7 +410,7 @@
         "exchange": "eodhd",
         "base": "NZ50",
         "currency": "NZD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "New Zealand 50 Index"
     },
     {
@@ -419,7 +419,7 @@
         "exchange": "eodhd",
         "base": "KS11",
         "currency": "KRW",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Koria Index"
     },
     {
@@ -428,7 +428,7 @@
         "exchange": "eodhd",
         "base": "TWII",
         "currency": "TWD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Taiwan Index"
     },
     {
@@ -437,7 +437,7 @@
         "exchange": "eodhd",
         "base": "GSPTSE",
         "currency": "CAD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Canada 250 Index"
     },
     {
@@ -446,7 +446,7 @@
         "exchange": "eodhd",
         "base": "BVSP",
         "currency": "BRL",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Brazil index"
     },
     {
@@ -455,7 +455,7 @@
         "exchange": "eodhd",
         "base": "GSPTSE",
         "currency": "MXN",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Mexico Index"
     },
     {
@@ -464,7 +464,7 @@
         "exchange": "eodhd",
         "base": "SPIPSA",
         "currency": "CLP",
-        "is_active": 0,
+        "is_active": false,
         "explain": "Chile Index"
     },
     {
@@ -473,7 +473,7 @@
         "exchange": "eodhd",
         "base": "MERV",
         "currency": "ARS",
-        "is_active": 0,
+        "is_active": false,
         "explain": "Argentina  Index"
     },
     {
@@ -482,7 +482,7 @@
         "exchange": "eodhd",
         "base": "TA125",
         "currency": "ILS",
-        "is_active": 0,
+        "is_active": false,
         "explain": "Israel 125 Index"
     },
     {
@@ -491,7 +491,7 @@
         "exchange": "dukascopy",
         "base": "GSPC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "S&P 500"
     },
     {
@@ -500,7 +500,7 @@
         "exchange": "dukascopy",
         "base": "VIX",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "CBOE Volatility Index"
     },
     {
@@ -509,7 +509,7 @@
         "exchange": "dukascopy",
         "base": "XIN9",
         "currency": "CNY",
-        "is_active": 1,
+        "is_active": true,
         "explain": "China A50 Index"
     },
     {
@@ -518,7 +518,7 @@
         "exchange": "dukascopy",
         "base": "HSI",
         "currency": "HKD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Hong Kong 40 Index"
     },
     {
@@ -527,7 +527,7 @@
         "exchange": "dukascopy",
         "base": "N225",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Nikkei 225"
     },
     {
@@ -536,7 +536,7 @@
         "exchange": "dukascopy",
         "base": "AXJO",
         "currency": "AUD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Australlia 200 index"
     },
     {
@@ -545,7 +545,7 @@
         "exchange": "dukascopy",
         "base": "NSEI",
         "currency": "INR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "India 50 index"
     },
     {
@@ -554,7 +554,7 @@
         "exchange": "dukascopy",
         "base": "SSGF3",
         "currency": "SGD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Singapore Blue Chip"
     },
     {
@@ -563,7 +563,7 @@
         "exchange": "dukascopy",
         "base": "FCHI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "France 40 index"
     },
     {
@@ -572,7 +572,7 @@
         "exchange": "dukascopy",
         "base": "GDAXI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Germany 40 index"
     },
     {
@@ -581,7 +581,7 @@
         "exchange": "dukascopy",
         "base": "STOXX50E",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Europe 50 index"
     },
     {
@@ -590,7 +590,7 @@
         "exchange": "dukascopy",
         "base": "BUK100P",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": "UK 100 index"
     },
     {
@@ -599,7 +599,7 @@
         "exchange": "dukascopy",
         "base": "IBEX",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Spain 35 index"
     },
     {
@@ -608,7 +608,7 @@
         "exchange": "dukascopy",
         "base": "SPI20",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Switzerland 20 index"
     },
     {
@@ -617,7 +617,7 @@
         "exchange": "dukascopy",
         "base": "NL25",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Netherlands 25 index"
     },
     {
@@ -626,7 +626,7 @@
         "exchange": "dukascopy",
         "base": "WIG20",
         "currency": "PLN",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Poland 20 index"
     },
     {
@@ -635,7 +635,7 @@
         "exchange": "dukascopy",
         "base": "SA40",
         "currency": "ZAR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "South Africa 40 index"
     },
     {
@@ -644,7 +644,7 @@
         "exchange": "dukascopy",
         "base": "USD",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -653,7 +653,7 @@
         "exchange": "dukascopy",
         "base": "EUR",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -662,7 +662,7 @@
         "exchange": "dukascopy",
         "base": "GBP",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -671,7 +671,7 @@
         "exchange": "dukascopy",
         "base": "USD",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -680,7 +680,7 @@
         "exchange": "dukascopy",
         "base": "AUD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -689,7 +689,7 @@
         "exchange": "dukascopy",
         "base": "USD",
         "currency": "CAD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -698,7 +698,7 @@
         "exchange": "dukascopy",
         "base": "NZD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -707,7 +707,7 @@
         "exchange": "dukascopy",
         "base": "EUR",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -716,7 +716,7 @@
         "exchange": "dukascopy",
         "base": "EUR",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -725,7 +725,7 @@
         "exchange": "dukascopy",
         "base": "EUR",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -734,7 +734,7 @@
         "exchange": "dukascopy",
         "base": "XAU",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -743,7 +743,7 @@
         "exchange": "dukascopy",
         "base": "XAG",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -752,7 +752,7 @@
         "exchange": "dukascopyapi",
         "base": "GSPC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "S&P 500"
     },
     {
@@ -761,7 +761,7 @@
         "exchange": "dukascopyapi",
         "base": "VIX",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "CBOE Volatility Index"
     },
     {
@@ -770,7 +770,7 @@
         "exchange": "dukascopyapi",
         "base": "XIN9",
         "currency": "CNY",
-        "is_active": 1,
+        "is_active": true,
         "explain": "China A50 Index"
     },
     {
@@ -779,7 +779,7 @@
         "exchange": "dukascopyapi",
         "base": "HSI",
         "currency": "HKD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Hong Kong 40 Index"
     },
     {
@@ -788,7 +788,7 @@
         "exchange": "dukascopyapi",
         "base": "N225",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Nikkei 225"
     },
     {
@@ -797,7 +797,7 @@
         "exchange": "dukascopyapi",
         "base": "AXJO",
         "currency": "AUD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Australlia 200 index"
     },
     {
@@ -806,7 +806,7 @@
         "exchange": "dukascopyapi",
         "base": "NSEI",
         "currency": "INR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "India 50 index"
     },
     {
@@ -815,7 +815,7 @@
         "exchange": "dukascopyapi",
         "base": "SSGF3",
         "currency": "SGD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Singapore Blue Chip"
     },
     {
@@ -824,7 +824,7 @@
         "exchange": "dukascopyapi",
         "base": "FCHI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "France 40 index"
     },
     {
@@ -833,7 +833,7 @@
         "exchange": "dukascopyapi",
         "base": "GDAXI",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Germany 40 index"
     },
     {
@@ -842,7 +842,7 @@
         "exchange": "dukascopyapi",
         "base": "STOXX50E",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Europe 50 index"
     },
     {
@@ -851,7 +851,7 @@
         "exchange": "dukascopyapi",
         "base": "BUK100P",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": "UK 100 index"
     },
     {
@@ -860,7 +860,7 @@
         "exchange": "dukascopyapi",
         "base": "IBEX",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Spain 35 index"
     },
     {
@@ -869,7 +869,7 @@
         "exchange": "dukascopyapi",
         "base": "SPI20",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Switzerland 20 index"
     },
     {
@@ -878,7 +878,7 @@
         "exchange": "dukascopyapi",
         "base": "NL25",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Netherlands 25 index"
     },
     {
@@ -887,7 +887,7 @@
         "exchange": "dukascopyapi",
         "base": "WIG20",
         "currency": "PLN",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Poland 20 index"
     },
     {
@@ -896,7 +896,7 @@
         "exchange": "dukascopyapi",
         "base": "SA40",
         "currency": "ZAR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "South Africa 40 index"
     },
     {
@@ -905,7 +905,7 @@
         "exchange": "dukascopyapi",
         "base": "USD",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -914,7 +914,7 @@
         "exchange": "dukascopyapi",
         "base": "EUR",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -923,7 +923,7 @@
         "exchange": "dukascopyapi",
         "base": "GBP",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -932,7 +932,7 @@
         "exchange": "dukascopyapi",
         "base": "USD",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -941,7 +941,7 @@
         "exchange": "dukascopyapi",
         "base": "AUD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -950,7 +950,7 @@
         "exchange": "dukascopyapi",
         "base": "USD",
         "currency": "CAD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -959,7 +959,7 @@
         "exchange": "dukascopyapi",
         "base": "NZD",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -968,7 +968,7 @@
         "exchange": "dukascopyapi",
         "base": "EUR",
         "currency": "GBP",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -977,7 +977,7 @@
         "exchange": "dukascopyapi",
         "base": "EUR",
         "currency": "JPY",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -986,7 +986,7 @@
         "exchange": "dukascopyapi",
         "base": "EUR",
         "currency": "CHF",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -995,7 +995,7 @@
         "exchange": "dukascopyapi",
         "base": "XAU",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1004,7 +1004,7 @@
         "exchange": "dukascopyapi",
         "base": "XAG",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1013,7 +1013,7 @@
         "exchange": "eodhd",
         "base": "AXJO",
         "currency": "AUD",
-        "is_active": 1,
+        "is_active": true,
         "explain": "S&P\/ASX 200"
     },
     {
@@ -1022,7 +1022,7 @@
         "exchange": "eodhd",
         "base": "NSEI",
         "currency": "INR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "Nifty 50"
     },
     {
@@ -1031,7 +1031,7 @@
         "exchange": "eodhd",
         "base": "IBEX",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "IBEX 35 Index"
     },
     {
@@ -1040,7 +1040,7 @@
         "exchange": "eodhd",
         "base": "SPI20",
         "currency": "CHF",
-        "is_active": 0,
+        "is_active": false,
         "explain": "SPI 20 PR (Not available)"
     },
     {
@@ -1049,7 +1049,7 @@
         "exchange": "eodhd",
         "base": "NL25",
         "currency": "EUR",
-        "is_active": 1,
+        "is_active": true,
         "explain": "AEX Amsterdam Index"
     },
     {
@@ -1058,7 +1058,7 @@
         "exchange": "eodhd",
         "base": "WIG20",
         "currency": "PLN",
-        "is_active": 0,
+        "is_active": false,
         "explain": "Poland 20 index (Not available)"
     },
     {
@@ -1067,7 +1067,7 @@
         "exchange": "eodhd",
         "base": "XAG",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1076,7 +1076,7 @@
         "exchange": "binance",
         "base": "BTC",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1085,7 +1085,7 @@
         "exchange": "binance",
         "base": "ETH",
         "currency": "USDC",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1094,7 +1094,7 @@
         "exchange": "binance",
         "base": "BTC",
         "currency": "USDC",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1103,7 +1103,7 @@
         "exchange": "binance",
         "base": "ETH",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1112,7 +1112,7 @@
         "exchange": "binance",
         "base": "XRP",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1121,7 +1121,7 @@
         "exchange": "binance",
         "base": "BTC",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1130,7 +1130,7 @@
         "exchange": "binance",
         "base": "ETH",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1139,7 +1139,7 @@
         "exchange": "binance",
         "base": "XRP",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1148,7 +1148,7 @@
         "exchange": "binance",
         "base": "BTC",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1157,7 +1157,7 @@
         "exchange": "binance",
         "base": "ETH",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1166,7 +1166,7 @@
         "exchange": "binance",
         "base": "XRP",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1175,7 +1175,7 @@
         "exchange": "binance",
         "base": "SOL",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1184,7 +1184,7 @@
         "exchange": "binance",
         "base": "BNB",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1193,7 +1193,7 @@
         "exchange": "binance",
         "base": "SOL",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1202,7 +1202,7 @@
         "exchange": "binance",
         "base": "BNB",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1211,7 +1211,7 @@
         "exchange": "binance",
         "base": "SOL",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1220,7 +1220,7 @@
         "exchange": "binance",
         "base": "BNB",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1229,7 +1229,7 @@
         "exchange": "bybit",
         "base": "SOL",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1238,7 +1238,7 @@
         "exchange": "bybit",
         "base": "SOL",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1247,7 +1247,7 @@
         "exchange": "bybit",
         "base": "SOL",
         "currency": "USD",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1256,7 +1256,7 @@
         "exchange": "bybit",
         "base": "BNB",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     },
     {
@@ -1265,7 +1265,7 @@
         "exchange": "bybit",
         "base": "BNB",
         "currency": "USDT",
-        "is_active": 1,
+        "is_active": true,
         "explain": null
     }
 ]
