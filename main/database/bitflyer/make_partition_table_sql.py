@@ -1,0 +1,1 @@
+../bybit/make_partition_table_sql.py

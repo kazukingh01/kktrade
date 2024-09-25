@@ -1,10 +1,5 @@
 #!/bin/bash
 
-VAR_NAME=${HOMETRADE:-}
-if [ -z "$VAR_NAME" ]; then
-  HOMETRADE="${HOME}/kktrade"
-fi
-
 # Check number of args
 IP="127.0.0.1"
 PORT=8000
@@ -18,7 +13,11 @@ else
   exit 1
 fi
 
-cd ${HOMETRADE}/main/database
+SCRIPT_DIR=$(cd $(dirname $0); pwd)
+echo "change direcroty to ${SCRIPT_DIR} ..."
+cd $SCRIPT_DIR
+
+NOPROC=$(ps aux | grep -v grep | grep uvicorn | grep -- "--port ${PORT}" | awk '{print $2}' | head -n 1)
 
 case "$1" in
   1)
