@@ -92,6 +92,14 @@ cp ~/kktrade/main/database/dukascopy/schema.mysql.sql         /home/share/mysql.
 cp ~/kktrade/main/database/economic_calendar/schema.mysql.sql /home/share/mysql.sql && sudo docker exec mysql /bin/sh -c "mysql --password=mysql --database=trade < /home/share/mysql.sql"
 ```
 
+### MongoDB
+
+( Host )
+
+```bash
+mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'db.getSiblingDB("trade").getCollection("master_symbol").insertMany(JSON.parse(require("fs").readFileSync("${HOME}/kktrade/main/database/master_symbol.mongo.json")))'
+```
+
 # Cron
 
 ```bash

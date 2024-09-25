@@ -1,0 +1,1271 @@
+[
+    {
+        "symbol_id": 0,
+        "symbol_name": "BTC_JPY",
+        "exchange": "bitflyer",
+        "base": "BTC",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 1,
+        "symbol_name": "XRP_JPY",
+        "exchange": "bitflyer",
+        "base": "XRP",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 2,
+        "symbol_name": "ETH_JPY",
+        "exchange": "bitflyer",
+        "base": "ETH",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 3,
+        "symbol_name": "XLM_JPY",
+        "exchange": "bitflyer",
+        "base": "XLM",
+        "currency": "JPY",
+        "is_active": 0,
+        "explain": null
+    },
+    {
+        "symbol_id": 4,
+        "symbol_name": "MONA_JPY",
+        "exchange": "bitflyer",
+        "base": "MONA",
+        "currency": "JPY",
+        "is_active": 0,
+        "explain": null
+    },
+    {
+        "symbol_id": 5,
+        "symbol_name": "FX_BTC_JPY",
+        "exchange": "bitflyer",
+        "base": "BTC_FX",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 6,
+        "symbol_name": "spot@BTCUSDT",
+        "exchange": "bybit",
+        "base": "BTC",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 7,
+        "symbol_name": "spot@ETHUSDC",
+        "exchange": "bybit",
+        "base": "ETH",
+        "currency": "USDC",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 8,
+        "symbol_name": "spot@BTCUSDC",
+        "exchange": "bybit",
+        "base": "BTC",
+        "currency": "USDC",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 9,
+        "symbol_name": "spot@ETHUSDT",
+        "exchange": "bybit",
+        "base": "ETH",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 10,
+        "symbol_name": "spot@XRPUSDT",
+        "exchange": "bybit",
+        "base": "XRP",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 11,
+        "symbol_name": "linear@BTCUSDT",
+        "exchange": "bybit",
+        "base": "BTC",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 12,
+        "symbol_name": "linear@ETHUSDT",
+        "exchange": "bybit",
+        "base": "ETH",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 13,
+        "symbol_name": "linear@XRPUSDT",
+        "exchange": "bybit",
+        "base": "XRP",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 14,
+        "symbol_name": "inverse@BTCUSD",
+        "exchange": "bybit",
+        "base": "BTC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 15,
+        "symbol_name": "inverse@ETHUSD",
+        "exchange": "bybit",
+        "base": "ETH",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 16,
+        "symbol_name": "inverse@XRPUSD",
+        "exchange": "bybit",
+        "base": "XRP",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 17,
+        "symbol_name": "USDJPY.FOREX",
+        "exchange": "eodhd",
+        "base": "USD",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 18,
+        "symbol_name": "EURUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "EUR",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 19,
+        "symbol_name": "GBPUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "GBP",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 20,
+        "symbol_name": "USDCHF.FOREX",
+        "exchange": "eodhd",
+        "base": "USD",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 21,
+        "symbol_name": "AUDUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "AUD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 22,
+        "symbol_name": "USDCAD.FOREX",
+        "exchange": "eodhd",
+        "base": "USD",
+        "currency": "CAD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 23,
+        "symbol_name": "NZDUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "NZD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 24,
+        "symbol_name": "EURGBP.FOREX",
+        "exchange": "eodhd",
+        "base": "EUR",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 25,
+        "symbol_name": "EURJPY.FOREX",
+        "exchange": "eodhd",
+        "base": "EUR",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 26,
+        "symbol_name": "EURCHF.FOREX",
+        "exchange": "eodhd",
+        "base": "EUR",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 27,
+        "symbol_name": "XAUUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "XAU",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 28,
+        "symbol_name": "GSPC.INDX",
+        "exchange": "eodhd",
+        "base": "GSPC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "S&P 500"
+    },
+    {
+        "symbol_id": 29,
+        "symbol_name": "DJI.INDX",
+        "exchange": "eodhd",
+        "base": "DJI",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "Dow Jones"
+    },
+    {
+        "symbol_id": 30,
+        "symbol_name": "IXIC.INDX",
+        "exchange": "eodhd",
+        "base": "IXIC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "NASDAQ Index"
+    },
+    {
+        "symbol_id": 31,
+        "symbol_name": "BUK100P.INDX",
+        "exchange": "eodhd",
+        "base": "BUK100P",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": "Cboe UK 100"
+    },
+    {
+        "symbol_id": 32,
+        "symbol_name": "VIX.INDX",
+        "exchange": "eodhd",
+        "base": "VIX",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "CBOE Volatility Index"
+    },
+    {
+        "symbol_id": 33,
+        "symbol_name": "GDAXI.INDX",
+        "exchange": "eodhd",
+        "base": "GDAXI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Germany 40 index"
+    },
+    {
+        "symbol_id": 34,
+        "symbol_name": "FCHI.INDX",
+        "exchange": "eodhd",
+        "base": "FCHI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "France 40 index"
+    },
+    {
+        "symbol_id": 35,
+        "symbol_name": "STOXX50E.INDX",
+        "exchange": "eodhd",
+        "base": "STOXX50E",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Europe 50 index"
+    },
+    {
+        "symbol_id": 36,
+        "symbol_name": "N100.INDX",
+        "exchange": "eodhd",
+        "base": "N100",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Euronext 100 Index"
+    },
+    {
+        "symbol_id": 37,
+        "symbol_name": "BFX.INDX",
+        "exchange": "eodhd",
+        "base": "BFX",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Brussels 20 Index"
+    },
+    {
+        "symbol_id": 38,
+        "symbol_name": "IMOEX.INDX",
+        "exchange": "eodhd",
+        "base": "IMOEX",
+        "currency": "RUB",
+        "is_active": 0,
+        "explain": "Russia 50 Index"
+    },
+    {
+        "symbol_id": 39,
+        "symbol_name": "N225.INDX",
+        "exchange": "eodhd",
+        "base": "N225",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": "Nikkei 225"
+    },
+    {
+        "symbol_id": 40,
+        "symbol_name": "HSI.INDX",
+        "exchange": "eodhd",
+        "base": "HSI",
+        "currency": "HKD",
+        "is_active": 1,
+        "explain": "Hong Kong 40 Index"
+    },
+    {
+        "symbol_id": 41,
+        "symbol_name": "SSEC.INDX",
+        "exchange": "eodhd",
+        "base": "SSEC",
+        "currency": "",
+        "is_active": 0,
+        "explain": null
+    },
+    {
+        "symbol_id": 42,
+        "symbol_name": "AORD.INDX",
+        "exchange": "eodhd",
+        "base": "AORD",
+        "currency": "AUD",
+        "is_active": 1,
+        "explain": "Australlia 500 index"
+    },
+    {
+        "symbol_id": 43,
+        "symbol_name": "BSESN.INDX",
+        "exchange": "eodhd",
+        "base": "BSESN",
+        "currency": "INR",
+        "is_active": 1,
+        "explain": "india 30 index"
+    },
+    {
+        "symbol_id": 44,
+        "symbol_name": "JKSE.INDX",
+        "exchange": "eodhd",
+        "base": "JKSE",
+        "currency": "IDR",
+        "is_active": 1,
+        "explain": "Jakarta all Index"
+    },
+    {
+        "symbol_id": 45,
+        "symbol_name": "NZ50.INDX",
+        "exchange": "eodhd",
+        "base": "NZ50",
+        "currency": "NZD",
+        "is_active": 1,
+        "explain": "New Zealand 50 Index"
+    },
+    {
+        "symbol_id": 46,
+        "symbol_name": "KS11.INDX",
+        "exchange": "eodhd",
+        "base": "KS11",
+        "currency": "KRW",
+        "is_active": 1,
+        "explain": "Koria Index"
+    },
+    {
+        "symbol_id": 47,
+        "symbol_name": "TWII.INDX",
+        "exchange": "eodhd",
+        "base": "TWII",
+        "currency": "TWD",
+        "is_active": 1,
+        "explain": "Taiwan Index"
+    },
+    {
+        "symbol_id": 48,
+        "symbol_name": "GSPTSE.INDX",
+        "exchange": "eodhd",
+        "base": "GSPTSE",
+        "currency": "CAD",
+        "is_active": 1,
+        "explain": "Canada 250 Index"
+    },
+    {
+        "symbol_id": 49,
+        "symbol_name": "BVSP.INDX",
+        "exchange": "eodhd",
+        "base": "BVSP",
+        "currency": "BRL",
+        "is_active": 1,
+        "explain": "Brazil index"
+    },
+    {
+        "symbol_id": 50,
+        "symbol_name": "MXX.INDX",
+        "exchange": "eodhd",
+        "base": "GSPTSE",
+        "currency": "MXN",
+        "is_active": 1,
+        "explain": "Mexico Index"
+    },
+    {
+        "symbol_id": 51,
+        "symbol_name": "SPIPSA.INDX",
+        "exchange": "eodhd",
+        "base": "SPIPSA",
+        "currency": "CLP",
+        "is_active": 0,
+        "explain": "Chile Index"
+    },
+    {
+        "symbol_id": 52,
+        "symbol_name": "MERV.INDX",
+        "exchange": "eodhd",
+        "base": "MERV",
+        "currency": "ARS",
+        "is_active": 0,
+        "explain": "Argentina  Index"
+    },
+    {
+        "symbol_id": 53,
+        "symbol_name": "TA125.INDX",
+        "exchange": "eodhd",
+        "base": "TA125",
+        "currency": "ILS",
+        "is_active": 0,
+        "explain": "Israel 125 Index"
+    },
+    {
+        "symbol_id": 54,
+        "symbol_name": "USA500IDXUSD",
+        "exchange": "dukascopy",
+        "base": "GSPC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "S&P 500"
+    },
+    {
+        "symbol_id": 55,
+        "symbol_name": "VOLIDXUSD",
+        "exchange": "dukascopy",
+        "base": "VIX",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "CBOE Volatility Index"
+    },
+    {
+        "symbol_id": 56,
+        "symbol_name": "CHIIDXUSD",
+        "exchange": "dukascopy",
+        "base": "XIN9",
+        "currency": "CNY",
+        "is_active": 1,
+        "explain": "China A50 Index"
+    },
+    {
+        "symbol_id": 57,
+        "symbol_name": "HKGIDXHKD",
+        "exchange": "dukascopy",
+        "base": "HSI",
+        "currency": "HKD",
+        "is_active": 1,
+        "explain": "Hong Kong 40 Index"
+    },
+    {
+        "symbol_id": 58,
+        "symbol_name": "JPNIDXJPY",
+        "exchange": "dukascopy",
+        "base": "N225",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": "Nikkei 225"
+    },
+    {
+        "symbol_id": 59,
+        "symbol_name": "AUSIDXAUD",
+        "exchange": "dukascopy",
+        "base": "AXJO",
+        "currency": "AUD",
+        "is_active": 1,
+        "explain": "Australlia 200 index"
+    },
+    {
+        "symbol_id": 60,
+        "symbol_name": "INDIDXUSD",
+        "exchange": "dukascopy",
+        "base": "NSEI",
+        "currency": "INR",
+        "is_active": 1,
+        "explain": "India 50 index"
+    },
+    {
+        "symbol_id": 61,
+        "symbol_name": "SGDIDXSGD",
+        "exchange": "dukascopy",
+        "base": "SSGF3",
+        "currency": "SGD",
+        "is_active": 1,
+        "explain": "Singapore Blue Chip"
+    },
+    {
+        "symbol_id": 62,
+        "symbol_name": "FRAIDXEUR",
+        "exchange": "dukascopy",
+        "base": "FCHI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "France 40 index"
+    },
+    {
+        "symbol_id": 63,
+        "symbol_name": "DEUIDXEUR",
+        "exchange": "dukascopy",
+        "base": "GDAXI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Germany 40 index"
+    },
+    {
+        "symbol_id": 64,
+        "symbol_name": "EUSIDXEUR",
+        "exchange": "dukascopy",
+        "base": "STOXX50E",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Europe 50 index"
+    },
+    {
+        "symbol_id": 65,
+        "symbol_name": "GBRIDXGBP",
+        "exchange": "dukascopy",
+        "base": "BUK100P",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": "UK 100 index"
+    },
+    {
+        "symbol_id": 66,
+        "symbol_name": "ESPIDXEUR",
+        "exchange": "dukascopy",
+        "base": "IBEX",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Spain 35 index"
+    },
+    {
+        "symbol_id": 67,
+        "symbol_name": "CHEIDXCHF",
+        "exchange": "dukascopy",
+        "base": "SPI20",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": "Switzerland 20 index"
+    },
+    {
+        "symbol_id": 68,
+        "symbol_name": "NLDIDXEUR",
+        "exchange": "dukascopy",
+        "base": "NL25",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Netherlands 25 index"
+    },
+    {
+        "symbol_id": 69,
+        "symbol_name": "PLNIDXPLN",
+        "exchange": "dukascopy",
+        "base": "WIG20",
+        "currency": "PLN",
+        "is_active": 1,
+        "explain": "Poland 20 index"
+    },
+    {
+        "symbol_id": 70,
+        "symbol_name": "SOAIDXZAR",
+        "exchange": "dukascopy",
+        "base": "SA40",
+        "currency": "ZAR",
+        "is_active": 1,
+        "explain": "South Africa 40 index"
+    },
+    {
+        "symbol_id": 71,
+        "symbol_name": "USDJPY",
+        "exchange": "dukascopy",
+        "base": "USD",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 72,
+        "symbol_name": "EURUSD",
+        "exchange": "dukascopy",
+        "base": "EUR",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 73,
+        "symbol_name": "GBPUSD",
+        "exchange": "dukascopy",
+        "base": "GBP",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 74,
+        "symbol_name": "USDCHF",
+        "exchange": "dukascopy",
+        "base": "USD",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 75,
+        "symbol_name": "AUDUSD",
+        "exchange": "dukascopy",
+        "base": "AUD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 76,
+        "symbol_name": "USDCAD",
+        "exchange": "dukascopy",
+        "base": "USD",
+        "currency": "CAD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 77,
+        "symbol_name": "NZDUSD",
+        "exchange": "dukascopy",
+        "base": "NZD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 78,
+        "symbol_name": "EURGBP",
+        "exchange": "dukascopy",
+        "base": "EUR",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 79,
+        "symbol_name": "EURJPY",
+        "exchange": "dukascopy",
+        "base": "EUR",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 80,
+        "symbol_name": "EURCHF",
+        "exchange": "dukascopy",
+        "base": "EUR",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 81,
+        "symbol_name": "XAUUSD",
+        "exchange": "dukascopy",
+        "base": "XAU",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 82,
+        "symbol_name": "XAGUSD",
+        "exchange": "dukascopy",
+        "base": "XAG",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 83,
+        "symbol_name": "USA500.IDX\/USD",
+        "exchange": "dukascopyapi",
+        "base": "GSPC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "S&P 500"
+    },
+    {
+        "symbol_id": 84,
+        "symbol_name": "VOL.IDX\/USD",
+        "exchange": "dukascopyapi",
+        "base": "VIX",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": "CBOE Volatility Index"
+    },
+    {
+        "symbol_id": 85,
+        "symbol_name": "CHI.IDX\/USD",
+        "exchange": "dukascopyapi",
+        "base": "XIN9",
+        "currency": "CNY",
+        "is_active": 1,
+        "explain": "China A50 Index"
+    },
+    {
+        "symbol_id": 86,
+        "symbol_name": "HKG.IDX\/HKD",
+        "exchange": "dukascopyapi",
+        "base": "HSI",
+        "currency": "HKD",
+        "is_active": 1,
+        "explain": "Hong Kong 40 Index"
+    },
+    {
+        "symbol_id": 87,
+        "symbol_name": "JPN.IDX\/JPY",
+        "exchange": "dukascopyapi",
+        "base": "N225",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": "Nikkei 225"
+    },
+    {
+        "symbol_id": 88,
+        "symbol_name": "AUS.IDX\/AUD",
+        "exchange": "dukascopyapi",
+        "base": "AXJO",
+        "currency": "AUD",
+        "is_active": 1,
+        "explain": "Australlia 200 index"
+    },
+    {
+        "symbol_id": 89,
+        "symbol_name": "IND.IDX\/USD",
+        "exchange": "dukascopyapi",
+        "base": "NSEI",
+        "currency": "INR",
+        "is_active": 1,
+        "explain": "India 50 index"
+    },
+    {
+        "symbol_id": 90,
+        "symbol_name": "SGD.IDX\/SGD",
+        "exchange": "dukascopyapi",
+        "base": "SSGF3",
+        "currency": "SGD",
+        "is_active": 1,
+        "explain": "Singapore Blue Chip"
+    },
+    {
+        "symbol_id": 91,
+        "symbol_name": "FRA.IDX\/EUR",
+        "exchange": "dukascopyapi",
+        "base": "FCHI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "France 40 index"
+    },
+    {
+        "symbol_id": 92,
+        "symbol_name": "DEU.IDX\/EUR",
+        "exchange": "dukascopyapi",
+        "base": "GDAXI",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Germany 40 index"
+    },
+    {
+        "symbol_id": 93,
+        "symbol_name": "EUS.IDX\/EUR",
+        "exchange": "dukascopyapi",
+        "base": "STOXX50E",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Europe 50 index"
+    },
+    {
+        "symbol_id": 94,
+        "symbol_name": "GBR.IDX\/GBP",
+        "exchange": "dukascopyapi",
+        "base": "BUK100P",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": "UK 100 index"
+    },
+    {
+        "symbol_id": 95,
+        "symbol_name": "ESP.IDX\/EUR",
+        "exchange": "dukascopyapi",
+        "base": "IBEX",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Spain 35 index"
+    },
+    {
+        "symbol_id": 96,
+        "symbol_name": "CHE.IDX\/CHF",
+        "exchange": "dukascopyapi",
+        "base": "SPI20",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": "Switzerland 20 index"
+    },
+    {
+        "symbol_id": 97,
+        "symbol_name": "NLD.IDX\/EUR",
+        "exchange": "dukascopyapi",
+        "base": "NL25",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "Netherlands 25 index"
+    },
+    {
+        "symbol_id": 98,
+        "symbol_name": "PLN.IDX\/PLN",
+        "exchange": "dukascopyapi",
+        "base": "WIG20",
+        "currency": "PLN",
+        "is_active": 1,
+        "explain": "Poland 20 index"
+    },
+    {
+        "symbol_id": 99,
+        "symbol_name": "SOA.IDX\/ZAR",
+        "exchange": "dukascopyapi",
+        "base": "SA40",
+        "currency": "ZAR",
+        "is_active": 1,
+        "explain": "South Africa 40 index"
+    },
+    {
+        "symbol_id": 100,
+        "symbol_name": "USD\/JPY",
+        "exchange": "dukascopyapi",
+        "base": "USD",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 101,
+        "symbol_name": "EUR\/USD",
+        "exchange": "dukascopyapi",
+        "base": "EUR",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 102,
+        "symbol_name": "GBP\/USD",
+        "exchange": "dukascopyapi",
+        "base": "GBP",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 103,
+        "symbol_name": "USD\/CHF",
+        "exchange": "dukascopyapi",
+        "base": "USD",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 104,
+        "symbol_name": "AUD\/USD",
+        "exchange": "dukascopyapi",
+        "base": "AUD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 105,
+        "symbol_name": "USD\/CAD",
+        "exchange": "dukascopyapi",
+        "base": "USD",
+        "currency": "CAD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 106,
+        "symbol_name": "NZD\/USD",
+        "exchange": "dukascopyapi",
+        "base": "NZD",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 107,
+        "symbol_name": "EUR\/GBP",
+        "exchange": "dukascopyapi",
+        "base": "EUR",
+        "currency": "GBP",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 108,
+        "symbol_name": "EUR\/JPY",
+        "exchange": "dukascopyapi",
+        "base": "EUR",
+        "currency": "JPY",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 109,
+        "symbol_name": "EUR\/CHF",
+        "exchange": "dukascopyapi",
+        "base": "EUR",
+        "currency": "CHF",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 110,
+        "symbol_name": "XAU\/USD",
+        "exchange": "dukascopyapi",
+        "base": "XAU",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 111,
+        "symbol_name": "XAG\/USD",
+        "exchange": "dukascopyapi",
+        "base": "XAG",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 112,
+        "symbol_name": "AXJO.INDX",
+        "exchange": "eodhd",
+        "base": "AXJO",
+        "currency": "AUD",
+        "is_active": 1,
+        "explain": "S&P\/ASX 200"
+    },
+    {
+        "symbol_id": 113,
+        "symbol_name": "NSEI.INDX",
+        "exchange": "eodhd",
+        "base": "NSEI",
+        "currency": "INR",
+        "is_active": 1,
+        "explain": "Nifty 50"
+    },
+    {
+        "symbol_id": 114,
+        "symbol_name": "IBEX.INDX",
+        "exchange": "eodhd",
+        "base": "IBEX",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "IBEX 35 Index"
+    },
+    {
+        "symbol_id": 115,
+        "symbol_name": "SPI20.INDX",
+        "exchange": "eodhd",
+        "base": "SPI20",
+        "currency": "CHF",
+        "is_active": 0,
+        "explain": "SPI 20 PR (Not available)"
+    },
+    {
+        "symbol_id": 116,
+        "symbol_name": "AEX.INDX",
+        "exchange": "eodhd",
+        "base": "NL25",
+        "currency": "EUR",
+        "is_active": 1,
+        "explain": "AEX Amsterdam Index"
+    },
+    {
+        "symbol_id": 117,
+        "symbol_name": "WIG20.INDX",
+        "exchange": "eodhd",
+        "base": "WIG20",
+        "currency": "PLN",
+        "is_active": 0,
+        "explain": "Poland 20 index (Not available)"
+    },
+    {
+        "symbol_id": 118,
+        "symbol_name": "XAGUSD.FOREX",
+        "exchange": "eodhd",
+        "base": "XAG",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 119,
+        "symbol_name": "SPOT@BTCUSDT",
+        "exchange": "binance",
+        "base": "BTC",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 120,
+        "symbol_name": "SPOT@ETHUSDC",
+        "exchange": "binance",
+        "base": "ETH",
+        "currency": "USDC",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 121,
+        "symbol_name": "SPOT@BTCUSDC",
+        "exchange": "binance",
+        "base": "BTC",
+        "currency": "USDC",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 122,
+        "symbol_name": "SPOT@ETHUSDT",
+        "exchange": "binance",
+        "base": "ETH",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 123,
+        "symbol_name": "SPOT@XRPUSDT",
+        "exchange": "binance",
+        "base": "XRP",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 124,
+        "symbol_name": "USDS@BTCUSDT",
+        "exchange": "binance",
+        "base": "BTC",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 125,
+        "symbol_name": "USDS@ETHUSDT",
+        "exchange": "binance",
+        "base": "ETH",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 126,
+        "symbol_name": "USDS@XRPUSDT",
+        "exchange": "binance",
+        "base": "XRP",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 127,
+        "symbol_name": "COIN@BTCUSD_PERP",
+        "exchange": "binance",
+        "base": "BTC",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 128,
+        "symbol_name": "COIN@ETHUSD_PERP",
+        "exchange": "binance",
+        "base": "ETH",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 129,
+        "symbol_name": "COIN@XRPUSD_PERP",
+        "exchange": "binance",
+        "base": "XRP",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 130,
+        "symbol_name": "SPOT@SOLUSDT",
+        "exchange": "binance",
+        "base": "SOL",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 131,
+        "symbol_name": "SPOT@BNBUSDT",
+        "exchange": "binance",
+        "base": "BNB",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 132,
+        "symbol_name": "USDS@SOLUSDT",
+        "exchange": "binance",
+        "base": "SOL",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 133,
+        "symbol_name": "USDS@BNBUSDT",
+        "exchange": "binance",
+        "base": "BNB",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 134,
+        "symbol_name": "COIN@SOLUSD_PERP",
+        "exchange": "binance",
+        "base": "SOL",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 135,
+        "symbol_name": "COIN@BNBUSD_PERP",
+        "exchange": "binance",
+        "base": "BNB",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 136,
+        "symbol_name": "spot@SOLUSDT",
+        "exchange": "bybit",
+        "base": "SOL",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 137,
+        "symbol_name": "linear@SOLUSDT",
+        "exchange": "bybit",
+        "base": "SOL",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 138,
+        "symbol_name": "inverse@SOLUSD",
+        "exchange": "bybit",
+        "base": "SOL",
+        "currency": "USD",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 139,
+        "symbol_name": "spot@BNBUSDT",
+        "exchange": "bybit",
+        "base": "BNB",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    },
+    {
+        "symbol_id": 140,
+        "symbol_name": "linear@BNBUSDT",
+        "exchange": "bybit",
+        "base": "BNB",
+        "currency": "USDT",
+        "is_active": 1,
+        "explain": null
+    }
+]
