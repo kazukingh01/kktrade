@@ -1,4 +1,4 @@
-import datetime, requests, argparse, json
+import datetime, requests, argparse
 from zipfile import ZipFile
 from tqdm import tqdm
 from io import StringIO
@@ -45,10 +45,11 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
     df["id"]       = df["id"].astype(np.int64)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["side"]     = (~df["is_buyer_maker"]).astype(int) # "Buy": 0, "Sell": 1
-    df["unixtime"] = df["time"].astype(int) // 1000
+    df["unixtime"] = pd.to_datetime(df['time'], unit='ms', utc=True) #df["time"].astype(int) // 1000
     df["size"]     = df["qty"].astype(float)
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
+    df = df[["id", "unixtime", "symbol", "side", "price", "size", "is_buyer_maker"]]
     return df
 
 def download_index(symbol: str, date: datetime.datetime, tmp_file_path: str="./data2.zip", mst_id: dict=None) -> list[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -114,6 +115,7 @@ if __name__ == "__main__":
     parser.add_argument("--fn",  type=lambda x: x.split(","), default="trade,index,fundingrate")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--fname",type=str, default="./data1.zip")
     parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
@@ -129,10 +131,11 @@ if __name__ == "__main__":
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             # executions
             if "trade" in args.fn:
-                df = download_trade(symbol, date, mst_id=mst_id)
+                df = download_trade(symbol, date, mst_id=mst_id, tmp_file_path=args.fname)
                 if df.shape[0] > 0:
-                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};")
-                    df       = df.loc[~df["id"].isin(df_exist["id"])]
+                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime <= '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                    if df_exist.shape[0] > 0:
+                        df = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
                     LOGGER.warning("Nothing data.")
                     continue

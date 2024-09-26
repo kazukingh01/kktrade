@@ -99,6 +99,7 @@ cp ~/kktrade/main/database/economic_calendar/schema.mysql.sql /home/share/mysql.
 ```bash
 mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/schema_main.mongo.js");'
 mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'db.getSiblingDB("trade").getCollection("master_symbol").insertMany(JSON.parse(require("fs").readFileSync("/home/ubuntu/kktrade/main/database/master_symbol.mongo.json")))'
+mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 27017 --eval 'db.getSiblingDB("trade").createCollection("binance_executions", { timeseries: {timeField: "unixtime", metaField: "symbol", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})'
 ```
 
 # Cron
