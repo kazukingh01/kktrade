@@ -6,7 +6,7 @@ CREATE TABLE public.binance_executions (
     symbol smallint NOT NULL,
     id bigint NOT NULL,
     side smallint NOT NULL,
-    unixtime bigint,
+    unixtime timestamp with time zone NOT NULL,
     price real,
     size real
 ) PARTITION BY RANGE (unixtime);
@@ -781,7 +781,7 @@ CREATE TABLE binance_executions_99999999 PARTITION OF binance_executions FOR VAL
 
 CREATE TABLE public.binance_kline (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     kline_type smallint NOT NULL,
     "interval" smallint NOT NULL,
     price_open real,
@@ -802,7 +802,7 @@ ALTER TABLE public.binance_kline OWNER TO postgres;
 
 CREATE TABLE public.binance_orderbook (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     side smallint NOT NULL,
     price real,
     size real
@@ -1578,7 +1578,7 @@ CREATE TABLE binance_orderbook_99999999 PARTITION OF binance_orderbook FOR VALUE
 
 CREATE TABLE public.binance_funding_rate (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     funding_rate real,
     mark_price real
 );
@@ -1593,7 +1593,7 @@ ALTER TABLE public.binance_funding_rate OWNER TO postgres;
 
 CREATE TABLE public.binance_open_interest (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     "interval" smallint NOT NULL,
     open_interest real,
     open_interest_value real
@@ -1609,7 +1609,7 @@ ALTER TABLE public.binance_open_interest OWNER TO postgres;
 
 CREATE TABLE public.binance_long_short (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     ls_type smallint NOT NULL,
     "interval" smallint NOT NULL,
     long real,
@@ -1626,7 +1626,7 @@ ALTER TABLE public.binance_long_short OWNER TO postgres;
 
 CREATE TABLE public.binance_taker_volume (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     "interval" smallint NOT NULL,
     sell_volume real,
     buy_volume real

@@ -6,7 +6,7 @@ CREATE TABLE binance_executions (
     symbol SMALLINT NOT NULL,
     id BIGINT NOT NULL,
     side SMALLINT NOT NULL,
-    unixtime BIGINT,
+    unixtime DATETIME NOT NULL,
     price FLOAT,
     size FLOAT
 )
@@ -774,7 +774,7 @@ PARTITION BY RANGE (unixtime) (
 
 CREATE TABLE binance_kline (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     kline_type SMALLINT NOT NULL,
     `interval` SMALLINT NOT NULL,
     price_open FLOAT,
@@ -790,7 +790,7 @@ CREATE TABLE binance_kline (
 
 CREATE TABLE binance_orderbook (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     side SMALLINT NOT NULL,
     price FLOAT,
     size FLOAT
@@ -1559,7 +1559,7 @@ PARTITION BY RANGE (unixtime) (
 
 CREATE TABLE binance_funding_rate (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     funding_rate FLOAT,
     mark_price FLOAT,
     PRIMARY KEY (symbol, unixtime)
@@ -1568,7 +1568,7 @@ CREATE TABLE binance_funding_rate (
 
 CREATE TABLE binance_open_interest (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     `interval` SMALLINT NOT NULL,
     open_interest FLOAT,
     open_interest_value FLOAT,
@@ -1578,7 +1578,7 @@ CREATE TABLE binance_open_interest (
 
 CREATE TABLE binance_long_short (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     ls_type SMALLINT NOT NULL,
     `interval` SMALLINT NOT NULL,
     `long` FLOAT,
@@ -1589,7 +1589,7 @@ CREATE TABLE binance_long_short (
 
 CREATE TABLE binance_taker_volume (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     `interval` SMALLINT NOT NULL,
     sell_volume FLOAT,
     buy_volume FLOAT,
