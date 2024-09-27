@@ -1,6 +1,6 @@
 CREATE TABLE dukascopy_ohlcv (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     `interval` SMALLINT NOT NULL,
     price_open FLOAT,
     price_high FLOAT,
@@ -13,7 +13,7 @@ CREATE TABLE dukascopy_ohlcv (
 
 CREATE TABLE dukascopy_ticks (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     bid FLOAT,
     ask FLOAT,
     bid_size FLOAT,

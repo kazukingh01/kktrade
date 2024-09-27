@@ -5,7 +5,7 @@
 
 CREATE TABLE public.dukascopy_ohlcv (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     "interval" smallint NOT NULL,
     price_open real,
     price_high real,
@@ -24,7 +24,7 @@ ALTER TABLE public.dukascopy_ohlcv OWNER TO postgres;
 
 CREATE TABLE public.dukascopy_ticks (
     symbol smallint NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     bid real,
     ask real,
     bid_size real,
