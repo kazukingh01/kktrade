@@ -3,6 +3,9 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
+from kktrade.util.database import select, insert
+from kkpsgre.psgre import DBConnector
+from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
 # Spot Trading / Spot
@@ -67,9 +70,9 @@ def getorderbook(symbol: str="BTCUSDT", count_max: int=100, mst_id: dict=None):
         df2.sort_values(by="price")[          :count_max],
     ], axis=0, ignore_index=True)
     if "E" in r.json():
-        df["unixtime"] = r.json()["E"] // 1000
+        df["unixtime"] = datetime.datetime.fromtimestamp(r.json()["E"] / 1000, tz=datetime.UTC)
     else:
-        df["unixtime"] = int(datetime.datetime.now().timestamp())
+        df["unixtime"] = datetime.datetime.now(tz=datetime.UTC)
     df["side"]   = df["side"].map({"asks": 0, "bids": 1, "mprc": 2}).astype(float).fillna(-1).astype(int)
     df["symbol"] = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     for x in ["price", "size"]:
@@ -86,7 +89,7 @@ def getexecutions(symbol: str="USDS@BTCUSDT", mst_id: dict=None):
     df["id"]       = df["id"].astype(np.int64)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["side"]     = (~df["isBuyerMaker"]).astype(int) # "Buy": 0, "Sell": 1
-    df["unixtime"] = df["time"].astype(int) // 1000
+    df["unixtime"] = pd.to_datetime(df["time"].astype(int), unit="ms", utc=True)
     df["size"]     = df["qty"].astype(float)
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
@@ -120,7 +123,7 @@ def getkline(kline: str, symbol: str="USDS@BTCUSDT", interval: str="1m", start: 
     if kline != "normal":
         for x in ["volume", "volume_quote", "n_trades", "taker_buy_base_volume", "taker_buy_quote_volume"]:
             df[x] = float("nan")
-    df["unixtime"]   = df["unixtime"].astype(int)
+    df["unixtime"]   = pd.to_datetime(df["unixtime"].astype(int), unit="ms", utc=True)
     df["symbol"]     = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["kline_type"] = KLINE_TYPE[kline]
     df["interval"]   = {
@@ -130,7 +133,6 @@ def getkline(kline: str, symbol: str="USDS@BTCUSDT", interval: str="1m", start: 
     # It might not be unique with symbol, unixtime, kline_type, interval. so gorupby.last() is better solution.
     df = df.sort_values(["symbol", "kline_type", "interval", "unixtime"]).reset_index(drop=True)
     df = df.groupby(["symbol", "kline_type", "interval", "unixtime"]).last().reset_index(drop=False)
-    df["unixtime"]         = df["unixtime"] // 1000
     df["volume_taker_buy"] = df["taker_buy_base_volume"].astype(float).copy()
     for x in ["price_open", "price_high", "price_low", "price_close", "volume"]:
         df[x] = df[x].astype(float)
@@ -143,7 +145,7 @@ def getfundingrate(symbol: str="USDS@BTCUSDT", start: int=None, end: int=None, l
     r = requests.get(f"{URL_BASE[url_type]}fundingRate", params=dict({"symbol": _symbol, "startTime": start, "endTime": end, "limit": limit}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
-    df["unixtime"]     = df["fundingTime"] // 1000
+    df["unixtime"]     = pd.to_datetime(df["fundingTime"].astype(int), unit="ms", utc=True)
     df["symbol"]       = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["funding_rate"] = df["fundingRate"].astype(float)
     df["mark_price"]   = df["markPrice"].astype(float)
@@ -160,7 +162,7 @@ def getopeninterest(symbol: str="USDS@BTCUSDT", interval: str="5m", start: int=N
     r   = requests.get(url, params=dict({"pair" if url_type == "COIN" else "symbol": _symbol, "period": interval, "startTime": start, "endTime": end, "limit": limit}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
-    df["unixtime"] = df["timestamp"] // 1000
+    df["unixtime"] = pd.to_datetime(df["timestamp"].astype(int), unit="ms", utc=True)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["interval"] = {"5m":5*60,"15m":15*60,"30m":30*60,"1h":60*60,"2h":2*60*60,"4h":4*60*60,"6h":6*60*60,"12h":12*60*60,"1d":24*60*60}[interval]
     df["open_interest"]       = df["sumOpenInterest"].astype(float)
@@ -178,7 +180,7 @@ def getlongshortratio(ls_type: str, symbol: str="USDS@BTCUSDT", interval: str="5
     r   = requests.get(url, params=dict({"pair" if url_type == "COIN" else "symbol": _symbol, "period": interval, "startTime": start, "endTime": end, "limit": limit}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
-    df["unixtime"] = df["timestamp"] // 1000
+    df["unixtime"] = pd.to_datetime(df["timestamp"].astype(int), unit="ms", utc=True)
     df["ls_type"]  = LS_RATIO_TYPE[ls_type]
     df["interval"] = {"5m":5*60,"15m":15*60,"30m":30*60,"1h":60*60,"2h":2*60*60,"4h":4*60*60,"6h":6*60*60,"12h":12*60*60,"1d":24*60*60}[interval]
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
@@ -198,7 +200,7 @@ def gettakervolume(symbol: str="USDS@BTCUSDT", interval: str="5m", start: int=No
     r   = requests.get(url, params=dict({"pair" if url_type == "COIN" else "symbol": _symbol, "period": interval, "startTime": start, "endTime": end, "limit": limit}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
-    df["unixtime"] = df["timestamp"] // 1000
+    df["unixtime"] = pd.to_datetime(df["timestamp"].astype(int), unit="ms", utc=True)
     df["interval"] = {"5m":5*60,"15m":15*60,"30m":30*60,"1h":60*60,"2h":2*60*60,"4h":4*60*60,"6h":6*60*60,"12h":12*60*60,"1d":24*60*60}[interval]
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     if url_type == "USDS":
@@ -217,10 +219,11 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
-    res    = requests.post(f"http://{args.ip}:{args.port}/select", json={"sql": f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'"}, headers={'Content-type': 'application/json'})
-    df_mst = pd.DataFrame(json.loads(res.json()))
+    src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
+    df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
     if args.fn in ["getorderbook", "getexecutions", "getkline", "getfundingrate", "getopeninterest", "getlongshortratio", "gettakervolume"]:
         while True:
@@ -229,25 +232,18 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_orderbook", "is_select": False}, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+                        insert(src, df, f"{EXCHANGE}_orderbook", False, add_sql=None)
                 time.sleep(10) # 11 * 6 = 66
             if "getexecutions" == args.fn:
                 for symbol in mst_id.keys():
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
-                        res = requests.post(
-                            f"http://{args.ip}:{args.port}/select", json={"sql":(
-                                f"select symbol, id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and id in ('" + "','".join(df['id'].astype(str).tolist()) + "') and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
-                            )}, headers={'Content-type': 'application/json'}
-                        )
-                        df_exist = pd.DataFrame(json.loads(res.json()))
-                        df = df.loc[~df["id"].isin(df_exist["id"])]
+                        df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                        if df_exist.shape[0] > 0:
+                            df = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_executions", "is_select": True}, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+                        insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
                 for symbol in list(mst_id.keys()):
@@ -255,42 +251,39 @@ if __name__ == "__main__":
                         LOGGER.info(f"{args.fn}: {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval="1m", limit=99, mst_id=mst_id)
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                                "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True,
-                                "add_sql": (
-                                    f"delete from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
-                                    f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            insert(
+                                src, df, f"{EXCHANGE}_kline", True,
+                                add_sql=(
+                                    f"symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                                 ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                            }, headers={'Content-type': 'application/json'})
-                            assert res.status_code == 200
+                            )
                 time.sleep(60)
             if "getfundingrate" == args.fn:
                 for symbol in list(mst_id.keys()):
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getfundingrate(symbol=symbol, limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                            "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_funding_rate", "is_select": True,
-                            "add_sql": (
-                                f"delete from {EXCHANGE}_funding_rate where symbol = {df['symbol'].iloc[0]} and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        insert(
+                            src, df, f"{EXCHANGE}_funding_rate", True,
+                            add_sql=(
+                                f"symbol = {df['symbol'].iloc[0]} and " + 
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                        }, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+                        )
                 time.sleep(60*60*4)
             if "getopeninterest" == args.fn:
                 for symbol in list(mst_id.keys()):
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getopeninterest(symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                            "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_open_interest", "is_select": True,
-                            "add_sql": (
-                                f"delete from {EXCHANGE}_open_interest where symbol = {df['symbol'].iloc[0]} and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        insert(
+                            src, df, f"{EXCHANGE}_open_interest", True,
+                            add_sql=(
+                                f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                        }, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+                        )
                 time.sleep(60*3)
             if "getlongshortratio" == args.fn:
                 for symbol in list(mst_id.keys()):
@@ -298,28 +291,26 @@ if __name__ == "__main__":
                         LOGGER.info(f"{args.fn}: {ls_type}, {symbol}")
                         df = getlongshortratio(ls_type, symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                                "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_long_short", "is_select": True,
-                                "add_sql": (
-                                    f"delete from {EXCHANGE}_long_short where symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and " + 
-                                    f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            insert(
+                                src, df, f"{EXCHANGE}_long_short", True,
+                                add_sql=(
+                                    f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                                 ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                            }, headers={'Content-type': 'application/json'})
-                            assert res.status_code == 200
+                            )
                 time.sleep(60*3)
             if "gettakervolume" == args.fn:
                 for symbol in list(mst_id.keys()):
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = gettakervolume(symbol=symbol, interval="5m", limit=10, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
-                        res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                            "data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_taker_volume", "is_select": True,
-                            "add_sql": (
-                                f"delete from {EXCHANGE}_taker_volume where symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                        insert(
+                            src, df, f"{EXCHANGE}_taker_volume", True,
+                            add_sql=(
+                                f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
-                        }, headers={'Content-type': 'application/json'})
-                        assert res.status_code == 200
+                        )
                 time.sleep(60*3)
     if "getallkline" == args.fn:
         assert args.fr is not None and args.to is not None
@@ -332,15 +323,11 @@ if __name__ == "__main__":
                     for kline in ["mark", "index"]:
                         LOGGER.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
                         df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
-                        if df.shape[0] > 0:
-                            res = requests.post(
-                                f"http://{args.ip}:{args.port}/select", json={"sql":(
-                                    f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and " + 
-                                    f"interval = {df['interval'].iloc[0]} and unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
-                                )}, headers={'Content-type': 'application/json'}
-                            )
-                            df_exist = pd.DataFrame(json.loads(res.json()))
-                            df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:
-                            res = requests.post(f"http://{args.ip}:{args.port}/insert", json={"data": df.replace({float("nan"): None}).to_dict(), "tblname": f"{EXCHANGE}_kline", "is_select": True}, headers={'Content-type': 'application/json'})
-                            assert res.status_code == 200
+                            insert(
+                                src, df, f"{EXCHANGE}_kline", True,
+                                add_sql=(
+                                    f"symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                )
+                            )

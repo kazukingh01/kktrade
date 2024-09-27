@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert, delete
+from kktrade.util.database import select, insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 

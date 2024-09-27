@@ -49,7 +49,7 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
     df["size"]     = df["qty"].astype(float)
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
-    df = df[["id", "unixtime", "symbol", "side", "price", "size", "is_buyer_maker"]]
+    df = df[["symbol", "id", "side", "unixtime", "price", "size"]]
     return df
 
 def download_index(symbol: str, date: datetime.datetime, tmp_file_path: str="./data2.zip", mst_id: dict=None) -> list[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -67,7 +67,7 @@ def download_index(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
             contents = f.read()
             df = pd.read_csv(StringIO(contents.decode()))
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
-    df["unixtime"] = df["create_time"].apply(lambda x: int(datetime.datetime.strptime(x + " +0000", "%Y-%m-%d %H:%M:%S %z").timestamp()))
+    df["unixtime"] = pd.to_datetime(df["create_time"], utc=True)
     df["interval"] = 5*60
     df["open_interest"]       = df["sum_open_interest"].astype(float)
     df["open_interest_value"] = df["sum_open_interest_value"].astype(float)
@@ -100,7 +100,7 @@ def download_fundingrate(symbol: str, date: datetime.datetime, tmp_file_path: st
         with zip_file.open(zip_file.filelist[0].filename) as f:
             contents = f.read()
             df = pd.read_csv(StringIO(contents.decode()))
-    df["unixtime"]     = df["calc_time"] // 1000
+    df["unixtime"]     = pd.to_datetime(df["calc_time"], unit='ms', utc=True)
     df["symbol"]       = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["funding_rate"] = df["last_funding_rate"].astype(float)
     df["mark_price"]   = float("nan")
@@ -138,7 +138,6 @@ if __name__ == "__main__":
                         df = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
                     LOGGER.warning("Nothing data.")
-                    continue
                 if df.shape[0] > 0 and args.update:
                     if df.shape[0] >= args.num:
                         for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
@@ -153,8 +152,8 @@ if __name__ == "__main__":
                     insert(
                         src, df, f"{EXCHANGE}_open_interest", True,
                         add_sql=(
-                            f"delete from {EXCHANGE}_open_interest where symbol = {df['symbol'].iloc[0]} and " + 
-                            f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                         ) # latest data is more accurete. The data within 60s wouldn't be completed.
                     )
                 for df in [df_ls_n, df_ls_ta, df_ls_tp]:
@@ -162,8 +161,8 @@ if __name__ == "__main__":
                         insert(
                             src, df, f"{EXCHANGE}_long_short", True,
                             add_sql=(
-                                f"delete from {EXCHANGE}_long_short where symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and " + 
-                                f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                                f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
                         )
             # funding rate
@@ -173,7 +172,7 @@ if __name__ == "__main__":
                     insert(
                         src, df, f"{EXCHANGE}_funding_rate", True,
                         add_sql=(
-                            f"delete from {EXCHANGE}_funding_rate where symbol = {df['symbol'].iloc[0]} and " + 
-                            f"unixtime >= {int(df['unixtime'].min())} and unixtime <= {int(df['unixtime'].max())};"
+                            f"symbol = {df['symbol'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
                         ) # latest data is more accurete. The data within 60s wouldn't be completed.
                     )

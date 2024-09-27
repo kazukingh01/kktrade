@@ -25,7 +25,7 @@ async def insert(insert: Insert):
     df = pd.DataFrame(insert.data)
     async with lock:
         if insert.add_sql is not None:
-            DB.set_sql(insert.add_sql)
+            DB.delete_sql(insert.tblname, str_where=insert.add_sql, set_sql=True)
         DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
         DB.execute_sql()
     return True

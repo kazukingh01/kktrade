@@ -27,9 +27,9 @@ def insert(src: DBConnector | str, df: pd.DataFrame, tblname: str, is_select: bo
     assert isinstance(df, pd.DataFrame)
     assert isinstance(tblname, str)
     assert isinstance(is_select, bool)
-    assert add_sql is None or isinstance(add_sql, str)
+    assert add_sql is None or isinstance(add_sql, str) # add_sql is only for "DELETE"
     if isinstance(src, DBConnector):
-        if add_sql is not None: src.set_sql(add_sql)
+        if add_sql is not None: src.delete_sql(tblname, str_where=add_sql, set_sql=True)
         src.insert_from_df(df, tblname, set_sql=True, str_null="", is_select=is_select)
         src.execute_sql()
     else:
