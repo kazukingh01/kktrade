@@ -1,6 +1,6 @@
 CREATE TABLE public.economic_calendar (
     id integer NOT NULL,
-    unixtime bigint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
     name text,
     country text,
     importance smallint NOT NULL,

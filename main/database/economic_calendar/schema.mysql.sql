@@ -1,6 +1,6 @@
 CREATE TABLE economic_calendar (
     id INT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     name VARCHAR(255),
     country VARCHAR(255),
     importance SMALLINT NOT NULL,

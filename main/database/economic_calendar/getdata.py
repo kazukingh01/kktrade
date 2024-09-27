@@ -4,6 +4,9 @@ import playwright
 from playwright.sync_api import sync_playwright
 # local package
 from kkpsgre.util.logger import set_logger
+from kktrade.util.database import select, insert
+from kkpsgre.psgre import DBConnector
+from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
 BASE_URL = "https://tradingeconomics.com/calendar"
@@ -71,7 +74,7 @@ def geteconomicalcalendar(date_fr: datetime.datetime, date_to: datetime.datetime
         dfwk["unixtime"]   = [y.text.strip() for y in [x.find_all("td", recursive=False)[0] for x in tbody.find_all("tr", recursive=False)]]
         dfwk["unixtime"]   = dfwk["unixtime"].str.strip().replace("", "11:59 PM")
         dfwk["unixtime"]   = thead.find_all("th")[0].text.strip() + " " + dfwk["unixtime"] + " +0000"
-        dfwk["unixtime"]   = dfwk["unixtime"].apply(lambda x: str(int(datetime.datetime.strptime(x, "%A %B %d %Y %I:%M %p %z").timestamp())) + " ")
+        dfwk["unixtime"]   = dfwk["unixtime"].apply(lambda x: datetime.datetime.strptime(x, "%A %B %d %Y %I:%M %p %z"))
         dfwk["country"]    = [y.text.strip() for y in [x.find_all("td", recursive=False)[1] for x in tbody.find_all("tr", recursive=False)]]
         dfwk["name"]       = [y.text.strip() for y in [x.find_all("td", recursive=False)[2] for x in tbody.find_all("tr", recursive=False)]]
         dfwk["actual"]     = [y.text.strip() for y in [x.find_all("td", recursive=False)[3] for x in tbody.find_all("tr", recursive=False)]]
@@ -86,7 +89,6 @@ def geteconomicalcalendar(date_fr: datetime.datetime, date_to: datetime.datetime
     return df
 
 def correct_df(df: pd.DataFrame):
-    df["unixtime"  ] = df["unixtime"  ].astype(int)
     df["importance"] = df["importance"].astype(int)
     df["id"        ] = df["id"        ].astype(int)
     for x in ["actual", "previous", "consensus", "forecast"]:
@@ -114,9 +116,11 @@ if __name__ == "__main__":
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
     parser.add_argument("--ip",    type=str, default="127.0.0.1")
     parser.add_argument("--port",  type=int, default=8000)
+    parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.days <= 7 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
+    src  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     if args.fn == "geteconomicalcalendar":
         assert args.fr is not None and args.to is not None
         assert args.fr < args.to
@@ -128,8 +132,9 @@ if __name__ == "__main__":
             df = geteconomicalcalendar(date_fr, date_to)
             if df.shape[0] > 0: df = correct_df(df.copy())
             if df.shape[0] > 0 and args.update:
-                res = requests.post(f"http://{args.ip}:{args.port}/insert", json={
-                    "data": df.replace({float("nan"): None}).to_dict(), "tblname": "economic_calendar", "is_select": True,
-                    "add_sql": f"delete from economic_calendar where (id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");"
-                }, headers={'Content-type': 'application/json'})
-                assert res.status_code == 200
+                insert(
+                    src, df, f"economic_calendar", True,
+                    add_sql=(
+                        f"(id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");"
+                    )
+                )
