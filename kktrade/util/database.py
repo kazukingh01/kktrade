@@ -49,5 +49,17 @@ def exec(src: DBConnector | str, sql: str):
         src.set_sql(sql)
         src.execute_sql()
     else:
+        assert re.search(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):([0-9]{1,5})$", src) is not None
         res = requests.post(f"http://{src}/exec", json={"sql": sql}, headers={'Content-type': 'application/json'})
+        assert res.status_code == 200
+
+def delete(src: DBConnector | str, tblname: str, str_where: str = None):
+    assert check_type(src, [DBConnector, str])
+    assert isinstance(sql, str)
+    if isinstance(src, DBConnector):
+        src.delete_sql(tblname, str_where=str_where, set_sql=True)
+        src.execute_sql()
+    else:
+        assert re.search(r"^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?):([0-9]{1,5})$", src) is not None
+        res = requests.post(f"http://{src}/delete", json={"tblname": tblname, "str_where": str_where}, headers={'Content-type': 'application/json'})
         assert res.status_code == 200

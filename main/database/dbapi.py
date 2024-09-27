@@ -17,7 +17,7 @@ class Insert(BaseModel):
     data: dict
     tblname: str
     is_select: bool
-    add_sql: str = None
+    add_sql: str | None = None
     
 
 @app.post('/insert/')
@@ -50,6 +50,19 @@ class Exec(BaseModel):
 async def exec(exec: Exec):
     async with lock:
         DB.set_sql(exec.sql)
+        DB.execute_sql()
+    return True
+
+
+class Delete(BaseModel):
+    tblname: str
+    str_where: str | None = None
+
+
+@app.post('/delete/')
+async def delete(delete: Delete):
+    async with lock:
+        DB.delete_sql(delete.tblname, str_where=delete.str_where, set_sql=True)
         DB.execute_sql()
     return True
 
