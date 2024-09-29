@@ -1,107 +1,12 @@
-import argparse, requests, json, asyncio, datetime, copy
-from fastapi import FastAPI
+import argparse, requests, json, datetime
 import pandas as pd
-from pydantic import BaseModel
 # local package
 from kkpsgre.psgre import DBConnector
+from kkpsgre.webapi import create_app
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
-app  = FastAPI()
-lock = asyncio.Lock()
-if __name__ != "__main__":
-    DB = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200)
-
-
-class Insert(BaseModel):
-    data: dict
-    tblname: str
-    is_select: bool
-    add_sql: str | None = None
-    
-
-@app.post('/insert/')
-async def insert(insert: Insert):
-    df = pd.DataFrame(insert.data)
-    async with lock:
-        if insert.add_sql is not None:
-            DB.delete_sql(insert.tblname, str_where=insert.add_sql, set_sql=True)
-        DB.insert_from_df(df, insert.tblname, set_sql=True, str_null="", is_select=insert.is_select)
-        DB.execute_sql()
-    return True
-
-
-class Select(BaseModel):
-    sql: str
-
-
-@app.post('/select/')
-async def select(select: Select):
-    async with lock:
-        df = DB.select_sql(select.sql)
-    return df.to_json()
-
-
-class Exec(BaseModel):
-    sql: str | list[str]
-
-
-@app.post('/exec/')
-async def exec(exec: Exec):
-    async with lock:
-        DB.set_sql(exec.sql)
-        DB.execute_sql()
-    return True
-
-
-class Delete(BaseModel):
-    tblname: str
-    str_where: str | None = None
-
-
-@app.post('/delete/')
-async def delete(delete: Delete):
-    async with lock:
-        DB.delete_sql(delete.tblname, str_where=delete.str_where, set_sql=True)
-        DB.execute_sql()
-    return True
-
-
-class ReConnect(BaseModel):
-    logfilepath: str=""
-    log_level: str="info"
-    is_newlogfile: bool=False
-
-
-@app.post('/reconnect/')
-async def connect(reconnect: ReConnect):
-    if reconnect.logfilepath == "": reconnect.logfilepath = None
-    async with lock:
-        DB.__del__()
-        DB.__init__(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200, logfilepath=reconnect.logfilepath, log_level=reconnect.log_level, is_newlogfile=reconnect.is_newlogfile)
-    return True
-
-
-@app.post('/disconnect/')
-async def disconnect(disconnect: BaseModel):
-    async with lock:
-        DB.__del__()
-    return True
-
-
-@app.post('/test/')
-async def test(_: BaseModel):
-    async with lock:
-        df = DB.read_table_layout()
-    return df.to_json()
-
-
-@app.post('/dbinfo/')
-async def dbinfo(_: BaseModel):
-    dictwk = None
-    async with lock:
-        dictwk = copy.deepcopy(DB.dbinfo)
-    return dictwk
+app  = create_app(HOST, PORT, DBNAME, USER, PASS, DBTYPE)
 
 
 if __name__ == "__main__":

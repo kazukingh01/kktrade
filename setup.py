@@ -25,7 +25,7 @@ setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@103efb4d093677dfc570ffcbfe247d0201362096',
+        'kkpsgre @ git+https://github.com/kazukingh01/kkpsgre.git@c1b58554db9924216a200841d40cb7f77fb26850',
         'pandas==2.2.1',
         'numpy==1.26.4',
         'joblib==1.3.2',
@@ -34,8 +34,6 @@ setup(
         'httpx==0.27.0',
         'beautifulsoup4==4.12.3',
         'playwright==1.46.0',
-        'fastapi==0.112.0',
-        'uvicorn==0.30.5',
     ],
     python_requires='>=3.12.2'
 )

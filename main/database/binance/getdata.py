@@ -1,9 +1,10 @@
-import datetime, requests, time, argparse, json
+import datetime, requests, time, argparse
 import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert
+from kkpsgre.util.com import strfind
+from kkpsgre.comapi import select, insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
@@ -13,6 +14,16 @@ from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 # Derivatives Trading / USDS-M
 # Derivatives Trading / COIN-M ( This is same as invers trading of Bybit )
 
+
+__all__ = [
+    "getorderbook",
+    "getexecutions",
+    "getkline",
+    "getfundingrate",
+    "getopeninterest",
+    "getlongshortratio",
+    "gettakervolume"
+]
 
 
 EXCHANGE = "binance"
@@ -214,7 +225,7 @@ def gettakervolume(symbol: str="USDS@BTCUSDT", interval: str="5m", start: int=No
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=str)
+    parser.add_argument("--fn", type=lambda x: __all__[eval(x)] if strfind(r"^[0-9]+$", x) else x)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
@@ -225,7 +236,7 @@ if __name__ == "__main__":
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    if args.fn in ["getorderbook", "getexecutions", "getkline", "getfundingrate", "getopeninterest", "getlongshortratio", "gettakervolume"]:
+    if args.fn in __all__:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
@@ -239,7 +250,7 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
-                        df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                        df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
                         if df_exist.shape[0] > 0:
                             df = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
@@ -255,7 +266,7 @@ if __name__ == "__main__":
                                 src, df, f"{EXCHANGE}_kline", True,
                                 add_sql=(
                                     f"symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                                 ) # latest data is more accurete. The data within 60s wouldn't be completed.
                             )
                 time.sleep(60)
@@ -268,7 +279,7 @@ if __name__ == "__main__":
                             src, df, f"{EXCHANGE}_funding_rate", True,
                             add_sql=(
                                 f"symbol = {df['symbol'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
                         )
                 time.sleep(60*60*4)
@@ -281,7 +292,7 @@ if __name__ == "__main__":
                             src, df, f"{EXCHANGE}_open_interest", True,
                             add_sql=(
                                 f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
                         )
                 time.sleep(60*3)
@@ -295,7 +306,7 @@ if __name__ == "__main__":
                                 src, df, f"{EXCHANGE}_long_short", True,
                                 add_sql=(
                                     f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                                 ) # latest data is more accurete. The data within 60s wouldn't be completed.
                             )
                 time.sleep(60*3)
@@ -308,7 +319,7 @@ if __name__ == "__main__":
                             src, df, f"{EXCHANGE}_taker_volume", True,
                             add_sql=(
                                 f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
                         )
                 time.sleep(60*3)
@@ -328,6 +339,6 @@ if __name__ == "__main__":
                                 src, df, f"{EXCHANGE}_kline", True,
                                 add_sql=(
                                     f"symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                    f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                                 )
                             )

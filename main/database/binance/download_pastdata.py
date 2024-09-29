@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert
+from kkpsgre.comapi import select, insert
 from getdata import EXCHANGE, LS_RATIO_TYPE
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
@@ -133,7 +133,7 @@ if __name__ == "__main__":
             if "trade" in args.fn:
                 df = download_trade(symbol, date, mst_id=mst_id, tmp_file_path=args.fname)
                 if df.shape[0] > 0:
-                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime <= '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
                     if df_exist.shape[0] > 0:
                         df = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
@@ -153,7 +153,7 @@ if __name__ == "__main__":
                         src, df, f"{EXCHANGE}_open_interest", True,
                         add_sql=(
                             f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                         ) # latest data is more accurete. The data within 60s wouldn't be completed.
                     )
                 for df in [df_ls_n, df_ls_ta, df_ls_tp]:
@@ -162,7 +162,7 @@ if __name__ == "__main__":
                             src, df, f"{EXCHANGE}_long_short", True,
                             add_sql=(
                                 f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ) # latest data is more accurete. The data within 60s wouldn't be completed.
                         )
             # funding rate
@@ -173,6 +173,6 @@ if __name__ == "__main__":
                         src, df, f"{EXCHANGE}_funding_rate", True,
                         add_sql=(
                             f"symbol = {df['symbol'].iloc[0]} and " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                         ) # latest data is more accurete. The data within 60s wouldn't be completed.
                     )
