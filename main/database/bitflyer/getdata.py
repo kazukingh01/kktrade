@@ -169,6 +169,7 @@ if __name__ == "__main__":
         time_until = args.to if args.to is not None else datetime.datetime.now(tz=datetime.UTC)
         over_sec   = args.sec
         over_count = args.cnt
+        list_used  = []
         for _ in range(args.nloop):
             # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
             dfwk = select(src, (
@@ -188,9 +189,11 @@ if __name__ == "__main__":
                 for index in dfwk.index[dfwk["bool"]]:
                     idb    = dfwk.loc[index, "id"]
                     ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > datetime.datetime(2001,1,1,tzinfo=datetime.UTC) else None
+                    if (idb, ida, ) in list_used: continue
                     symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
                     LOGGER.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
                     df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
+                    list_used.append((idb, ida, ))
                     if df.shape[0] > 0:
                         df_exist = select(src, (
                             f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and " + 

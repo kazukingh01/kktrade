@@ -1,4 +1,4 @@
-import requests, datetime, time, argparse, json
+import requests, datetime, time, argparse
 import pandas as pd
 # local package
 from kkpsgre.util.logger import set_logger
@@ -14,6 +14,7 @@ URL_BASE = "https://freeserv.dukascopy.com/2.0/"
 LOGGER   = set_logger(__name__)
 FUNCTIONS = [
     "getintraday",
+    "getlastminutekline",
 ]
 
 
@@ -141,10 +142,13 @@ if __name__ == "__main__":
             df = correct_df(df)
             LOGGER.info("getlastminutekline end")
             if df.shape[0] > 0 and args.update:
+                df["_symbol"]   = df["symbol"].astype(str)
+                df["_interval"] = df["interval"].astype(str)
+                df["_unixtime"] = df["unixtime"].dt.strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
                 insert(
                     src, df[['symbol','price_open','price_high','price_low','price_close','unixtime','interval']], f"{EXCHANGE}_ohlcv", False,
                     add_sql=(
-                        "(symbol,interval,unixtime) in (" + ",".join([f"({x},{y},{z})" for x,y,z in df[["symbol","interval","unixtime"]].values]) + ")"
+                        "(symbol,interval,unixtime) in (" + ",".join([f"({x},{y},{z})" for x,y,z in df[["_symbol","_interval","_unixtime"]].values]) + ")"
                     )
                 )
             time.sleep(30)

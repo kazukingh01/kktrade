@@ -6,7 +6,8 @@ from kkpsgre.webapi import create_app
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 
-app  = create_app(HOST, PORT, DBNAME, USER, PASS, DBTYPE)
+if __name__ != "__main__":
+    app  = create_app(HOST, PORT, DBNAME, USER, PASS, DBTYPE)
 
 
 if __name__ == "__main__":
