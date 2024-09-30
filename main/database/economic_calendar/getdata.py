@@ -1,10 +1,10 @@
-import bs4, datetime, argparse, requests, time, re
+import bs4, datetime, argparse, time, re
 import pandas as pd
 import playwright
 from playwright.sync_api import sync_playwright
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert
+from kkpsgre.comapi import insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
@@ -110,7 +110,6 @@ def correct_df(df: pd.DataFrame):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=str)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
@@ -121,20 +120,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     assert args.days <= 7 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
     src  = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
-    if args.fn == "geteconomicalcalendar":
-        assert args.fr is not None and args.to is not None
-        assert args.fr < args.to
-        list_dates1 = [args.fr + datetime.timedelta(days=x) for x in range(0,             (args.to - args.fr).days,             args.days)]
-        list_dates2 = [args.fr + datetime.timedelta(days=x) for x in range(args.days - 1, (args.to - args.fr).days + args.days, args.days)]
-        assert list_dates2[-1] >= args.to
-        for date_fr, date_to in zip(list_dates1, list_dates2):
-            LOGGER.info(f"{date_fr}, {date_to}")
-            df = geteconomicalcalendar(date_fr, date_to)
-            if df.shape[0] > 0: df = correct_df(df.copy())
-            if df.shape[0] > 0 and args.update:
-                insert(
-                    src, df, f"economic_calendar", True,
-                    add_sql=(
-                        f"(id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["id", "unixtime"]].values.astype(str)]) + ");"
-                    )
+    assert args.fr is not None and args.to is not None
+    assert args.fr < args.to
+    list_dates1 = [args.fr + datetime.timedelta(days=x) for x in range(0,             (args.to - args.fr).days,             args.days)]
+    list_dates2 = [args.fr + datetime.timedelta(days=x) for x in range(args.days - 1, (args.to - args.fr).days + args.days, args.days)]
+    assert list_dates2[-1] >= args.to
+    for date_fr, date_to in zip(list_dates1, list_dates2):
+        LOGGER.info(f"{date_fr}, {date_to}")
+        df = geteconomicalcalendar(date_fr, date_to)
+        if df.shape[0] > 0: df = correct_df(df.copy())
+        if df.shape[0] > 0 and args.update:
+            df["_id"]       = df["id"].astype(str)
+            df["_unixtime"] = df["unixtime"].dt.strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
+            insert(
+                src, df, f"economic_calendar", True,
+                add_sql=(
+                    f"(id, unixtime) in (" + ",".join(["(" + ",".join(x) + ")" for x in df[["_id", "_unixtime"]].values]) + ")"
                 )
+            )

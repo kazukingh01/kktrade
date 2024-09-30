@@ -3,7 +3,8 @@ import pandas as pd
 # local package
 from kkpsgre.util.logger import set_logger
 from kktrade.config.apikey import APIKEY_DUKASCOPY
-from kktrade.util.database import select, insert
+from kkpsgre.util.com import strfind
+from kkpsgre.comapi import select, insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
@@ -11,6 +12,9 @@ from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 EXCHANGE = "dukascopy"
 URL_BASE = "https://freeserv.dukascopy.com/2.0/"
 LOGGER   = set_logger(__name__)
+FUNCTIONS = [
+    "getintraday",
+]
 
 
 def getinstrumentlist():
@@ -84,7 +88,7 @@ def correct_df(df: pd.DataFrame):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=str)
+    parser.add_argument("--fn", type=lambda x: FUNCTIONS[eval(x)] if strfind(r"^[0-9]+$", x) else x)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--days",  type=int, help="--days 1", default=1)
@@ -97,6 +101,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
     assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
+    assert args.fn in FUNCTIONS
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}api'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
@@ -122,7 +127,7 @@ if __name__ == "__main__":
                         src, df, f"{EXCHANGE}_ohlcv", True,
                         add_sql=(
                             f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'"
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                         )
                     )
                 time.sleep(args.sleep)
