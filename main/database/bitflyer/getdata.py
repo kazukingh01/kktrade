@@ -1,9 +1,10 @@
-import datetime, requests, time, argparse, json
+import datetime, requests, time, argparse
 import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert
+from kkpsgre.util.com import strfind
+from kkpsgre.comapi import select, insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
@@ -20,6 +21,13 @@ STATE = {
     "MATURED": 6,
 }
 LOGGER = set_logger(__name__)
+FUNCTIONS = [
+    "getorderbook",
+    "getticker",
+    "getexecutions",
+    "getfundingrate",
+    "getall",
+]
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -103,7 +111,7 @@ def getfundingrate(symbol: str="FX_BTC_JPY", mst_id: dict=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=str)
+    parser.add_argument("--fn", type=lambda x: FUNCTIONS[eval(x)] if strfind(r"^[0-9]+$", x) else x)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--sec", type=int, default=60)
@@ -118,7 +126,7 @@ if __name__ == "__main__":
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    if args.fn in ["getorderbook", "getticker", "getexecutions", "getfundingrate"]:
+    if args.fn in [x for x in FUNCTIONS if x != "getall"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
@@ -140,7 +148,7 @@ if __name__ == "__main__":
                     # select since 3 days before.
                     df_exist = select(src, (
                         f"select max(id) as id from {EXCHANGE}_executions where symbol = {mst_id[symbol]} and " + 
-                        f"unixtime >= '{(datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S')}';"
+                        f"unixtime >= '{(datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=3)).strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
                     ))
                     id_after = None if df_exist.shape[0] == 0 else df_exist["id"].iloc[0]
                     df       = getexecutions(symbol=symbol, after=id_after, mst_id=mst_id)
@@ -164,27 +172,29 @@ if __name__ == "__main__":
         for _ in range(args.nloop):
             # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
             dfwk = select(src, (
-                f"select symbol, id, unixtime from {EXCHANGE}_executions where unixtime <= '{time_until.strftime('%Y-%m-%d %H:%M:%S')}' and unixtime >= '{time_since.strftime('%Y-%m-%d %H:%M:%S')}';"
+                f"select symbol, id, unixtime from {EXCHANGE}_executions where " +
+                f"unixtime <= '{time_until.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime >= '{time_since.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
             ))
             if dfwk.shape[0] > 0:
-                dfwk = dfwk.sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
-                dfwk["id_prev"]       = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["id"      ].tolist()[:-1]).values).reshape(-1)
-                dfwk["unixtime_prev"] = np.concatenate(dfwk.groupby("symbol").apply(lambda x: [-1] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
-                dfwk["diff"] = (dfwk["unixtime"] - dfwk["unixtime_prev"]).dt.seconds
+                dfwk = dfwk[["symbol", "unixtime", "id"]].sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
+                dfwk["id_prev"]       = np.concatenate(dfwk[["symbol", "id"      ]].groupby("symbol").apply(lambda x: [-1] + x["id"].tolist()[:-1]).values).reshape(-1)
+                dfwk["unixtime_prev"] = np.concatenate(dfwk[["symbol", "unixtime"]].groupby("symbol").apply(lambda x: [datetime.datetime(2000,1,1,0,0,0,0,tzinfo=datetime.UTC)] + x["unixtime"].tolist()[:-1]).values).reshape(-1)
+                dfwk["unixtime_prev"] = pd.to_datetime(dfwk["unixtime_prev"], utc=True)
+                dfwk["diff"] = (dfwk["unixtime"] - dfwk["unixtime_prev"]).dt.total_seconds()
                 dfwk["bool"] = (dfwk["diff"] >= over_sec)
                 dfwk = dfwk.sort_values("diff", ascending=False)
                 LOGGER.info(f'Target num: {dfwk["bool"].sum()}')
                 count = 0
                 for index in dfwk.index[dfwk["bool"]]:
                     idb    = dfwk.loc[index, "id"]
-                    ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"].shape[0] > 0 else None
+                    ida    = dfwk.loc[index, "id_prev"] if dfwk.loc[index, "unixtime_prev"] > datetime.datetime(2001,1,1,tzinfo=datetime.UTC) else None
                     symbol = {y:x for x, y in mst_id.items()}[dfwk.loc[index, "symbol"]]
                     LOGGER.info(f'idb: {idb}, ida: {ida}, symbol: {symbol}, diff: {dfwk.loc[index, "diff"]}')
                     df     = getexecutions(symbol=symbol, before=idb, after=ida, mst_id=mst_id)
                     if df.shape[0] > 0:
                         df_exist = select(src, (
                             f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';"
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
                         ))
                         if df_exist.shape[0] > 0:
                             df = df.loc[~df["id"].isin(df_exist["id"])]

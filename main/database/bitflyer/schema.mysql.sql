@@ -772,7 +772,7 @@ CREATE TABLE bitflyer_fundingrate (
     symbol SMALLINT NOT NULL,
     unixtime DATETIME NOT NULL,
     current_funding_rate FLOAT,
-    next_funding_rate_settledate BIGINT,
+    next_funding_rate_settledate DATETIME,
     PRIMARY KEY (symbol, unixtime)
 );
 

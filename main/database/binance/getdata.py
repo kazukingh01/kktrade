@@ -15,17 +15,6 @@ from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 # Derivatives Trading / COIN-M ( This is same as invers trading of Bybit )
 
 
-__all__ = [
-    "getorderbook",
-    "getexecutions",
-    "getkline",
-    "getfundingrate",
-    "getopeninterest",
-    "getlongshortratio",
-    "gettakervolume"
-]
-
-
 EXCHANGE = "binance"
 URL_BASE = {
     "SPOT": "https://api.binance.com/api/v3/",
@@ -55,6 +44,15 @@ LS_RATIO_URL = {
     "top_account": "/futures/data/topLongShortAccountRatio",
 }
 LOGGER = set_logger(__name__)
+FUNCTIONS = [
+    "getorderbook",
+    "getexecutions",
+    "getkline",
+    "getfundingrate",
+    "getopeninterest",
+    "getlongshortratio",
+    "gettakervolume"
+]
 
 
 fnuc_parse = lambda x: (x.split("@")[0], x.split("@")[-1])
@@ -225,7 +223,7 @@ def gettakervolume(symbol: str="USDS@BTCUSDT", interval: str="5m", start: int=No
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=lambda x: __all__[eval(x)] if strfind(r"^[0-9]+$", x) else x)
+    parser.add_argument("--fn", type=lambda x: FUNCTIONS[eval(x)] if strfind(r"^[0-9]+$", x) else x)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
@@ -236,7 +234,7 @@ if __name__ == "__main__":
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    if args.fn in __all__:
+    if args.fn in FUNCTIONS:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():

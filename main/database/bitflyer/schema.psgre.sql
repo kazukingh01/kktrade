@@ -781,7 +781,7 @@ CREATE TABLE public.bitflyer_fundingrate (
     symbol smallint NOT NULL,
     unixtime timestamp with time zone NOT NULL,
     current_funding_rate real,
-    next_funding_rate_settledate bigint
+    next_funding_rate_settledate timestamp with time zone
 );
 
 ALTER TABLE public.bitflyer_fundingrate OWNER TO postgres;
