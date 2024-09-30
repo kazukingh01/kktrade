@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert
+from kkpsgre.util.com import strfind
+from kkpsgre.comapi import select, insert
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
@@ -23,6 +24,13 @@ KILNE_URL = {
     "premium": "premium-index-price-kline",
 }
 LOGGER = set_logger(__name__)
+FUNCTIONS = [
+    "getorderbook",
+    "getticker",
+    "getexecutions",
+    "getkline",
+    "getallkline",
+]
 
 
 func_to_unixtime = np.vectorize(lambda x: x.timestamp())
@@ -96,7 +104,7 @@ def getexecutions(symbol: str="inverse@BTCUSD", mst_id: dict=None):
     df["id"]       = df["execId"].astype(str)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["side"]     = df["side"].map({"Buy": 0, "Sell": 1}).astype(float).fillna(-1).astype(int)
-    df["unixtime"] = pd.to_datetime(df['time'], unit='ms', utc=True)
+    df["unixtime"] = pd.to_datetime(df['time'].astype(int), unit='ms', utc=True)
     df["is_block_trade"] = df["isBlockTrade"].astype(bool)
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
@@ -129,7 +137,7 @@ def getkline(kline: str, symbol: str="inverse@BTCUSD", interval=1, start: int=No
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fn", type=str)
+    parser.add_argument("--fn", type=lambda x: FUNCTIONS[eval(x)] if strfind(r"^[0-9]+$", x) else x)
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101")
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
@@ -140,7 +148,7 @@ if __name__ == "__main__":
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
     mst_id = {y:x for x, y in df_mst[["symbol_id", "symbol_name"]].values}
-    if args.fn in ["getorderbook", "getticker", "getexecutions", "getkline"]:
+    if args.fn in [x for x in FUNCTIONS if x != "getallkline"]:
         while True:
             if "getorderbook" == args.fn:
                 for symbol in mst_id.keys():
@@ -161,7 +169,10 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getexecutions(symbol=symbol, mst_id=mst_id)
                     if df.shape[0] > 0:
-                        df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                        df_exist = select(src, (
+                            f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                        ))
                         df       = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
                         insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
@@ -174,7 +185,7 @@ if __name__ == "__main__":
                         if df.shape[0] > 0:
                             df_exist = select(src, (
                                 f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
                             ))
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:
@@ -194,7 +205,7 @@ if __name__ == "__main__":
                         if df.shape[0] > 0:
                             df_exist = select(src, (
                                 f"select unixtime from {EXCHANGE}_kline where symbol = {df['symbol'].iloc[0]} and kline_type = {df['kline_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';"
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
                             ))
                             df = df.loc[~df["unixtime"].isin(df_exist["unixtime"])]
                         if df.shape[0] > 0 and args.update:

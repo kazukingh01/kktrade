@@ -139,11 +139,8 @@ if __name__ == "__main__":
                 else:
                     LOGGER.warning("Nothing data.")
                 if df.shape[0] > 0 and args.update:
-                    if df.shape[0] >= args.num:
-                        for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                            insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
-                    else:
-                        insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
+                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
+                        insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
             # other index
             if "index" in args.fn:
                 df_oi, df_ls_n, df_ls_ta, df_ls_tp = download_index(symbol, date, mst_id=mst_id)

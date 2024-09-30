@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.util.logger import set_logger
-from kktrade.util.database import select, insert, delete
+from kkpsgre.comapi import select, insert, delete
 from getdata import EXCHANGE
 from kkpsgre.psgre import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
@@ -32,13 +32,18 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
     with gzip.open(tmp_file_path, mode="rt") as gzip_file:
         content = gzip_file.read()
         df = pd.read_csv(StringIO(content))
-    df["unixtime"] = pd.to_datetime(df['timestamp'], unit='s', utc=True) #df["timestamp"].astype(int)
+    if _type == "spot":
+        assert df['timestamp'].dtype == int # But isinstance(df['timestamp'].dtype, int) == False
+        df["unixtime"] = pd.to_datetime(df['timestamp'], unit='ms', utc=True) #df["timestamp"].astype(int)
+    else:
+        assert df['timestamp'].dtype == float # But isinstance(df['timestamp'].dtype, float) == False
+        df["unixtime"] = pd.to_datetime(df['timestamp'], unit='s', utc=True) #df["timestamp"].astype(int)
     df["symbol"]   = mst_id[symbol]
     if _type != "spot":
         df["id"]   = df["trdMatchID"].astype(str)
     else:
         # Be careful !! Spot data ID is different from the one that is obtained via API.
-        df["id"]   = df["unixtime"].astype(int).astype(str).str[:10] + df["symbol"].astype(str).str.zfill(3) + df["id"].astype(str).str.zfill(8)
+        df["id"]   = df["unixtime"].dt.strftime("%Y%m%d%H") + "_" + df["symbol"].astype(str).str.zfill(3) + "_" + df["id"].astype(str).str.zfill(8)
     df["side"]     = df["side"].map({"Buy": 0, "Sell": 1, "buy": 0, "sell": 1, "BUY": 0, "SELL": 1}).astype(float).fillna(-1).astype(int)
     df["is_block_trade"] = False
     if _type == "spot": df["size"] = df["volume"].copy()
@@ -102,31 +107,39 @@ if __name__ == "__main__":
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             if "trade" in args.fn:
                 df = download_trade(symbol, date, mst_id=mst_id, tmp_file_path=args.fname)
-                if df.shape[0] > 0 and symbol.split("@")[0] in ["linear", "inverse"]:
-                    # Be careful !! Spot data ID is different from the one that is obtained via API.
-                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}';")
+                if df.shape[0] > 0:
+                    df_exist = select(src, (
+                        f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and " + 
+                        f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                    ))
                     if df_exist.shape[0] > 0:
-                        df = df.loc[~df["id"].isin(df_exist["id"])]
+                        if symbol.split("@")[0] == "spot":
+                            # Be careful !! Spot data ID is different from the one that is obtained via API.
+                            # So we dicide it by dependence of how much it is.
+                            if df_exist.shape[0] == df.shape[0]:
+                                df = df.iloc[:0, :]
+                        else:
+                            df = df.loc[~df["id"].isin(df_exist["id"])]
                 else:
                     LOGGER.warning("Nothing data.")
                 if df.shape[0] > 0 and args.update:
                     if symbol.split("@")[0] == "spot":
                         # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
-                        delete(src, f"{EXCHANGE}_executions", str_where=f"symbol = {df['symbol'].iloc[0]} AND unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].min() + datetime.timedelta(days=1)).strftime('%Y-%m-%d 00:00:00')}'")
-                    if df.shape[0] >= args.num:
-                        for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                            insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
-                    else:
-                        insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
+                        delete(src, f"{EXCHANGE}_executions", str_where=(
+                            f"symbol = {df['symbol'].iloc[0]} AND " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                        ))
+                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
+                        insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
             if "orderbook" in args.fn:
                 df = download_orderbook(symbol, date, mst_id=mst_id, tmp_file_path=args.fname)
                 if df.shape[0] == 0:
                     LOGGER.warning("Nothing data.")
                 if df.shape[0] > 0 and args.update:
                     # All delete & All insert
-                    delete(src, f"{EXCHANGE}_orderbook", str_where=f"symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S')}' and unixtime < '{(df['unixtime'].max() + datetime.timedelta(seconds=1)).strftime('%Y-%m-%d %H:%M:%S')}'")
-                    if df.shape[0] >= args.num:
-                        for indexes in tqdm(np.array_split(np.arange(df.shape[0]), df.shape[0] // args.num)):
-                            insert(src, df.iloc[indexes], f"{EXCHANGE}_orderbook", True, add_sql=None)
-                    else:
-                        insert(src, df, f"{EXCHANGE}_orderbook", True, add_sql=None)
+                    delete(src, f"{EXCHANGE}_orderbook", str_where=(
+                        f"symbol = {df['symbol'].iloc[0]} and " + 
+                        f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                    ))
+                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
+                        insert(src, df.iloc[indexes], f"{EXCHANGE}_orderbook", True, add_sql=None)
