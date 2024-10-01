@@ -1,1 +1,2 @@
 */1 *   * * *   ubuntu  bash ${HOMETRADE}/main/database/binance/monitor.sh
+0   1   * * *   ubuntu  nohup python ${HOMETRADE}/main/database/binance/download_pastdata.py --fr `date "+\%Y\%m\%d" --date '2 day ago'` --to `date "+\%Y\%m\%d" --date '1 day ago'` --num 10000 --fn trade,index,fundingrate --fname binance.zip --update > ${HOMETRADE}/main/log/binance_download.`date "+\%Y\%m\%d"`.log 2>&1 &
