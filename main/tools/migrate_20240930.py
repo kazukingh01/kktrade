@@ -23,7 +23,7 @@ TABLES = {
     'bybit_executions'     : ["symbol", "id"], 
     'bybit_kline'          : None, 
     'bybit_orderbook'      : ["symbol", "unixtime"],
-    'bybit_ticker'         : None, 
+    'bybit_ticker'         : ["symbol", "unixtime"],
     'dukascopy_ohlcv'      : None, 
     'dukascopy_ticks'      : ["symbol", "unixtime"], 
     'economic_calendar'    : None,

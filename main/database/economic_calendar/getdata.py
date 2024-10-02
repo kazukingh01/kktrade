@@ -96,12 +96,27 @@ def correct_df(df: pd.DataFrame):
     df["unit"]  = ""
     df["unit2"] = ""
     for colname in ["consensus", "forecast", "previous", "actual"]:
-        df["tmp1"] = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[ 0].str.strip()
-        df["tmp2"] = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[-1].str.strip()
+        df[colname] = df[colname].replace("-¥",    "¥-",  regex=True) # Wednesday March 02 2016, Stock Investment by Foreigners FEB/27
+        df[colname] = df[colname].replace(r"-\$",  "$-",  regex=True) # Friday September 30 2016, Current Account Q2
+        df[colname] = df[colname].replace(r"-C\$", "C$-", regex=True)
+        df[colname] = df[colname].replace(r"-€",   "€-",  regex=True)
+        df["tmp1"]  = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[ 0].str.strip()
+        df["tmp2"]  = df[colname].str.replace(r"[0-9\.\-]+", " ", regex=True).str.split(" ").str[-1].str.strip()
         df.loc[df["tmp2"] != "",  "unit"] = df.loc[df["tmp2"] != "", "tmp2"]
         df.loc[df["tmp1"] != "", "unit2"] = df.loc[df["tmp1"] != "", "tmp1"]
         df[colname] = df[colname].str.findall(r"[0-9\.\-]+", flags=re.IGNORECASE).str[0]
+    df["previous"] = df["previous"].replace("--45.60", "-45.60")  # Friday March 06 2015, Balance of Trade JAN
     for colname in ["consensus", "forecast", "previous", "actual"]:
+        df[colname] = df[colname].replace("-358.5.1", "-358.5") # Wednesday March 30 2016, Stock Investment by Foreigners MAR/26
+        df[colname] = df[colname].replace("-235.4.1", "-235.4")
+        df[colname] = df[colname].replace("2.2.",     "2.2")
+        df[colname] = df[colname].replace("1.384.2",  "1.384")
+        df[colname] = df[colname].replace("-395.2.8", "-395.2")
+        df[colname] = df[colname].replace("-237.6.8", "-237.6")
+        df[colname] = df[colname].replace("--284.24", "-284.24")
+        df[colname] = df[colname].replace("-10.9.5",  "-10.9")
+        df[colname] = df[colname].replace("65.5.0",   "65.5")
+        df[colname] = df[colname].replace("-727.6.0", "-727.6")
         df[colname] = df[colname].replace("", float("nan")).astype(float)
     df["name"] = df["name"].replace("'", "''", regex=True)
     df = df.loc[:, ~df.columns.isin(["tmp1", "tmp2"])]
@@ -127,7 +142,17 @@ if __name__ == "__main__":
     assert list_dates2[-1] >= args.to
     for date_fr, date_to in zip(list_dates1, list_dates2):
         LOGGER.info(f"{date_fr}, {date_to}")
-        df = geteconomicalcalendar(date_fr, date_to)
+        n_limit = 5
+        while True:
+            try:
+                if n_limit <= 0:
+                    LOGGER.raise_error(f"TimeoutError limit is reached.")
+                df = geteconomicalcalendar(date_fr, date_to)
+                break
+            except playwright._impl._errors.TimeoutError:
+                LOGGER.warning(f"TimeoutError occur [{n_limit}].")
+                n_limit = n_limit - 1
+                continue
         if df.shape[0] > 0: df = correct_df(df.copy())
         if df.shape[0] > 0 and args.update:
             df["_id"]       = df["id"].astype(str)

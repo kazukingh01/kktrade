@@ -99,7 +99,11 @@ cp ~/kktrade/main/database/economic_calendar/schema.mysql.sql /home/share/mysql.
 ```bash
 mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/schema_main.mongo.js");'
 mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'db.getSiblingDB("trade").getCollection("master_symbol").insertMany(JSON.parse(require("fs").readFileSync("/home/ubuntu/kktrade/main/database/master_symbol.mongo.json")))'
-mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 27017 --eval 'db.getSiblingDB("trade").createCollection("binance_executions", { timeseries: {timeField: "unixtime", metaField: "symbol", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})'
+mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/binance/schema.mongo.js");'
+mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/bitflyer/schema.mongo.js");'
+mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/bybit/schema.mongo.js");'
+# mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/dukascopy/schema.mongo.js");'
+# mongosh admin -u "admin" -p `cat ~/passmongo.txt` --port 22017 --eval 'load("/home/ubuntu/kktrade/main/database/economic_calendar/schema.mongo.js");'
 ```
 
 # Cron
