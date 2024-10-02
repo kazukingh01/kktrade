@@ -122,6 +122,7 @@ if __name__ == "__main__":
     parser.add_argument("--port",  type=int, default=8000)
     parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
+    parser.add_argument("--ismin",  action='store_true', default=False)
     args   = parser.parse_args()
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"
     df_mst = select(src, f"select * from master_symbol where is_active = true and exchange = '{EXCHANGE}'")
@@ -172,10 +173,19 @@ if __name__ == "__main__":
         list_used  = []
         for _ in range(args.nloop):
             # If the gap from idb to ida is huge, api cannot get full data between its period. so loop system must be used.
-            dfwk = select(src, (
-                f"select symbol, id, unixtime from {EXCHANGE}_executions where " +
-                f"unixtime <= '{time_until.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime >= '{time_since.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
-            ))
+            if args.ismin:
+                dfwk = select(src, (
+                    f"select symbol, id, unixtime from {EXCHANGE}_executions where (symbol, id) in (" +
+                    f"  select symbol, min(id) as id from {EXCHANGE}_executions where " +
+                    f"  unixtime <= '{time_until.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime >= '{time_since.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' " + 
+                    f"  group by symbol " + 
+                    f");"
+                ))
+            else:
+                dfwk = select(src, (
+                    f"select symbol, id, unixtime from {EXCHANGE}_executions where " +
+                    f"unixtime <= '{time_until.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime >= '{time_since.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                ))
             if dfwk.shape[0] > 0:
                 dfwk = dfwk[["symbol", "unixtime", "id"]].sort_values(["symbol", "unixtime", "id"]).reset_index(drop=True)
                 dfwk["id_prev"]       = np.concatenate(dfwk[["symbol", "id"      ]].groupby("symbol").apply(lambda x: [-1] + x["id"].tolist()[:-1]).values).reshape(-1)
