@@ -36,10 +36,10 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
         assert df['timestamp'].dtype == int # But isinstance(df['timestamp'].dtype, int) == False
         df["unixtime"] = pd.to_datetime(df['timestamp'], unit='ms', utc=True) #df["timestamp"].astype(int)
     else:
-        if date == datetime.datetime(2022,1,1):
-            assert df['timestamp'].dtype in [float, int]
-        else:
-            assert df['timestamp'].dtype == float # But isinstance(df['timestamp'].dtype, float) == False
+        if df['timestamp'].dtype == int:
+            assert ((df["timestamp"] >= 1000000000) & (df["timestamp"] <= 4000000000)).sum() == df.shape[0]
+            df['timestamp'] = df['timestamp'].astype(float)
+        assert df['timestamp'].dtype == float # But isinstance(df['timestamp'].dtype, float) == False
         df["unixtime"] = pd.to_datetime(df['timestamp'], unit='s', utc=True) #df["timestamp"].astype(int)
     df["symbol"]   = mst_id[symbol]
     if _type != "spot":
