@@ -36,7 +36,10 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
         assert df['timestamp'].dtype == int # But isinstance(df['timestamp'].dtype, int) == False
         df["unixtime"] = pd.to_datetime(df['timestamp'], unit='ms', utc=True) #df["timestamp"].astype(int)
     else:
-        assert df['timestamp'].dtype == float # But isinstance(df['timestamp'].dtype, float) == False
+        if date == datetime.datetime(2022,1,1):
+            assert df['timestamp'].dtype in [float, int]
+        else:
+            assert df['timestamp'].dtype == float # But isinstance(df['timestamp'].dtype, float) == False
         df["unixtime"] = pd.to_datetime(df['timestamp'], unit='s', utc=True) #df["timestamp"].astype(int)
     df["symbol"]   = mst_id[symbol]
     if _type != "spot":
@@ -126,8 +129,8 @@ if __name__ == "__main__":
                     if symbol.split("@")[0] == "spot":
                         # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
                         delete(src, f"{EXCHANGE}_executions", str_where=(
-                            f"symbol = {df['symbol'].iloc[0]} AND " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                            f"symbol = {df['symbol'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                         ))
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
                         insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
@@ -139,7 +142,7 @@ if __name__ == "__main__":
                     # All delete & All insert
                     delete(src, f"{EXCHANGE}_orderbook", str_where=(
                         f"symbol = {df['symbol'].iloc[0]} and " + 
-                        f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+                        f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                     ))
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
                         insert(src, df.iloc[indexes], f"{EXCHANGE}_orderbook", True, add_sql=None)

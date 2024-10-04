@@ -30,7 +30,6 @@ TABLES = {
 }
 
 
-
 def convdatetime(x: str):
     if   len(x) == 8:
         return datetime.datetime.strptime(x + "000000 +0000", "%Y%m%d%H%M%S %z")
@@ -55,7 +54,8 @@ if __name__ == "__main__":
     parser.add_argument("--hs", type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--tbl", type=str, help="table name", required=True)
     parser.add_argument("--num", type=int, default=10000)
-    parser.add_argument("--update", action='store_true', default=False)
+    parser.add_argument("--isnoerr", action='store_true', default=False)
+    parser.add_argument("--update",  action='store_true', default=False)
     args = parser.parse_args()
     print(args)
     DB_from   = DBConnector(HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, dbtype=DBTYPE_FR, max_disp_len=200)
@@ -68,5 +68,5 @@ if __name__ == "__main__":
         df_from, df_exist, df_insert = migrate(
             DB_from, DB_to, args.tbl, f"unixtime >= {int(date_fr.timestamp())} and unixtime < {int(date_to.timestamp())}",
             str_where_to=f"unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}'", func_convert=func, 
-            pkeys=TABLES[args.tbl], n_split=args.num, is_error_when_different=True, is_delete=False, is_update=args.update
+            pkeys=TABLES[args.tbl], n_split=args.num, is_no_error_when_different=args.isnoerr, is_delete=False, is_update=args.update
         )

@@ -1,1 +1,1 @@
-0   1   * * *   ubuntu  nohup python ${HOMETRADE}/main/database/economic_calendar/getdata.py --fr `date "+\%Y\%m\%d" --date '2 day ago'` --to `date "+\%Y\%m\%d" --date '2 day'` --update > ${HOMETRADE}/main/log/economic_calendar_geteconomicalcalendar.`date "+\%Y\%m\%d"`.log 2>&1 &
+0   1   * * *   ubuntu  nohup python ${HOMETRADE}/main/database/economic_calendar/getdata.py --fr `date "+\%Y\%m\%d" --date '6 day ago'` --to `date "+\%Y\%m\%d" --date '3 day'` --days 3 --update > ${HOMETRADE}/main/log/economic_calendar_geteconomicalcalendar.`date "+\%Y\%m\%d"`.log 2>&1 &

@@ -11,9 +11,12 @@ from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 BASE_URL = "https://tradingeconomics.com/calendar"
 LOGGER   = set_logger(__name__)
-
+# https://www.fxstreet.com/economic-calendar
 
 def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.datetime=None, headless: bool=True):
+    """
+    playwright codegen http://xxxxxxxxx...
+    """
     assert date_fr is None or isinstance(date_fr, datetime.datetime)
     assert date_to is None or isinstance(date_to, datetime.datetime)
     if date_fr is not None: assert date_to is not None
