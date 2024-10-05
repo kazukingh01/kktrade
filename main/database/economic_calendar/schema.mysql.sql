@@ -10,7 +10,7 @@ CREATE TABLE economic_calendar (
     forecast FLOAT,
     unit VARCHAR(255),
     unit2 VARCHAR(255),
-    PRIMARY KEY (id, unixtime)
+    PRIMARY KEY (id, unixtime, country)
 );
 
 CREATE INDEX economic_calendar_0 ON economic_calendar (id);

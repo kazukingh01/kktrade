@@ -16,7 +16,7 @@ ALTER TABLE public.economic_calendar OWNER TO postgres;
 
 
 ALTER TABLE ONLY public.economic_calendar
-    ADD CONSTRAINT economic_calendar_pkey PRIMARY KEY (id, unixtime);
+    ADD CONSTRAINT economic_calendar_pkey PRIMARY KEY (id, unixtime, country);
 
 CREATE INDEX economic_calendar_0 ON public.economic_calendar USING btree (id);
 CREATE INDEX economic_calendar_1 ON public.economic_calendar USING btree (unixtime);
