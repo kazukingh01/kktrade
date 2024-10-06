@@ -26,11 +26,15 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
     LOGGER.info(f"download from: {url}")
     r   = requests.get(url, allow_redirects=True)
     if r.status_code != 200:
-        LOGGER.warning(f"something is wrong. Data is missing. [{r.status_code}]")
+        LOGGER.warning(f"Something is wrong. Data is missing. [{r.status_code}]")
         return pd.DataFrame()
     open(tmp_file_path, 'wb').write(r.content)
     with gzip.open(tmp_file_path, mode="rt") as gzip_file:
         content = gzip_file.read()
+        if content == "":
+            # https://public.bybit.com/trading/SOLUSD/SOLUSD2022-12-12.csv.gz
+            LOGGER.warning(f"Something is wrong. CSV has but no data. [{r.status_code}]")
+            return pd.DataFrame()
         df = pd.read_csv(StringIO(content))
     if _type == "spot":
         assert df['timestamp'].dtype == int # But isinstance(df['timestamp'].dtype, int) == False
