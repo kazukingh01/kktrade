@@ -225,7 +225,6 @@ def correct_df(df: pd.DataFrame, getfrom: str=None):
     elif getfrom == "investing.com":
         df["id"]       = df["id"].astype(int)
         df["unixtime"] = pd.to_datetime(df["unixtime"], utc=True)
-        df["country"]  = df["country"].replace("'", "\\'", regex=True)
         df = df.groupby(["id", "unixtime", "country"]).first().reset_index()
         df["importance"] = df["importance"].map({"bull1": 1, "bull2": 2, "bull3": 3}).fillna(-1).astype(int)
         for x in ["actual", "previous", "consensus", "forecast"]:
