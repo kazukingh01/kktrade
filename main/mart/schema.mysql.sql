@@ -1,6 +1,6 @@
 CREATE TABLE mart_ohlc (
     symbol SMALLINT NOT NULL,
-    unixtime BIGINT NOT NULL,
+    unixtime DATETIME NOT NULL,
     `interval` INT NOT NULL,
     open FLOAT,
     high FLOAT,
