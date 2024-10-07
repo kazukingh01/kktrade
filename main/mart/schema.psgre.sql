@@ -16,7 +16,7 @@ CREATE TABLE public.mart_ohlc (
     ntx_bid integer,
     amount_bid real,
     attrs jsonb,
-    PRIMARY KEY (symbol, unixtime, `interval`)
+    PRIMARY KEY (symbol, unixtime, "interval")
 );
 
 ALTER TABLE ONLY public.mart_ohlc
