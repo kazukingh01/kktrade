@@ -7,14 +7,6 @@ CREATE TABLE public.mart_ohlc (
     low real,
     close real,
     ave real,
-    ave_ask real,
-    size_ask real,
-    ntx_ask integer,
-    amount_ask real,
-    ave_bid real,
-    size_bid real,
-    ntx_bid integer,
-    amount_bid real,
     attrs jsonb
 );
 

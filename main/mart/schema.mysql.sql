@@ -7,14 +7,6 @@ CREATE TABLE mart_ohlc (
     low FLOAT,
     close FLOAT,
     ave FLOAT,
-    ave_ask FLOAT,
-    size_ask FLOAT,
-    ntx_ask INT,
-    amount_ask FLOAT,
-    ave_bid FLOAT,
-    size_bid FLOAT,
-    ntx_bid INT,
-    amount_bid FLOAT,
     attrs JSON,
     PRIMARY KEY (symbol, unixtime, `interval`)
 );

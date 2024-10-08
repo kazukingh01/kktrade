@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 else:
                     LOGGER.warning("Nothing data.")
                 if df.shape[0] > 0 and args.update:
-                    if symbol.split("@")[0] == "spot":
+                    if symbol.split("@")[0] == "spot" and df_exist.shape[0] > 0:
                         # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
                         delete(src, f"{EXCHANGE}_executions", str_where=(
                             f"symbol = {df['symbol'].iloc[0]} and " + 

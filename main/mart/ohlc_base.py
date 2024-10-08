@@ -120,9 +120,10 @@ if __name__ == "__main__":
             df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
             df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB_TO.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
             if args.update and df_ohlc.shape[0] > 0:
+                df_ohlc["_unixtime"] = df["unixtime"].dt.strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
                 DB_TO.delete_sql("mart_ohlc", str_where=(
                     f"interval = {interval} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 
-                    f"unixtime in (" + ",".join(df_ohlc["unixtime"].unique().astype(str).tolist())
+                    f"unixtime in (" + ",".join(df_ohlc["_unixtime"].unique().tolist())
                 ))
                 DB_TO.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
                 DB_TO.execute_sql()
