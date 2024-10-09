@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.psgre import DBConnector
-from kkpsgre.util.com import str_to_datetime
+from kkpsgre.util.com import str_to_datetime, check_type
 from kktrade.config.mart import \
     HOST_BS, PORT_BS, USER_BS, PASS_BS, DBNAME_BS, DBTYPE_BS, \
     HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK, \
@@ -51,7 +51,8 @@ if __name__ == "__main__":
     for exchange in EXCHANGES:
         LOGGER.info(f"exchange: {exchange}, from: {args.fr}, to: {args.to}")
         df = get_executions(DB_BS, DB_BK, exchange, args.fr, args.to, args.switch)
-        assert isinstance(df["unixtime"].dtype, pd.core.dtypes.dtypes.DatetimeTZDtype)
+        if df.shape[0] == 0: continue
+        assert check_type(df["unixtime"].dtype, [np.dtypes.DateTime64DType, pd.core.dtypes.dtypes.DatetimeTZDtype])
         df = df.sort_values(["symbol", "unixtime", "price"]).reset_index(drop=True)
         df = pd.merge(df, df_mst, how="left", left_on="symbol", right_on="symbol_id")
         df["dateitme"] = df["unixtime"].copy()
@@ -66,10 +67,14 @@ if __name__ == "__main__":
             ndf_tg         = np.arange(int(args.fr.timestamp()) // interval * interval, int(args.to.timestamp()) // interval * interval, interval, dtype=int)
             ndf_sbl        = df["symbol"].unique()
             ndf_idx        = np.concatenate([np.repeat(ndf_sbl, ndf_tg.shape[0]).reshape(-1, 1), np.tile(ndf_tg, ndf_sbl.shape[0]).reshape(-1, 1)], axis=-1)
-            df_ohlc        = pd.DataFrame(ndf_idx, columns=["symbol", "timegrp"]).set_index(["symbol", "timegrp"])
+            df_ohlc        = pd.DataFrame(ndf_idx, columns=["symbol", "timegrp"])
             # basics. open, high, low, close
-            df_ohlc[["open", "high", "low", "close"]] = df.groupby(["symbol", "timegrp"])["price"].aggregate(["first", "max", "min", "last"])
+            dfwk           = pd.merge(df_ohlc, df[["symbol", "timegrp", "price"]], how="left", on=["symbol", "timegrp"])
+            dfwk["price"]  = dfwk.groupby(["symbol", "timegrp"])["price"].ffill()
+            df_ohlc        = df_ohlc.set_index(["symbol", "timegrp"])
+            df_ohlc[["open", "high", "low", "close"]] = dfwk.groupby(["symbol", "timegrp"])["price"].aggregate(["first", "max", "min", "last"])
             df_ohlc["interval"] = interval
+            df_ohlc["type"]     = 0
             # average price, number of transactions, size, amount
             dfwk           = df.groupby(["symbol", "timegrp", "side"])[["size", "amount"]].sum()
             dfwk["ntx"]    = df.groupby(["symbol", "timegrp", "side"]).size()
@@ -83,6 +88,7 @@ if __name__ == "__main__":
                 df_ohlc[f"{col}_sum" ] = df_ohlc[f"{col}_sum" ].fillna(0)
                 df_ohlc[f"{col}_diff"] = df_ohlc[f"{col}_diff"].fillna(0)
             df_ohlc["ave"] = (df_ohlc["amount_sum"] / df_ohlc["size_sum"]).replace(float("inf"), float("nan"))
+            df_ohlc["ave"] = df_ohlc.groupby(["symbol", "timegrp"])["ave"].ffill()
             # quantile amount of each transactions in each time group
             ndfwk          = list(np.arange(0., 1.0, 0.05)) + [1.0, ]
             dfwk           = df.groupby(["symbol", "timegrp", "side"])["amount"].quantile(ndfwk)
@@ -120,11 +126,10 @@ if __name__ == "__main__":
             df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
             df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB_TO.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
             if args.update and df_ohlc.shape[0] > 0:
-                df_ohlc["_unixtime"] = df["unixtime"].dt.strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
+                df_ohlc["_unixtime"] = df_ohlc["unixtime"].dt.strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
                 DB_TO.delete_sql("mart_ohlc", str_where=(
-                    f"interval = {interval} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 
-                    f"unixtime in (" + ",".join(df_ohlc["_unixtime"].unique().tolist())
+                    f"interval = {interval} and type = {df_ohlc['type'].iloc[0]} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 
+                    f"unixtime in (" + ",".join(df_ohlc["_unixtime"].unique().tolist()) + ")"
                 ))
                 DB_TO.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
                 DB_TO.execute_sql()
-            raise
