@@ -26,12 +26,12 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     assert isinstance(date_sw, datetime.datetime)
     assert date_fr < date_to
     if   date_fr >= date_sw:
-        df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE side in (0,1) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
     elif date_to <= date_sw:
-        df = db_bk.select_sql( f"SELECT * FROM {exchange}_executions WHERE side in (0,1) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df = db_bk.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
     else:
-        df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE side in (0,1) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-        df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE side in (0,1) and unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         df  = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
     return df
 
@@ -42,21 +42,23 @@ if __name__ == "__main__":
     parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", default=(timenow - datetime.timedelta(hours=1)))
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
     parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=7)))
+    parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
     DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200)
     DB_BK  = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200)
     DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
     df_mst = DB_BS.select_sql(f"select * from master_symbol where is_active = true;")
-    list_dates = [args.fr + datetime.timedelta(days=x) for x in range(0, (args.to - args.fr).days + 1, 1)]
+    list_dates = [args.fr + datetime.timedelta(days=x) + datetime.timedelta(hours=hour) for x in range(0, (args.to - args.fr).days + 1, 1) for hour in args.hours]
     for i_date in range(1, len(list_dates)):
         date_fr = list_dates[i_date-1]
         date_to = list_dates[i_date  ]
         for exchange in EXCHANGES:
             LOGGER.info(f"exchange: {exchange}, from: {date_fr}, to: {date_to}")
-            df = get_executions(DB_BS, DB_BK, exchange, date_fr - datetime.timedelta(hours=1), date_to, args.switch)
+            df = get_executions(DB_BS, DB_BK, exchange, date_fr - datetime.timedelta(minutes=30), date_to, args.switch)
             if df.shape[0] == 0: continue
             assert check_type(df["unixtime"].dtype, [np.dtypes.DateTime64DType, pd.core.dtypes.dtypes.DatetimeTZDtype])
+            df = df.loc[df["side"].isin([0, 1])].reset_index(drop=True)
             df = df.sort_values(["symbol", "unixtime", "price"]).reset_index(drop=True)
             df = pd.merge(df, df_mst, how="left", left_on="symbol", right_on="symbol_id")
             df["dateitme"] = df["unixtime"].copy()
@@ -113,9 +115,11 @@ if __name__ == "__main__":
                 dfwk = dfwk.set_index(["symbol", "timegrp", "timegrp2"])
                 for x in range(1, DIVIDES + 1):
                     for side, name in zip([0, 1], ["ask", "bid"]):
-                        df_ohlc[    f"amount_p{str(x).zfill(2)}_{name}"] = dfwk.loc[(slice(None), slice(None), x)][f"amount_{name}"]
+                        dfwk[f"amount_p{str(x).zfill(2)}_{name}"] = dfwk[f"amount_{name}"].copy()
+                        df_ohlc = pd.concat([df_ohlc, dfwk.loc[(slice(None), slice(None), x)][[f"amount_p{str(x).zfill(2)}_{name}"]]], axis=1, ignore_index=False)
                         if x < 10:
-                            df_ohlc[f"cumsum_p{str(x).zfill(2)}_{name}"] = dfwk.loc[(slice(None), slice(None), x)][f"cumsum_{name}"]
+                            dfwk[f"cumsum_p{str(x).zfill(2)}_{name}"] = dfwk[f"cumsum_{name}"].copy()
+                            df_ohlc = pd.concat([df_ohlc, dfwk.loc[(slice(None), slice(None), x)][[f"cumsum_p{str(x).zfill(2)}_{name}"]]], axis=1, ignore_index=False)
                 # analyze amount in each price in each time group
                 df["amount_ask"] = df["amount"] * (df["side"] == 0).astype(float)
                 df["amount_bid"] = df["amount"] * (df["side"] == 1).astype(float)
