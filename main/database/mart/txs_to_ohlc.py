@@ -54,6 +54,7 @@ if __name__ == "__main__":
                 df_ohlc = df_ohlc.reset_index()
                 df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
                 df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(date_fr.timestamp())) & (df_ohlc["unixtime"] < int(date_to.timestamp()))]
+                df_ohlc["type"]     = 0
                 df_ohlc["unixtime"] = (df_ohlc["unixtime"] + interval)
                 df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
                 df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB_TO.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)

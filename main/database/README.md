@@ -57,7 +57,7 @@ cp ~/kktrade/main/database/bitflyer/schema.psgre.sql          /home/share/psgre.
 cp ~/kktrade/main/database/bybit/schema.psgre.sql             /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 cp ~/kktrade/main/database/dukascopy/schema.psgre.sql         /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 cp ~/kktrade/main/database/economic_calendar/schema.psgre.sql /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
-cp ~/kktrade/main/mart/schema.psgre.sql                       /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
+cp ~/kktrade/main/database/mart/schema.psgre.sql              /home/share/psgre.sql && sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -f /home/share/psgre.sql
 ```
 
 ### MySQL
