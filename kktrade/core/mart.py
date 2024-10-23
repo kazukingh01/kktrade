@@ -4,6 +4,7 @@ import numpy as np
 # local package
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import check_type
+from kkpsgre.util.logger import set_logger
 
 
 __all__ = {
@@ -12,9 +13,11 @@ __all__ = {
 
 
 EXCHANGES = ["bitflyer", "bybit", "binance"]
+LOGGER    = set_logger(__name__)
 
 
 def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_fr: datetime.datetime, date_to: datetime.datetime, date_sw: datetime.datetime):
+    LOGGER.info("START")
     assert isinstance(db_bs, DBConnector)
     assert isinstance(db_bk, DBConnector)
     assert isinstance(exchange, str) and exchange in EXCHANGES
@@ -31,7 +34,9 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
         df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         df  = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
-    if df.shape[0] == 0: return df
+    if df.shape[0] == 0:
+        LOGGER.info("END")
+        return df
     assert check_type(df["unixtime"].dtype, [np.dtypes.DateTime64DType, pd.core.dtypes.dtypes.DatetimeTZDtype])
     df = df.loc[df["side"].isin([0, 1])].reset_index(drop=True)
     df = df.sort_values(["symbol", "unixtime", "price"]).reset_index(drop=True)
@@ -42,4 +47,5 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     boolwk = ((df["symbol_name"].str.find("inverse@") == 0) | (df["symbol_name"].str.find("COIN@") == 0))
     df["volume"] = (df["price"] * df["size"])
     df.loc[boolwk, "volume"] = df.loc[boolwk, "size"]
+    LOGGER.info("END")
     return df

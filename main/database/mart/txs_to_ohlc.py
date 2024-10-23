@@ -4,7 +4,7 @@ import numpy as np
 # local package
 from kktrade.core.mart import get_executions, EXCHANGES
 from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_volume, \
-    ana_distribution_volume_over_time, ana_distribution_volume_over_price
+    ana_distribution_volume_price_over_time, ana_distribution_volume_over_price
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import str_to_datetime
 from kktrade.config.mart import \
@@ -45,10 +45,10 @@ if __name__ == "__main__":
                 df_ohlc    = create_ohlc(df, "unixtime", interval, interval, date_fr - datetime.timedelta(minutes=30), date_to, index_names=["symbol"], from_tx=True)
                 index_base = df_ohlc.index.copy()
                 list_df    = []
-                list_df.append(ana_size_price(                    df, "unixtime", interval, interval, index_base, from_tx=True))
-                list_df.append(ana_quantile_tx_volume(            df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
-                list_df.append(ana_distribution_volume_over_time( df, "unixtime", interval, interval, index_base, from_tx=True, n_div=10))
-                list_df.append(ana_distribution_volume_over_price(df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
+                list_df.append(ana_size_price(                          df, "unixtime", interval, interval, index_base, from_tx=True))
+                list_df.append(ana_quantile_tx_volume(                  df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
+                list_df.append(ana_distribution_volume_price_over_time( df, "unixtime", interval, interval, index_base, from_tx=True, n_div=10))
+                list_df.append(ana_distribution_volume_over_price(      df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
                 df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
                 df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
                 df_ohlc = df_ohlc.reset_index()
