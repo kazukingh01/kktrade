@@ -1,4 +1,4 @@
-import datetime, requests, argparse
+import datetime, requests, argparse, os
 from zipfile import ZipFile
 from tqdm import tqdm
 from io import StringIO
@@ -22,7 +22,8 @@ MST_CONV = {
 LOGGER = set_logger(__name__)
 
 
-def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./data1.zip", mst_id: dict=None):
+def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./data1.zip", chunk_size: int=None):
+    assert chunk_size is None or (isinstance(chunk_size, int) and chunk_size > 100)
     _type, _symbol = symbol.split("@")
     url = f"{BASEURL}{MST_CONV[_type]}daily/trades/{_symbol}/{_symbol}-trades-{date.strftime('%Y-%m-%d')}.zip"
     LOGGER.info(f"download from: {url}")
@@ -32,12 +33,26 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./d
         return pd.DataFrame()
     open(tmp_file_path, 'wb').write(r.content)
     with ZipFile(tmp_file_path, mode="r") as zip_file:
-        with zip_file.open(zip_file.filelist[0].filename) as f:
-            contents = f.read().decode()
+        if chunk_size is None:
+            with zip_file.open(zip_file.filelist[0].filename) as f:
+                contents = f.read().decode()
+                if contents[:2] == "id":
+                    df = pd.read_csv(StringIO(contents))
+                else:
+                    df = pd.read_csv(StringIO(contents), header=None)
+        else:
+            fname = zip_file.filelist[0].filename
+            zip_file.extract(fname, path=".")
+            os.rename(fname, "tmp.csv")
+            with open("tmp.csv", 'r') as file: contents = file.read(100) # A few letters reading from head.
             if contents[:2] == "id":
-                df = pd.read_csv(StringIO(contents))
+                df = pd.read_csv("tmp.csv", chunksize=chunk_size)
             else:
-                df = pd.read_csv(StringIO(contents), header=None)
+                df = pd.read_csv("tmp.csv", header=None, chunksize=chunk_size)
+    return df
+
+def organize_df(df: pd.DataFrame, mst_id: dict=None):
+    df = df.copy()
     if df.shape[1] == 7:
         df = df.loc[df.iloc[:, -1] == True].iloc[:, :-1]
     df.columns = ["id", "price", "qty", "base_qty", "time", "is_buyer_maker"]
@@ -111,8 +126,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--fr", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--fr 20200101", required=True)
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101", required=True)
-    parser.add_argument("--num", type=int, default=1000)
-    parser.add_argument("--fn",  type=lambda x: x.split(","), default="trade,index,fundingrate")
+    parser.add_argument("--chunk", type=int, help="--chunk 1000000")
+    parser.add_argument("--num",   type=int, default=1000)
+    parser.add_argument("--fn",    type=lambda x: x.split(","), default="trade,index,fundingrate")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
     parser.add_argument("--fname",type=str, default="./data1.zip")
@@ -131,16 +147,19 @@ if __name__ == "__main__":
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             # executions
             if "trade" in args.fn:
-                df = download_trade(symbol, date, mst_id=mst_id, tmp_file_path=args.fname)
-                if df.shape[0] > 0:
-                    df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-                    if df_exist.shape[0] > 0:
-                        df = df.loc[~df["id"].isin(df_exist["id"])]
-                else:
-                    LOGGER.warning("Nothing data.")
-                if df.shape[0] > 0 and args.update:
-                    for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
-                        insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
+                dfs = download_trade(symbol, date, tmp_file_path=args.fname, chunk_size=args.chunk)
+                if not isinstance(dfs, pd.io.parsers.readers.TextFileReader): dfs = [dfs, ]
+                for df in dfs:
+                    df = organize_df(df, mst_id=mst_id)
+                    if df.shape[0] > 0:
+                        df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+                        if df_exist.shape[0] > 0:
+                            df = df.loc[~df["id"].isin(df_exist["id"])]
+                    else:
+                        LOGGER.warning("Nothing data.")
+                    if df.shape[0] > 0 and args.update:
+                        for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
+                            insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
             # other index
             if "index" in args.fn:
                 df_oi, df_ls_n, df_ls_ta, df_ls_tp = download_index(symbol, date, mst_id=mst_id)
