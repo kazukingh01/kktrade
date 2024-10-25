@@ -14,7 +14,38 @@ WEBPAGES = [
     "investing.com",
     "fxstreet.com",
 ]
+DICT_IGNORED = {}
 
+
+def ignore_timeout_click(methodchain):
+    if methodchain not in DICT_IGNORED:
+        DICT_IGNORED[methodchain] = True
+    if DICT_IGNORED[methodchain]:
+        try:
+            if methodchain.count() > 0:
+                methodchain.click(timeout=200)
+                DICT_IGNORED[methodchain] = False
+        except playwright._impl._errors.TimeoutError:
+            pass
+
+def delete_ads(page: playwright.sync_api._generated.Page):
+    time.sleep(2)
+    # ignore_timeout_click(page.locator("#topAlertBarContainer").get_by_role("link").first)
+    # page.mouse.move(0, 0)
+    ignore_timeout_click(page.locator("#PromoteSignUpPopUp i").nth(4))
+    page.mouse.move(0, 0)
+    # ignore_timeout_click(page.get_by_role("banner").get_by_role("img").nth(3))
+    # page.mouse.move(0, 0)
+    ignore_timeout_click(page.locator("#sideNotificationZone span").nth(2))
+    page.mouse.move(0, 0)
+    # ignore_timeout_click(page.frame_locator("iframe[title=\"Side-Youtube-en_educational_screener_video\"]").get_by_label("Close Modal"))
+    # ignore_timeout_click(page.locator("#closeIconHit"))
+    # page.mouse.move(0, 0)
+
+def loop_click(page, methodchain, nloop: int=3):
+    for _ in range(nloop):
+        delete_ads(page)
+        ignore_timeout_click(methodchain)
 
 def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.datetime=None, headless: bool=True, getfrom: str="fxstreet.com"):
     """
@@ -30,7 +61,13 @@ def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.d
         context = browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         )
+        BOOL_WORK = False
+        def handle_new_page(page):
+            if BOOL_WORK:
+                page.close(run_before_unload=False)
+        context.on("page", lambda page: handle_new_page(page))
         page = context.new_page()
+        BOOL_WORK = True
         if getfrom == "fxstreet.com":
             page.goto("https://www.fxstreet.com/economic-calendar")
             time.sleep(1)
@@ -63,34 +100,35 @@ def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.d
                 html = page.content()
         elif getfrom == "investing.com":
             page.goto("https://www.investing.com/economic-calendar", wait_until="domcontentloaded", timeout=30000)
-            time.sleep(2)
+            delete_ads(page)
             page.get_by_role("link", name="Filters").click()
+            delete_ads(page)
             page.locator("#calendarFilterBox_country").get_by_role("link", name="Select All").click()
             page.locator("#calendarFilterBox_category").get_by_role("link", name="Select All").click()
             page.locator("#importance1").check()
             page.locator("#importance2").check()
             page.locator("#importance3").check()
             page.get_by_role("link", name="Apply").click()
-            time.sleep(2)
-            page.locator("#economicCurrentTime span").nth(3).click()
-            page.get_by_text("(GMT) Coordinated Universal").click()
-            time.sleep(2)
+            loop_click(page, page.locator("#economicCurrentTime span").first, nloop=3)
+            ignore_timeout_click(page.get_by_text("(GMT) Coordinated Universal"))
+            delete_ads(page)
             if date_fr is not None:
                 page.locator("#datePickerToggleBtn").click()
-                page.get_by_label("Start Date").click()
+                delete_ads(page)
+                loop_click(page, page.get_by_label("Start Date"), nloop=3)
                 page.get_by_label("Start Date").fill("")
                 page.type('input#startDate', date_fr.strftime("%m/%d/%Y"))
-                page.get_by_label("End Date").click()
+                loop_click(page, page.get_by_label("End Date"), nloop=3)
                 page.get_by_label("End Date").fill("")
                 page.type('input#endDate', date_to.strftime("%m/%d/%Y"))
                 page.get_by_role("link", name="Apply").click()
-                time.sleep(2)
+                delete_ads(page)
             page.locator("#ecoCalLegend").scroll_into_view_if_needed()
-            time.sleep(2)
+            delete_ads(page)
             last_height = page.evaluate("() => document.body.scrollHeight")
             for _ in range(10):
                 page.locator("#ecoCalLegend").scroll_into_view_if_needed()
-                time.sleep(2)
+                delete_ads(page)
                 new_height = page.evaluate("() => document.body.scrollHeight")
                 if new_height == last_height:
                     break
@@ -98,6 +136,7 @@ def get_html_via_playwright(date_fr: datetime.datetime=None, date_to: datetime.d
                     last_height = new_height
             boolwk = False
             page.wait_for_selector('table#economicCalendarData tbody', timeout=1000)
+            delete_ads(page)
             div = page.locator('table#economicCalendarData tbody', has_text="No Events Scheduled")
             if div.count() > 0: boolwk = True
             if boolwk:
