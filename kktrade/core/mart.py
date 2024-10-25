@@ -27,12 +27,12 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     assert date_fr < date_to
     df_mst = db_bs.select_sql(f"select * from master_symbol where is_active = true and exchange = '{exchange}';")
     if   date_fr >= date_sw:
-        df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
     elif date_to <= date_sw:
-        df = db_bk.select_sql( f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df = db_bk.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
     else:
-        df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-        df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE symbol in ({','.join(df_mst['symbol_id'].astype(str).tolist())}) and unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         df  = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
     if df.shape[0] == 0:
         LOGGER.info("END")
@@ -47,5 +47,6 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     boolwk = ((df["symbol_name"].str.find("inverse@") == 0) | (df["symbol_name"].str.find("COIN@") == 0))
     df["volume"] = (df["price"] * df["size"])
     df.loc[boolwk, "volume"] = df.loc[boolwk, "size"]
+    df.loc[boolwk, "size"  ] = (df.loc[boolwk, "volume"] / df.loc[boolwk, "price"]) # Define all size as volume / price
     LOGGER.info("END")
     return df
