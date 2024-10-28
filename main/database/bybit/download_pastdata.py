@@ -128,6 +128,18 @@ if __name__ == "__main__":
         for symbol in mst_id.keys():
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             if "trade" in args.fn:
+                if args.update and symbol.split("@")[0] == "spot" and args.chunk is not None:
+                    df_exist = select(src, (
+                        f"select id from {EXCHANGE}_executions where symbol = {mst_id[symbol]} and " + 
+                        f"unixtime >= '{date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{(date + datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S.%f%z')}' limit 10"
+                    ))
+                    if df_exist.shape[0] > 0:
+                        # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
+                        # This process should be executed first because, in chunk mode, if there are multiple records with the same timestamp at the boundary of the unixtime in the WHERE clause, the deletion logic would be executed redundantly.
+                        delete(src, f"{EXCHANGE}_executions", str_where=(
+                            f"symbol = {mst_id[symbol]} and " + 
+                            f"unixtime >= '{date.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{(date + datetime.timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
+                        ))
                 dfs = download_trade(symbol, date, tmp_file_path=args.fname, chunk_size=args.chunk)
                 if not isinstance(dfs, pd.io.parsers.readers.TextFileReader): dfs = [dfs, ]
                 for df in dfs:
@@ -152,7 +164,7 @@ if __name__ == "__main__":
                         if symbol.split("@")[0] == "spot" and df_exist.shape[0] > 0:
                             # Be careful !! Spot data ID is different from the one that is obtained via API. So All delete & All insert
                             delete(src, f"{EXCHANGE}_executions", str_where=(
-                                f"symbol = {df['symbol'].iloc[0]} and " + 
+                                f"symbol = {df['symbol'].iloc[0]} and " +
                                 f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ))
                         for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
