@@ -132,6 +132,7 @@ if __name__ == "__main__":
                 if not isinstance(dfs, pd.io.parsers.readers.TextFileReader): dfs = [dfs, ]
                 for df in dfs:
                     df = organize_df(df, symbol.split("@")[0], mst_id=mst_id)
+                    df_exist = pd.DataFrame()
                     if df.shape[0] > 0:
                         df_exist = select(src, (
                             f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and " + 
