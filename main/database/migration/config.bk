@@ -1,0 +1,3 @@
+PATH=/home/ubuntu/kktrade/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0   1   * * *   ubuntu  python /home/ubuntu/kktrade/main/database/bybit/download_pastdata.py   --fr `date "+\%Y\%m\%d" --date '7 day ago'` --to `date "+\%Y\%m\%d" --date '6 day ago'` --db --chunk 200000 --num 20000 --fn trade --update > /home/ubuntu/kktrade/main/log/bybit_download.`date "+\%Y\%m\%d"`.log 2>&1 &
+0   3   * * *   ubuntu  python /home/ubuntu/kktrade/main/database/binance/download_pastdata.py --fr `date "+\%Y\%m\%d" --date '7 day ago'` --to `date "+\%Y\%m\%d" --date '6 day ago'` --db --chunk 200000 --num 20000 --fn trade --update > /home/ubuntu/kktrade/main/log/binance_download.`date "+\%Y\%m\%d"`.log 2>&1 &
