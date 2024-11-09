@@ -28,6 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
+    LOGGER.info(f"args: {args}")
     DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200)
     DB_BK  = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200)
     DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
