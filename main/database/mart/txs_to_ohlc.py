@@ -15,8 +15,6 @@ from kkpsgre.util.logger import set_logger
 
 
 LOGGER    = set_logger(__name__)
-INTERVALS = [60, ]
-DIVIDES   = 10
 
 
 if __name__ == "__main__":
@@ -24,6 +22,8 @@ if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
     parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", default=(timenow - datetime.timedelta(hours=1)))
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
+    parser.add_argument("--sr", type=int, help="sampling rate. --sr 60", default=60)
+    parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], default="60")
     parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=7)))
     parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--update", action='store_true', default=False)
@@ -40,15 +40,14 @@ if __name__ == "__main__":
             LOGGER.info(f"exchange: {exchange}, from: {date_fr}, to: {date_to}")
             df = get_executions(DB_BS, DB_BK, exchange, date_fr - datetime.timedelta(minutes=30), date_to, args.switch)
             if df.shape[0] == 0: continue
-            for interval in INTERVALS:
-                assert interval % DIVIDES == 0
-                df_ohlc    = create_ohlc(df, "unixtime", interval, interval, date_fr - datetime.timedelta(minutes=30), date_to, index_names=["symbol"], from_tx=True)
+            for interval in args.itvls:
+                df_ohlc    = create_ohlc(df[["symbol", "unixtime", "price"]], "unixtime", interval, args.sr, date_fr - datetime.timedelta(minutes=30), date_to, index_names=["symbol"], from_tx=True)
                 index_base = df_ohlc.index.copy()
                 list_df    = []
-                list_df.append(ana_size_price(                          df, "unixtime", interval, interval, index_base, from_tx=True))
-                list_df.append(ana_quantile_tx_volume(                  df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
-                list_df.append(ana_distribution_volume_price_over_time( df, "unixtime", interval, interval, index_base, from_tx=True, n_div=10))
-                list_df.append(ana_distribution_volume_over_price(      df, "unixtime", interval, interval, index_base, from_tx=True, n_div=20))
+                list_df.append(ana_size_price(                         df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True))
+                list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
+                list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=10))
+                list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "price", "side", "volume"        ]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
                 df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
                 df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
                 df_ohlc = df_ohlc.reset_index()

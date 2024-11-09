@@ -1,4 +1,4 @@
-import datetime, warnings
+import datetime
 import pandas as pd
 import numpy as np
 # local package
@@ -129,6 +129,7 @@ def create_ohlc(
     else:
         ndf_idxs = ndf_tg
     df_base = pd.DataFrame(ndf_idxs, columns=(index_names + ["timegrp"])).set_index(index_names + ["timegrp"])
+    df_base = df_base.sort_values(index_names + ["timegrp"])
     # [ unixtime -> sampling_rate, sampling_rate ] open, high, low, close
     if from_tx:
         assert "price" in df.columns and df["price"].dtype == float
@@ -167,7 +168,9 @@ def create_ohlc(
         df_itvl["open" ] = df_smpl.groupby(index_names[:-1], as_index=False)["open"].shift(n - 1)
     else:
         df_itvl = df_smpl.copy()
-    df_itvl["interval"] = interval
+    ## Williams %R
+    df_itvl["williams_r"] = (df_itvl["close"] - df_itvl["low"]) / (df_itvl["high"] - df_itvl["low"])
+    df_itvl["interval"]   = interval
     LOGGER.info("END")
     return df_itvl
 
@@ -208,27 +211,28 @@ def ana_size_price(df: pd.DataFrame, unixtime_name: str, interval: int, sampling
             df_smpl[columns] = df_smpl[columns].fillna(0)
             for name in ["ask", "bid"]:
                 df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-            df["size"]     = df[["size_ask", "size_bid"]].sum(axis=1)
-            df_smpl["ave"] = df.groupby(index_names)[[       "ave", "size"]].apply(lambda x: np.average(x["ave"], weights=x["size"]))
-            df_smpl["var"] = df.groupby(index_names)[["var", "ave", "size"]].apply(lambda x: np.average(((x["ave"] - np.average(x["ave"], weights=x["size"])) ** 2) + x["var"], weights=x["size"]))
+            df_smpl["ave"] = (df_smpl[["volume_ask", "volume_bid"]].sum(axis=1) / df_smpl[["size_ask", "size_bid"]].sum(axis=1))
+            df["size"]     = df[["size_ask",   "size_bid"  ]].sum(axis=1)
+            df["volume"]   = df[["volume_ask", "volume_bid"]].sum(axis=1)
+            dfwk           = df[index_names + ["ave", "size", "var"]].copy()
+            dfwk.columns   = dfwk.columns.str.replace("ave", "price")
+            dfwk           = pd.merge(dfwk, df_smpl.reset_index()[index_names + ["ave"]], how="left", on=index_names)
+            dfwk["tmp"]    = ((dfwk["price"] - dfwk["ave"]).pow(2) + dfwk["var"]) * dfwk["size"]
+            df_smpl["var"] = dfwk.groupby(index_names)["tmp"].sum() / dfwk.groupby(index_names)["size"].sum()
     # [ sampling_rate -> sampling_rate, interval ]
     if sampling_rate != interval:
         df_itvl = df_base.copy()
-        df_smpl["size"] = df_smpl[["size_ask", "size_bid"]].sum(axis=1)
-        list_df = []
-        for idx in ndf_idx1:
-            if not isinstance(idx, tuple): idx = (idx, )
-            dfwkwk = df_smpl[["ave", "size", "var"]].loc[idx].iloc[ndf_idx2]
-            ndfwk1 = dfwkwk["ave" ].values.reshape(-1, n)
-            ndfwk2 = dfwkwk["size"].values.reshape(-1, n)
-            ndfwk3 = dfwkwk["var" ].values.reshape(-1, n)
-            dfwk   = pd.DataFrame(ndf_tg[ndf_idx2.reshape(-1, n)[:, -1]], columns=["timegrp"])
-            for x, y in zip(index_names, idx): dfwk[x] = y
-            dfwk["ave"] = np.average(ndfwk1, weights=ndfwk2, axis=1)
-            dfwk["var"] = np.average(ndfwk3 + (ndfwk1 - dfwk["ave"].values.reshape(-1, 1)) ** 2, weights=ndfwk2, axis=1)
-            dfwk   = dfwk.set_index(index_names)
-            list_df.append(dfwk)
-        df_itvl = pd.concat([df_itvl, pd.concat(list_df, axis=0, ignore_index=False, sort=False)], axis=1, ignore_index=False, sort=False).loc[df_itvl.index]
+        df_smpl["size"]   = df_smpl[["size_ask",   "size_bid"  ]].sum(axis=1)
+        df_smpl["volume"] = df_smpl[["volume_ask", "volume_bid"]].sum(axis=1)
+        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
+        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
+        dfwkwk  = df_smpl[["ave", "size", "var", "volume"]].iloc[ndf_idx].copy()
+        ndfwk1  = dfwkwk["ave"   ].values.reshape(-1, n)
+        ndfwk2  = dfwkwk["size"  ].values.reshape(-1, n)
+        ndfwk3  = dfwkwk["var"   ].values.reshape(-1, n)
+        ndfwk4  = dfwkwk["volume"].values.reshape(-1, n)
+        df_itvl["ave"] = np.nansum(ndfwk4, axis=-1) / np.nansum(ndfwk2, axis=-1)
+        df_itvl["var"] = np.ma.average(ndfwk3 + (ndfwk1 - df_itvl["ave"].values.reshape(-1, 1)) ** 2, weights=ndfwk2, axis=1).data
         if len(index_names) > 1:
             df_itvl[columns] = df_smpl.groupby(index_names[:-1], as_index=False)[columns].rolling(n).sum()[columns]
         else:
@@ -275,6 +279,7 @@ def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, 
                 df["__tmp"]  = df[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
                 sewk = df.groupby(index_names)["__tmp"].apply(lambda x: np.concatenate(x.tolist()))
                 df_smpl[f"ntx_{name}"] = df.groupby(index_names)[f"ntx_{name}"].sum()
+                df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
                 sewk = sewk.apply(lambda x: np.array([0,]) if x.shape[0] == 0 else x)
                 sewk = sewk.apply(lambda x: np.quantile(x, list_qtl))
                 sewk = sewk.apply(lambda x: np.quantile(x, list_qtl).tolist())
@@ -284,25 +289,19 @@ def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, 
     # [ sampling_rate -> sampling_rate, interval ]
     if sampling_rate != interval:
         df_itvl = df_base.copy()
+        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
+        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
         for name in ["ask", "bid"]:
             df_smpl["__func"] = df_smpl[[f"{x}_{name}" for x in columns]].apply(lambda x: NonLinearXY(list_qtl, x.values, is_ignore_nan=True), axis=1)
             df_smpl["__tmp"]  = df_smpl[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
             df_itvl[f"ntx_{name}"] = df_smpl.groupby(index_names[:-1], as_index=False)[f"ntx_{name}"].rolling(n).sum()[f"ntx_{name}"]
-            list_df = []
-            for idx in ndf_idx1:
-                if not isinstance(idx, tuple): idx = (idx, )
-                ndfwk = df_smpl["__tmp"].loc[idx].iloc[ndf_idx2].values.reshape(-1, n)
-                ndfwk = [np.concatenate(x) for x in ndfwk]
-                ndfwk = [np.array([0,]) if x.shape[0] == 0 else x for x in ndfwk]
-                ndfwk = [np.quantile(x, list_qtl) for x in ndfwk]
-                ndfwk = np.stack(ndfwk)
-                dfwk  = pd.DataFrame(ndf_tg[ndf_idx2.reshape(-1, n)[:, -1]], columns=["timegrp"])
-                for x, y in zip(index_names, idx): dfwk[x] = y
-                for i, _ in enumerate(list_qtl):
-                    dfwk[(columns[i] + f"_{name}")] = ndfwk[:, i]
-                dfwk  = dfwk.set_index(index_names)
-                list_df.append(dfwk)
-            df_itvl = pd.concat([df_itvl, pd.concat(list_df, axis=0, ignore_index=False, sort=False)], axis=1, ignore_index=False, sort=False).loc[df_itvl.index]
+            ndfwk = df_smpl["__tmp"].iloc[ndf_idx].values.reshape(-1, n)
+            ndfwk = [np.concatenate(x) for x in ndfwk]
+            ndfwk = [np.array([0,]) if x.shape[0] == 0 else x for x in ndfwk]
+            ndfwk = [np.quantile(x, list_qtl) for x in ndfwk]
+            ndfwk = np.stack(ndfwk)
+            for i, _ in enumerate(list_qtl):
+                df_itvl[(columns[i] + f"_{name}")] = ndfwk[:, i]
     else:
         df_itvl = df_smpl
     df_itvl["interval"] = interval
@@ -340,9 +339,12 @@ def ana_distribution_volume_price_over_time(df: pd.DataFrame, unixtime_name: str
                 assert sewk.str[n_div].isna().sum() == sewk.shape[0]
                 for i, x in enumerate({"volume": columnsv, "size": columnss}[colname]):
                     df_smpl[f"{x}_{name}"] = sewk.str[i]
+                    df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
         for cola, colv, cols in zip(columnsa, columnsv, columnss):
             df_smpl[cola] = (df_smpl[f"{colv}_ask"] + df_smpl[f"{colv}_bid"]) / (df_smpl[f"{cols}_ask"] + df_smpl[f"{cols}_bid"]).replace(0, float("nan"))
-        df_smpl[columnsa] = np.concatenate(df_smpl.groupby(index_names[:-1])[columnsa].apply(lambda x: pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div)).tolist(), axis=0)
+        dfwk              = df_smpl.groupby(index_names[:-1], group_keys=False)[columnsa].apply(lambda x: pd.DataFrame(pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div), index=x.index))
+        dfwk.columns      = columnsa
+        df_smpl[columnsa] = dfwk[columnsa]
         dfwk        = df.groupby(index_names[:-1] + ["timegrp2"])[["volume", "size"]].sum()
         dfwk["ave"] = (dfwk["volume"] / dfwk["size"])
         dfwk        = pd.merge(df[index_names[:-1] + ["timegrp2", "price", "size"]], dfwk.reset_index()[index_names[:-1] + ["timegrp2", "ave"]], how="left", on=(index_names[:-1] + ["timegrp2"]))
@@ -370,55 +372,46 @@ def ana_distribution_volume_price_over_time(df: pd.DataFrame, unixtime_name: str
                     assert sewk.str[n_div].isna().sum() == sewk.shape[0]
                     for i, x in enumerate(columns):
                         df_smpl[f"{x}_{name}"] = sewk.str[i]
-            for x in columnss: df[x] = (df[f"{x}_ask"] + df[f"{x}_bid"])
-            dfwk         = df.groupby(index_names)[columnsa].apply(lambda x: x.values.reshape(n_div, -1))
-            dfwk         = dfwk.reset_index().set_index(dfwk.index.names)
-            dfwk.columns = ["price"]
-            dfwk["size"] = df.groupby(index_names)[columnss].apply(lambda x: x.values.reshape(n_div, -1))
-            dfwk["var" ] = df.groupby(index_names)[columnsr].apply(lambda x: x.values.reshape(n_div, -1))
-            dfwk["ave" ] = dfwk[["price", "size"]].apply(lambda x: np.ma.average(x["price"], weights=x["size"], axis=-1).data, axis=1) # To avoid sum(size) == 0, which occur ZeroDivisionError, use np.ma.average. 
-            assert dfwk["ave"].str[n_div].isna().sum() == dfwk.shape[0]
-            dfwk["var2"] = dfwk[["ave", "price", "size", "var"]].apply(lambda x: np.ma.average((x["price"] - x["ave"].reshape(-1, 1)) ** 2 + x["var"], weights=x["size"], axis=-1).data, axis=1)
-            assert dfwk["var2"].str[n_div].isna().sum() == dfwk.shape[0]
-            ndfwka = np.stack(dfwk["ave" ].values, axis=0)
-            ndfwkr = np.stack(dfwk["var2"].values, axis=0)
-            boolwk = (ndfwka == 0)
-            ndfwka[boolwk] = float("nan")
-            ndfwkr[boolwk] = float("nan")
-            dfwk[columnsa] = ndfwka
-            dfwk[columnsr] = ndfwkr
-            df_smpl = pd.concat([df_smpl, dfwk[columnsa + columnsr]], axis=1, ignore_index=False, sort=False).loc[df_smpl.index]
-            df_smpl[columnsa] = np.concatenate(df_smpl.groupby(index_names[:-1])[columnsa].apply(lambda x: pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div)).tolist(), axis=0)
+                        df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
+            for x in (columnss + columnsv): df[x] = (df[f"{x}_ask"] + df[f"{x}_bid"])
+            sewkv = df.groupby(index_names)[columnsv].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
+            sewks = df.groupby(index_names)[columnss].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
+            sewka = sewkv / sewks
+            for i, x in enumerate(columnsv): df_smpl[x] = sewkv.str[i]
+            for i, x in enumerate(columnss): df_smpl[x] = sewks.str[i]
+            for i, x in enumerate(columnsa): df_smpl[x] = sewka.str[i]
+            sewks2 = df.groupby(index_names)[columnss].apply(lambda x: x.values.reshape(n_div, -1))
+            sewka2 = df.groupby(index_names)[columnsa].apply(lambda x: x.values.reshape(n_div, -1))
+            sewkr2 = df.groupby(index_names)[columnsr].apply(lambda x: x.values.reshape(n_div, -1))
+            for i, x in enumerate(columnsr): df_smpl[x] = (((sewka2.str[i] - sewka.str[i]) ** 2 + sewkr2.str[i]) * sewks2.str[i]).apply(lambda x: np.nansum(x)) / sewks.str[i]
+            dfwk              = df_smpl.groupby(index_names[:-1], group_keys=False)[columnsa].apply(lambda x: pd.DataFrame(pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div), index=x.index))
+            dfwk.columns      = columnsa
+            df_smpl[columnsa] = dfwk[columnsa]
             df_smpl[columnsr] = df_smpl[columnsr].fillna(0)
     # [ sampling_rate -> sampling_rate, interval ]
     if sampling_rate != interval:
-        for x in columnss: df_smpl[x] = (df_smpl[f"{x}_ask"] + df_smpl[f"{x}_bid"]).fillna(0)
-        df_itvl = df_base.copy()
-        list_df = []
-        for idx in ndf_idx1:
-            if not isinstance(idx, tuple): idx = (idx, )
-            dfwk = pd.DataFrame(ndf_tg[ndf_idx2.reshape(-1, n)[:, -1]], columns=["timegrp"])
-            for x, y in zip(index_names, idx): dfwk[x] = y
-            dfwk = dfwk.set_index(index_names)
-            for columns in [columnsv, columnss]:
-                for name in ["ask", "bid"]:
-                    ndfwk = df_smpl[[f"{x}_{name}" for x in columns]].loc[idx].iloc[ndf_idx2].values.reshape(-1, len(columns) * n)
-                    ndfwk = ndfwk.reshape(ndfwk.shape[0], n_div, -1)
-                    ndfwk = np.nansum(ndfwk, axis=-1)
-                    dfwk[[f"{x}_{name}" for x in columns]] = ndfwk.copy()
-            ndfwks  = df_smpl[columnss].loc[idx].iloc[ndf_idx2].values.reshape(-1, n_div, n)
-            ndfwka  = df_smpl[columnsa].loc[idx].iloc[ndf_idx2].values.reshape(-1, n_div, n)
-            ndfwkr  = df_smpl[columnsr].loc[idx].iloc[ndf_idx2].values.reshape(-1, n_div, n)
-            ndfwk1  = np.ma.average(ndfwka, weights=ndfwks, axis=-1).data
-            ndfwk2  = np.ma.average((ndfwka - ndfwk1.reshape(-1, n_div, 1)) ** 2 + ndfwkr, weights=ndfwks, axis=-1).data
-            ndfbool = (ndfwk1 == 0)
-            ndfwk1[ndfbool] = float("nan")
-            ndfwk2[ndfbool] = float("nan")
-            dfwk[columnsa]  = pd.Series(ndfwk1.reshape(-1)).ffill().values.reshape(-1, n_div)
-            dfwk[columnsr]  = ndfwk2
-            dfwk[columnsr]  = dfwk[columnsr].fillna(0)
-            list_df.append(dfwk)
-        df_itvl = pd.concat([df_itvl, pd.concat(list_df, axis=0, ignore_index=False, sort=False)], axis=1, ignore_index=False, sort=False).loc[df_itvl.index]
+        for x in (columnss + columnsv): df_smpl[x] = (df_smpl[f"{x}_ask"] + df_smpl[f"{x}_bid"]).fillna(0)
+        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])        
+        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
+        for columns in [columnsv, columnss]:
+            for name in ["ask", "bid"]:
+                ndfwk = df_smpl[[f"{x}_{name}" for x in columns]].iloc[ndf_idx].values.reshape(-1, len(columns) * n)
+                ndfwk = ndfwk.reshape(ndfwk.shape[0], n_div, -1)
+                ndfwk = np.nansum(ndfwk, axis=-1)
+                df_itvl[[f"{x}_{name}" for x in columns]] = ndfwk
+        ndfwks  = df_smpl[columnss].iloc[ndf_idx].values.reshape(-1, n_div, n)
+        ndfwka  = df_smpl[columnsa].iloc[ndf_idx].values.reshape(-1, n_div, n)
+        ndfwkr  = df_smpl[columnsr].iloc[ndf_idx].values.reshape(-1, n_div, n)
+        ndfwkv  = df_smpl[columnsv].iloc[ndf_idx].values.reshape(-1, n_div, n)
+        ndfwk1  = np.nansum(ndfwkv, axis=-1) / np.nansum(ndfwks, axis=-1)
+        ndfwk2  = np.ma.average((ndfwka - ndfwk1.reshape(-1, n_div, 1)) ** 2 + ndfwkr, weights=ndfwks, axis=-1).data
+        ndfwk2[np.isnan(ndfwk1)] = float("nan")
+        df_itvl[columnsa] = ndfwk1
+        dfwk              = df_itvl.groupby(index_names[:-1], group_keys=False)[columnsa].apply(lambda x: pd.DataFrame(pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div), index=x.index))
+        dfwk.columns      = columnsa
+        df_itvl[columnsa] = dfwk[columnsa]
+        df_itvl[columnsr] = ndfwk2
+        df_itvl[columnsr] = df_itvl[columnsr].fillna(0)
     else:
         df_itvl = df_smpl.copy()
     df_itvl["interval"] = interval
@@ -465,16 +458,16 @@ def ana_distribution_volume_over_price(df: pd.DataFrame, unixtime_name: str, int
             df["tmpx" ] = df[["tmpx",  "tmpb"]].apply(lambda x: x["tmpx" ][x["tmpb"]], axis=1)
             df["tmpy1"] = df[["tmpy1", "tmpb"]].apply(lambda x: x["tmpy1"][x["tmpb"]], axis=1)
             df["tmpy2"] = df[["tmpy2", "tmpb"]].apply(lambda x: x["tmpy2"][x["tmpb"]], axis=1)
-            sewk = df.groupby(index_names)[["tmpx", "tmpy1", "tmpy2"]].apply(
-                lambda x: (
-                    np.concatenate(np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy1"].values))[::-1]).tolist() + 
-                    np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy2"].values))[0].tolist()
-                )
+            dfwk          = df.groupby(index_names)["tmpx" ].apply(lambda x: np.concatenate(x.values)).reset_index().set_index(index_names)
+            dfwk["tmpy1"] = df.groupby(index_names)["tmpy1"].apply(lambda x: np.concatenate(x.values))
+            dfwk["tmpy2"] = df.groupby(index_names)["tmpy2"].apply(lambda x: np.concatenate(x.values))
+            sewk = dfwk[["tmpx", "tmpy1", "tmpy2"]].apply(
+                lambda x: np.concatenate(np.histogram(x["tmpx"], n_div, weights=x["tmpy1"])[::-1]).tolist() + np.histogram(x["tmpx"], n_div, weights=x["tmpy2"])[0].tolist(), axis=1
             )
             # >>> np.histogram(np.array([]), 5)
             # (array([0, 0, 0, 0, 0]), array([0. , 0.2, 0.4, 0.6, 0.8, 1. ]))
             assert sewk.str[len(list_div) + (len(list_ctr) * 2)].isna().sum() == sewk.shape[0]
-            sewk.loc[df["tmpx"].str[0].isna()] = [[] for _ in range(df["tmpx"].str[0].isna().sum())] # Force it to nan when access via sewk.str[i]
+            sewk.loc[dfwk["tmpx"].str[0].isna()] = [[] for _ in range(dfwk["tmpx"].str[0].isna().sum())] # Force it to nan when access via sewk.str[i]
             for i, x in enumerate(columns1): df_smpl[x] = sewk.str[i]
             for name, i_offset in zip(["ask", "bid"], [len(list_div), len(list_div) + n_div]):
                 for i, x in enumerate(columns2):
@@ -482,41 +475,65 @@ def ana_distribution_volume_over_price(df: pd.DataFrame, unixtime_name: str, int
                     df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
     # [ sampling_rate -> sampling_rate, interval ]
     if sampling_rate != interval:
-        df_itvl = df_base.copy()
-        list_df = []
-        for idx in ndf_idx1:
-            if not isinstance(idx, tuple): idx = (idx, )
-            dfwk            = df_smpl[columns1 + [f"{x}_{name}" for x in columns2 for name in ["ask", "bid"]]].loc[idx].iloc[ndf_idx2].copy().reset_index()
-            dfwk["timegrp"] = ndf_tg[ndf_idx2.reshape(-1, n)[:, -1]].repeat(n)
-            dfwk            = dfwk.set_index(["timegrp"])
-            dfwk["tmpx" ]   = dfwk[columns1].apply(lambda x: NonLinearXY(list_div, x.values, is_ignore_nan=True)(list_ctr, return_nan_to_value=0), axis=1)
-            dfwk["tmpy1"]   = dfwk[[f"{x}_ask" for x in columns2]].fillna(0).apply(lambda x: x.values, axis=1)
-            dfwk["tmpy2"]   = dfwk[[f"{x}_bid" for x in columns2]].fillna(0).apply(lambda x: x.values, axis=1)
-            dfwk["tmpb" ]   = dfwk["tmpx"].apply(lambda x: x > 0)
-            dfwk["tmpx" ]   = dfwk[["tmpx",  "tmpb"]].apply(lambda x: x["tmpx" ][x["tmpb"]], axis=1)
-            dfwk["tmpy1"]   = dfwk[["tmpy1", "tmpb"]].apply(lambda x: x["tmpy1"][x["tmpb"]], axis=1)
-            dfwk["tmpy2"]   = dfwk[["tmpy2", "tmpb"]].apply(lambda x: x["tmpy2"][x["tmpb"]], axis=1)
-            sewk = dfwk.groupby(["timegrp"])[["tmpx", "tmpy1", "tmpy2"]].apply(
-                lambda x: (
-                    np.concatenate(np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy1"].values))[::-1]).tolist() + 
-                    np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy2"].values))[0].tolist()
-                )
+        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])        
+        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
+        dfwk          = df_smpl[columns1 + [f"{x}_{name}" for x in columns2 for name in ["ask", "bid"]]].iloc[ndf_idx].copy().reset_index()
+        dfwk["tmpx" ] = dfwk[columns1].apply(lambda x: NonLinearXY(list_div, x.values, is_ignore_nan=True)(list_ctr, return_nan_to_value=0), axis=1)
+        dfwk["tmpy1"] = dfwk[[f"{x}_ask" for x in columns2]].fillna(0).apply(lambda x: x.values, axis=1)
+        dfwk["tmpy2"] = dfwk[[f"{x}_bid" for x in columns2]].fillna(0).apply(lambda x: x.values, axis=1)
+        dfwk["tmpb" ] = dfwk["tmpx"].apply(lambda x: x > 0)
+        dfwk["tmpx" ] = dfwk[["tmpx",  "tmpb"]].apply(lambda x: x["tmpx" ][x["tmpb"]], axis=1)
+        dfwk["tmpy1"] = dfwk[["tmpy1", "tmpb"]].apply(lambda x: x["tmpy1"][x["tmpb"]], axis=1)
+        dfwk["tmpy2"] = dfwk[["tmpy2", "tmpb"]].apply(lambda x: x["tmpy2"][x["tmpb"]], axis=1)
+        # kokokara
+        sewk = dfwk.groupby(index_names)[["tmpx", "tmpy1", "tmpy2"]].apply(
+            lambda x: (
+                np.concatenate(np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy1"].values))[::-1]).tolist() + 
+                np.histogram(np.concatenate(x["tmpx"].values), n_div, weights=np.concatenate(x["tmpy2"].values))[0].tolist()
             )
-            assert sewk.str[len(list_div) + (len(list_ctr) * 2)].isna().sum() == sewk.shape[0]
-            sewk.loc[dfwk["tmpx"].str[0].isna()] = [[] for _ in range(dfwk["tmpx"].str[0].isna().sum())] # Force it to nan when access via sewk.str[i]
-            dfwk = pd.DataFrame(ndf_tg[ndf_idx2.reshape(-1, n)[:, -1]], columns=["timegrp"]).set_index(["timegrp"])
-            for i, x in enumerate(columns1): dfwk[x] = sewk.str[i]
-            for name, i_offset in zip(["ask", "bid"], [len(list_div), len(list_div) + n_div]):
-                for i, x in enumerate(columns2):
-                    dfwk[f"{x}_{name}"] = sewk.str[i_offset + i]
-                    dfwk[f"{x}_{name}"] = dfwk[f"{x}_{name}"].fillna(0)
-            dfwk = dfwk.reset_index(drop=False)
-            for x, y in zip(index_names, idx): dfwk[x] = y
-            dfwk = dfwk.set_index(index_names)
-            list_df.append(dfwk)
-        df_itvl = pd.concat([df_itvl, pd.concat(list_df, axis=0, ignore_index=False, sort=False)], axis=1, ignore_index=False, sort=False).loc[df_itvl.index]
+        )
+        assert sewk.str[len(list_div) + (len(list_ctr) * 2)].isna().sum() == sewk.shape[0]
+        sewk.loc[dfwk["tmpx"].str[0].isna()] = [[] for _ in range(dfwk["tmpx"].str[0].isna().sum())] # Force it to nan when access via sewk.str[i]
+        for i, x in enumerate(columns1): df_itvl[x] = sewk.str[i]
+        for name, i_offset in zip(["ask", "bid"], [len(list_div), len(list_div) + n_div]):
+            for i, x in enumerate(columns2):
+                df_itvl[f"{x}_{name}"] = sewk.str[i_offset + i]
+                df_itvl[f"{x}_{name}"] = df_itvl[f"{x}_{name}"].fillna(0)
     else:
         df_itvl = df_smpl
     df_itvl["interval"] = interval
     LOGGER.info("END")
+    return df_itvl
+
+def ana_rank_corr_index(df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, index_base: pd.MultiIndex):
+    LOGGER.info("STRAT")
+    df = check_common_input(df, unixtime_name, interval, sampling_rate, from_tx=False)
+    ndf_idx1, ndf_idx2, ndf_tg, index_names, n = indexes_to_aggregate(index_base.copy(), interval, sampling_rate)
+    df_base = pd.DataFrame(index=index_base.copy())
+    # [ unixtime -> sampling_rate, sampling_rate ]
+    assert df.columns.isin(["ave"]).sum() == 1
+    df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
+    check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
+    assert (df["interval"] == sampling_rate).sum() == df.shape[0]
+    df_smpl = df.copy().sort_values(index_names).set_index(index_names)
+    # [ sampling_rate -> sampling_rate, interval ]
+    assert interval > sampling_rate
+    ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
+    df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
+    ## RCI
+    ndf     = df_smpl.iloc[ndf_idx]["ave"].values.reshape(-1, n)
+    ndf_price_rank = -1 * np.argsort(np.argsort(ndf, axis=-1)) + n
+    ndf_time_rank  = np.tile(np.arange(n, 0, -1, dtype=int), (ndf.shape[0], 1))
+    df_itvl["rci"] = 1 - (6 * ((ndf_price_rank - ndf_time_rank) ** 2).sum(axis=-1)) / (n * (n ** 2 - 1))
+    ## RSI
+    ndfwk  = ndf[:, 1:] - ndf[:, :-1]
+    ndfwk1 = ndfwk.copy()
+    ndfwk1[ndfwk1 < 0] = 0
+    ndfwk2 = ndfwk.copy()
+    ndfwk2[ndfwk2 >= 0] = 0
+    ndfwk1 = np.nansum(ndfwk1, axis=-1) / n
+    ndfwk2 = np.nansum(ndfwk2, axis=-1) / n * -1
+    df_itvl["rsi"] = ndfwk1 / (ndfwk1 + ndfwk2)
+    ## Psychological line
+    df_itvl["psy_line"] = (ndfwk > 0).sum(axis=-1) / n
     return df_itvl
