@@ -14,7 +14,7 @@ from kkpsgre.util.logger import set_logger
 
 LOGGER  = set_logger(__name__)
 COLUMNS = [
-    'var','ntx_ask','ntx_bid','size_ask','size_bid','volume_ask','volume_bid',
+    'williams_r', 'var','ntx_ask','ntx_bid','size_ask','size_bid','volume_ask','volume_bid',
     'ave_p0050','ave_p0150','ave_p0250','ave_p0350','ave_p0450','ave_p0550','ave_p0650','ave_p0750','ave_p0850','ave_p0950',
     'var_p0050','var_p0150','var_p0250','var_p0350','var_p0450','var_p0550','var_p0650','var_p0750','var_p0850','var_p0950',
     'price_h0000','price_h0050','price_h0100','price_h0150','price_h0200','price_h0250','price_h0300','price_h0350','price_h0400','price_h0450','price_h0500','price_h0550','price_h0600','price_h0650','price_h0700','price_h0750','price_h0800','price_h0850','price_h0900','price_h0950','price_h1000',
@@ -33,81 +33,50 @@ if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
     parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", default=(timenow - datetime.timedelta(hours=1)))
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
-    parser.add_argument("--sr", type=int, help="sampling rate. --sr 120", default=120)
-    parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], default="120,480,2400,14400,86400")
+    parser.add_argument("--frsr", type=int, help="sampling rate. --frsr 60",  default=60)
+    parser.add_argument("--tosr", type=int, help="sampling rate. --tosr 120", default=120)
+    parser.add_argument("--type",   type=int)
+    parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], help="--itvls 120,480,2400,14400,86400", default="120,480,2400,14400")
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
+    assert args.type in [1, 2]
     DB   = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
     df   = DB.select_sql(
-        f"SELECT symbol, unixtime, type, interval, open, high, low, close, ave, " + ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
-        f"FROM mart_ohlc WHERE type = 0 AND interval = 60 AND unixtime >= '{args.fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{args.to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+        f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
+        f"FROM mart_ohlc WHERE type = {0 if args.type == 1 else 1} AND interval = {args.frsr} AND sampling_rate = {args.frsr} AND " + 
+        f"unixtime >= '{(args.fr - datetime.timedelta(seconds=(max(args.itvls) + args.tosr + args.frsr))).strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
+        f"unixtime <  '{args.to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
     )
+    df   = pd.concat([df.iloc[:, :-1], pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())[COLUMNS]], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
     for interval in args.itvls:
-        sampling_rate = args.sr
+        LOGGER.info(f"processing sampling rate: {args.tosr}, interval: {interval}", color=["BOLD", "GREEN"])
+        sampling_rate = args.tosr
         unixtime_name = "unixtime"
         from_tx = False
-        df_ohlc    = create_ohlc(df[['symbol', 'unixtime', 'type', 'interval', 'open', 'high', 'low', 'close']], "unixtime", interval, args.sr, args.fr, args.to, index_names=["symbol"], from_tx=False)
+        df_ohlc    = create_ohlc(df[['symbol', 'unixtime', 'type', 'interval', 'open', 'high', 'low', 'close']], "unixtime", interval, args.tosr, args.fr, args.to, index_names=["symbol"], from_tx=False)
         index_base = df_ohlc.index.copy()
         list_df    = []
-        list_df.append(ana_size_price(                         df[['symbol', 'unixtime', 'interval', 'ave', 'var','ntx_ask','ntx_bid','size_ask','size_bid','volume_ask','volume_bid']],                     "unixtime", interval, args.sr, index_base, from_tx=False))
-        list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "interval", "ntx_ask", "ntx_bid"] + df.columns[df.columns.str.find("volume_q") == 0].tolist()],                     "unixtime", interval, args.sr, index_base, from_tx=False, n_div=20))
-        list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(volume|size|ave|var)_p[0-9]")]].tolist()], "unixtime", interval, args.sr, index_base, from_tx=False, n_div=10))
-        list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(price|volume_price)_h[0-9]" )]].tolist()], "unixtime", interval, args.sr, index_base, from_tx=False, n_div=20))
-        # ana_rank_corr_index(dfwk, "unixtime", interval, args.sr, index_base)
-    raise
-    ndfcol  = np.array(DB.db_layout["mart_ohlc"])
-    ndfcol  = ndfcol[ndfcol != "attrs"]
-    df      = DB.select_sql(
-        f"SELECT " + ", ".join(ndfcol.tolist()) + ", " + ", ".join(['CAST(attrs->"$.' + x + '" AS FLOAT) as ' + x for x in COLUMNS]) + " FROM mart_ohlc " + 
-        f"WHERE interval = {INTERVAL_BASE} and unixtime >= {int(args.fr.timestamp())} and unixtime < {int(args.to.timestamp())};"
-    ).sort_values(["symbol", "unixtime"]).reset_index(drop=True).set_index(["symbol", "unixtime"])
-    df_ohlc = pd.DataFrame(index=df.index.copy())
-    for interval in INTERVALS:
-        num   = interval // INTERVAL_BASE
-        nlist = [x for x in range(num)]
-        dfwk  = df.groupby("symbol").shift(nlist)
-        df_ohlc["interval"] = interval
-        df_ohlc["open"]     = dfwk[[f"open_{x}"  for x in nlist]].iloc[:, -1]
-        df_ohlc["high"]     = dfwk[[f"high_{x}"  for x in nlist]].max(axis=1)
-        df_ohlc["low"]      = dfwk[[f"low_{x}"   for x in nlist]].min(axis=1)
-        df_ohlc["close"]    = dfwk[[f"close_{x}" for x in nlist]].iloc[:, 0]
-        for name in ["ask", "bid"]:
-            for col in ["amount", "size", "ntx"]:
-                df_ohlc[f"{col}_{name}"] = dfwk[[f"{col}_{name}_{x}" for x in nlist]].fillna(0).sum(axis=1)
-        for name in ["ask", "bid"]:
-            df_ohlc[f"ave_{name}"] = (df_ohlc[f"amount_{name}"] / df_ohlc[f"size_{name}"]).replace(float("inf"), float("nan"))
-        for col in ["amount", "size", "ntx"]:
-            df_ohlc[f"{col}_sum" ] = df_ohlc[f"{col}_ask"] + df_ohlc[f"{col}_bid"]
-            df_ohlc[f"{col}_diff"] = df_ohlc[f"{col}_ask"] - df_ohlc[f"{col}_bid"]
-            df_ohlc[f"{col}_sum" ] = df_ohlc[f"{col}_sum" ].fillna(0)
-            df_ohlc[f"{col}_diff"] = df_ohlc[f"{col}_diff"].fillna(0)
-        df_ohlc["ave"] = (df_ohlc["amount_sum"] / df_ohlc["size_sum"]).replace(float("inf"), float("nan"))
-        # amount_qXXX_ask/bid
-        ndf_div = np.arange(0, 1.0000000001, 1/N_DIVIDE)
-        for name in ["ask", "bid"]:
-            dftmp = pd.DataFrame(index=dfwk.index.copy())
-            for n in nlist:
-                dfwkwk = pd.DataFrame(index=dfwk.index.copy())
-                dfwkwk["func"] = dfwk[[f"amount_q{str(int(x*100)).zfill(3)}_{name}_{n}" for x in ndf_div]].apply(lambda x: NonLinearXY(ndf_div, x.values.copy()), axis=1)
-                dfwkwk["x"]    = dfwk.loc[dfwk[f"ntx_{name}_{n}"] >= 2, f"ntx_{name}_{n}"].apply(lambda x: np.array(np.arange(0, 1, 1/(x-1)).tolist() + [1.0]))
-                dfwkwk.loc[dfwk[f"ntx_{name}_{n}"] == 1, "x"] = dfwkwk.loc[dfwk[f"ntx_{name}_{n}"] == 1, "x"].apply(lambda x: np.array([0.0]))
-                dfwkwk.loc[dfwk[f"ntx_{name}_{n}"] == 0, "x"] = dfwkwk.loc[dfwk[f"ntx_{name}_{n}"] == 0, "x"].apply(lambda x: np.array([]))
-                dfwkwk.loc[dfwkwk["x"].isna(),           "x"] = dfwkwk.loc[dfwkwk["x"].isna(),           "x"].apply(lambda x: np.array([]))
-                dftmp[n] = dfwkwk.apply(lambda x: x["func"].call_numpy(x["x"]), axis=1)
-            setmp = dftmp.apply(lambda x: np.concatenate(x), axis=1)
-            setmp = setmp.loc[~setmp.str[0].isna()].apply(lambda x: np.quantile(x, ndf_div))
-            for q, idx in zip(ndf_div, np.arange(N_DIVIDE+1)):
-                df_ohlc[f"amount_q{str(int(q*100)).zfill(3)}_{name}"] = setmp.str[idx]
-                df_ohlc = df_ohlc
-        # amount_pXX_ask/bid
-        for name in ["ask", "bid"]:
-            ndftmp = None
-            for n in nlist:
-                ndfwk = dfwk[[f"amount_p{str(y).zfill(2)}_{name}_{n}" for y in range(10, 0, -1)]].values.copy()
-                if ndftmp is None: ndftmp = ndfwk.copy()
-                else: ndftmp = np.concatenate([ndftmp, ndfwk], axis=-1)
-            ndftmp[np.isnan(ndftmp)] = 0.0
-            ndftmp = ndftmp.reshape(-1, 10, num).sum(axis=-1)
-            for p, idx in zip(range(10, 0, -1), range(10)):
-                df_ohlc[f"amount_p{str(p).zfill(2)}_{name}"] = ndftmp[:, idx]
+        list_df.append(ana_size_price(                         df[['symbol', 'unixtime', 'interval', 'ave', 'var','ntx_ask','ntx_bid','size_ask','size_bid','volume_ask','volume_bid']],                     "unixtime", interval, args.tosr, index_base, from_tx=False))
+        list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "interval", "ntx_ask", "ntx_bid"] + df.columns[df.columns.str.find("volume_q") == 0].tolist()],                     "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=20))
+        list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(volume|size|ave|var)_p[0-9]")]].tolist()], "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=10))
+        list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(price|volume_price)_h[0-9]" )]].tolist()], "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=20))
+        if args.type == 2:
+            list_df.append(ana_rank_corr_index(                df[['symbol', 'unixtime', 'interval', 'ave']],                                                                                                "unixtime", interval, args.tosr, index_base))
+        df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
+        df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
+        df_ohlc = df_ohlc.reset_index()
+        df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
+        df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(args.fr.timestamp())) & (df_ohlc["unixtime"] < int(args.to.timestamp()))]
+        df_ohlc["type"]     = args.type
+        df_ohlc["unixtime"] = (df_ohlc["unixtime"] + args.tosr)
+        df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
+        df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
+        if args.update and df_ohlc.shape[0] > 0:
+            DB.delete_sql("mart_ohlc", str_where=(
+                f"interval = {interval} and sampling_rate = {args.tosr} and type = {df_ohlc['type'].iloc[0]} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 
+                f"unixtime >= " + df_ohlc["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
+                f"unixtime <= " + df_ohlc["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
+            ))
+            DB.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
+            DB.execute_sql()

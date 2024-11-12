@@ -3,6 +3,7 @@ CREATE TABLE public.mart_ohlc (
     unixtime timestamp with time zone NOT NULL,
     type smallint NOT NULL,
     "interval" integer NOT NULL,
+    sampling_rate integer NOT NULL,
     open real,
     high real,
     low real,
@@ -12,9 +13,10 @@ CREATE TABLE public.mart_ohlc (
 );
 
 ALTER TABLE ONLY public.mart_ohlc
-    ADD CONSTRAINT mart_ohlc_pkey PRIMARY KEY (symbol, unixtime, type, "interval");
+    ADD CONSTRAINT mart_ohlc_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
 
 CREATE INDEX mart_ohlc_0 ON public.mart_ohlc USING btree (symbol);
 CREATE INDEX mart_ohlc_1 ON public.mart_ohlc USING btree (unixtime);
 CREATE INDEX mart_ohlc_2 ON public.mart_ohlc USING btree (type);
 CREATE INDEX mart_ohlc_3 ON public.mart_ohlc USING btree ("interval");
+CREATE INDEX mart_ohlc_4 ON public.mart_ohlc USING btree (sampling_rate);
