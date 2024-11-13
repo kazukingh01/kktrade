@@ -2,7 +2,6 @@ import datetime, argparse
 import pandas as pd
 import numpy as np
 # local package
-from kktrade.core.mart import get_executions, EXCHANGES
 from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_volume, \
     ana_distribution_volume_price_over_time, ana_distribution_volume_over_price, ana_rank_corr_index, indexes_to_aggregate, check_common_input, check_interval
 from kkpsgre.psgre import DBConnector
@@ -40,6 +39,10 @@ if __name__ == "__main__":
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.type in [1, 2]
+    assert args.frsr % 60 == 0
+    assert args.tosr % args.frsr == 0
+    for x in args.itvls: assert x % args.tosr == 0
+    LOGGER.info(f"args: {args}")
     DB   = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
     df   = DB.select_sql(
         f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
