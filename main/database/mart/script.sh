@@ -4,7 +4,7 @@ set -eu
 ST_DATE="2019-12-12"
 ED_DATE="2022-01-01"
 
-# python txs_to_ohlc.py --fr ${ST_DATE} --to ${ED_DATE} --hours 0,12 --update
+python txs_to_ohlc.py --fr ${ST_DATE} --to ${ED_DATE} --hours 0,4,8,12,16,20 --update
 CR_DATE=$(date -d "$ST_DATE" +"%Y-%m-%d")
 NX_DATE=$(date -d "$CR_DATE + 1 day" +"%Y-%m-%d")
 while [ "$(date -d "$CR_DATE" +%Y%m%d)" != "$(date -d "$ED_DATE + 1 day" +%Y%m%d)" ]; do
