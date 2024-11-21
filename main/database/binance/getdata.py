@@ -329,9 +329,9 @@ if __name__ == "__main__":
                 time_since = int((date + datetime.timedelta(hours=hour+ 0)).timestamp() * 1000)
                 time_until = int((date + datetime.timedelta(hours=hour+12)).timestamp() * 1000)
                 for symbol in mst_id.keys():
-                    for kline in ["mark", "index"]:
+                    for kline in list(KILNE_URL.keys()):
                         LOGGER.info(f"{args.fn}: {date}, {hour}, {symbol}, {kline}")
-                        df = getkline(kline, symbol=symbol, interval=1, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
+                        df = getkline(kline, symbol=symbol, interval="1m", start=time_since, end=time_until, limit=1000, mst_id=mst_id)
                         if df.shape[0] > 0 and args.update:
                             insert(
                                 src, df, f"{EXCHANGE}_kline", True,
