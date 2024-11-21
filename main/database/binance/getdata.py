@@ -154,10 +154,11 @@ def getfundingrate(symbol: str="USDS@BTCUSDT", start: int=None, end: int=None, l
     r = requests.get(f"{URL_BASE[url_type]}fundingRate", params=dict({"symbol": _symbol, "startTime": start, "endTime": end, "limit": limit}))
     assert r.status_code == 200
     df = pd.DataFrame(r.json())
+    if df.shape[0] == 0: df = pd.DataFrame(columns=["fundingTime", "fundingRate", "markPrice"])
     df["unixtime"]     = pd.to_datetime(df["fundingTime"].astype(int), unit="ms", utc=True)
     df["symbol"]       = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["funding_rate"] = df["fundingRate"].astype(float)
-    df["mark_price"]   = df["markPrice"].astype(float)
+    df["mark_price"]   = df["markPrice"].replace("", float("nan")).astype(float)
     return df
 
 def getopeninterest(symbol: str="USDS@BTCUSDT", interval: str="5m", start: int=None, end: int=None, limit: int=100, mst_id: dict=None):
@@ -340,3 +341,79 @@ if __name__ == "__main__":
                                     f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                                 )
                             )
+    elif "getallfundingrate" == args.fn:
+        assert args.fr is not None and args.to is not None
+        date_since, date_until = args.fr, args.to
+        date_list = [date_since + datetime.timedelta(days=x) for x in range(0, (date_until - date_since).days, 100)] + [date_until]
+        for i_date, date in enumerate(date_list[:-1]):
+            time_since = int(date.               timestamp() * 1000)
+            time_until = int(date_list[i_date+1].timestamp() * 1000)
+            for symbol in list(mst_id.keys()):
+                LOGGER.info(f"{args.fn}: {date}, {date_list[i_date+1]}, {symbol}")
+                df = getfundingrate(symbol=symbol, start=time_since, end=time_until, limit=1000, mst_id=mst_id)
+                if df.shape[0] > 0 and args.update:
+                    insert(
+                        src, df, f"{EXCHANGE}_funding_rate", True,
+                        add_sql=(
+                            f"symbol = {df['symbol'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
+                        ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                    )
+    elif "getallopeninterest" == args.fn:
+        # Only the data of the latest 30 days is available.
+        date_since = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=30)
+        date_since = datetime.datetime(date_since.year, date_since.month, date_since.day, tzinfo=datetime.UTC)
+        date_list  = [date_since + datetime.timedelta(days=x) for x in range(30)] + [datetime.datetime.now(tz=datetime.UTC)]
+        for i_date, date in enumerate(date_list[:-1]):
+            time_since = int(date.               timestamp() * 1000)
+            time_until = int(date_list[i_date+1].timestamp() * 1000)
+            for symbol in list(mst_id.keys()):
+                LOGGER.info(f"{args.fn}: {date}, {date_list[i_date+1]}, {symbol}")
+                df = getopeninterest(symbol=symbol, interval="5m", start=time_since, end=time_until, limit=500, mst_id=mst_id)
+                if df.shape[0] > 0 and args.update:
+                    insert(
+                        src, df, f"{EXCHANGE}_open_interest", True,
+                        add_sql=(
+                            f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
+                        ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                    )
+    elif "getalllongshortratio" == args.fn:
+        # Only the data of the latest 30 days is available.
+        date_since = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=30)
+        date_since = datetime.datetime(date_since.year, date_since.month, date_since.day, tzinfo=datetime.UTC)
+        date_list  = [date_since + datetime.timedelta(days=x) for x in range(30)] + [datetime.datetime.now(tz=datetime.UTC)]
+        for i_date, date in enumerate(date_list[:-1]):
+            time_since = int(date.               timestamp() * 1000)
+            time_until = int(date_list[i_date+1].timestamp() * 1000)
+            for symbol in list(mst_id.keys()):
+                for ls_type in list(LS_RATIO_TYPE.keys()):
+                    LOGGER.info(f"{args.fn}: {date}, {date_list[i_date+1]}, {ls_type}, {symbol}")
+                    df = getlongshortratio(ls_type, symbol=symbol, interval="5m", start=time_since, end=time_until, limit=500, mst_id=mst_id)
+                    if df.shape[0] > 0 and args.update:
+                        insert(
+                            src, df, f"{EXCHANGE}_long_short", True,
+                            add_sql=(
+                                f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
+                            ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                        )
+    elif "getalltakervolume" == args.fn:
+        # Only the data of the latest 30 days is available.
+        date_since = datetime.datetime.now(tz=datetime.UTC) - datetime.timedelta(days=30)
+        date_since = datetime.datetime(date_since.year, date_since.month, date_since.day, tzinfo=datetime.UTC)
+        date_list  = [date_since + datetime.timedelta(days=x) for x in range(30)] + [datetime.datetime.now(tz=datetime.UTC)]
+        for i_date, date in enumerate(date_list[:-1]):
+            time_since = int(date.               timestamp() * 1000)
+            time_until = int(date_list[i_date+1].timestamp() * 1000)
+            for symbol in list(mst_id.keys()):
+                LOGGER.info(f"{args.fn}: {date}, {date_list[i_date+1]}, {symbol}")
+                df = gettakervolume(symbol=symbol, interval="5m", start=time_since, end=time_until, limit=500, mst_id=mst_id)
+                if df.shape[0] > 0 and args.update:
+                    insert(
+                        src, df, f"{EXCHANGE}_taker_volume", True,
+                        add_sql=(
+                            f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
+                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
+                        ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                    )
