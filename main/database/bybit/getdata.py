@@ -165,6 +165,14 @@ def getlongshortratio(symbol: str="inverse@BTCUSD", interval: str="5min", start:
     assert r.status_code == 200
     df = pd.DataFrame(r.json()["result"]["list"])
     if df.shape[0] == 0: return df
+    """
+    to avoid below data, run groupby().first()
+    >>> df.loc[df["unixtime"] == "2021-11-21 15:30:00+00:00"]
+        symbol buyRatio sellRatio      timestamp                  unixtime  interval    long   short
+    102      11   0.5523    0.4477  1637508600000 2021-11-21 15:30:00+00:00       300  0.5523  0.4477
+    103      11   0.5523    0.4477  1637508600000 2021-11-21 15:30:00+00:00       300  0.5523  0.4477
+    """
+    df             = df.groupby("timestamp").first().reset_index()
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["unixtime"] = pd.to_datetime(df['timestamp'].astype(int), unit='ms', utc=True)
     df["interval"] = {"5min":5*60,"15min":15*60,"30min":30*60,"1h":60*60,"4h":4*60*60,"1d":24*60*60}[interval]
