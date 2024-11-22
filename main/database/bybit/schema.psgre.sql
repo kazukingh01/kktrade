@@ -1597,6 +1597,26 @@ ALTER TABLE public.bybit_ticker OWNER TO postgres;
 
 
 --
+-- Name: bybit_ticker; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bybit_funding_rate (
+    symbol smallint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
+    funding_rate real
+);
+
+
+ALTER TABLE public.bybit_funding_rate OWNER TO postgres;
+
+
+ALTER TABLE ONLY public.bybit_funding_rate
+    ADD CONSTRAINT bybit_funding_rate_pkey PRIMARY KEY (symbol, unixtime);
+CREATE INDEX bybit_funding_rate_0 ON public.bybit_funding_rate USING btree (symbol);
+CREATE INDEX bybit_funding_rate_1 ON public.bybit_funding_rate USING btree (unixtime);
+
+
+--
 -- Name: bybit_kline bybit_kline_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 

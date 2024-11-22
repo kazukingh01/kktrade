@@ -1570,6 +1570,14 @@ CREATE TABLE bybit_ticker (
 );
 
 
+CREATE TABLE bybit_funding_rate (
+    symbol SMALLINT NOT NULL,
+    unixtime DATETIME NOT NULL,
+    funding_rate FLOAT,
+    PRIMARY KEY (symbol, unixtime)
+);
+
+
 CREATE INDEX bybit_executions_0 ON bybit_executions (symbol);
 CREATE INDEX bybit_executions_1 ON bybit_executions (id);
 CREATE INDEX bybit_executions_2 ON bybit_executions (unixtime);
@@ -1584,3 +1592,6 @@ CREATE INDEX bybit_orderbook_1 ON bybit_orderbook (symbol);
 
 CREATE INDEX bybit_ticker_0 ON bybit_ticker (symbol);
 CREATE INDEX bybit_ticker_1 ON bybit_ticker (unixtime);
+
+CREATE INDEX bybit_funding_rate_0 ON bybit_funding_rate (symbol);
+CREATE INDEX bybit_funding_rate_1 ON bybit_funding_rate (unixtime);
