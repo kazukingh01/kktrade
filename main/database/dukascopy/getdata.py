@@ -100,7 +100,7 @@ if __name__ == "__main__":
     parser.add_argument("--db",     action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
-    print(args)
+    LOGGER.info(f"{args}")
     assert args.days <= 3 # The maximum records with 1 miniute interval is 5000. 3 days data is 60 * 24 * 3 = 4320
     assert args.fn in FUNCTIONS
     src    = DBConnector(HOST, PORT, DBNAME, USER, PASS, dbtype=DBTYPE, max_disp_len=200) if args.db else f"{args.ip}:{args.port}"

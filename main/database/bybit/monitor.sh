@@ -7,5 +7,7 @@ if [ -z "$VAR_NAME" ]; then
 fi
 
 EXCHANGE="bybit"
-COMMANDS=("getorderbook" "getexecutions" "getticker" "getkline")
+COMMANDS=("getorderbook" "getexecutions" "getticker" "getkline" "getfundingrate" "getopeninterest" "getlongshortratio")
 source ${HOMETRADE}/main/database/monitor.base.sh
+
+
