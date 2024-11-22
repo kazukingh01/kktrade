@@ -1616,6 +1616,21 @@ CREATE INDEX bybit_funding_rate_0 ON public.bybit_funding_rate USING btree (symb
 CREATE INDEX bybit_funding_rate_1 ON public.bybit_funding_rate USING btree (unixtime);
 
 
+CREATE TABLE public.bybit_open_interest (
+    symbol smallint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
+    "interval" smallint NOT NULL,
+    open_interest real
+);
+
+ALTER TABLE ONLY public.bybit_open_interest
+    ADD CONSTRAINT bybit_open_interest_pkey PRIMARY KEY (symbol, unixtime, "interval");
+
+CREATE INDEX bybit_open_interest_0 ON public.bybit_open_interest USING btree (symbol);
+CREATE INDEX bybit_open_interest_1 ON public.bybit_open_interest USING btree (unixtime);
+CREATE INDEX bybit_open_interest_2 ON public.bybit_open_interest USING btree ("interval");
+
+
 --
 -- Name: bybit_kline bybit_kline_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
