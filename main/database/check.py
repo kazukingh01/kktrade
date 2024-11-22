@@ -28,6 +28,9 @@ TABLES = {
     'bybit_kline'          : None, 
     'bybit_orderbook'      : ["symbol", "unixtime"],
     'bybit_ticker'         : ["symbol", "unixtime"],
+    'bybit_funding_rate'   : None,
+    'bybit_long_short'     : None,
+    'bybit_open_interest'  : None,
     # 'dukascopy_ohlcv'      : None, 
     # 'economic_calendar'    : None,
 }
