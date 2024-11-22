@@ -1631,6 +1631,22 @@ CREATE INDEX bybit_open_interest_1 ON public.bybit_open_interest USING btree (un
 CREATE INDEX bybit_open_interest_2 ON public.bybit_open_interest USING btree ("interval");
 
 
+CREATE TABLE public.bybit_long_short (
+    symbol smallint NOT NULL,
+    unixtime timestamp with time zone NOT NULL,
+    "interval" smallint NOT NULL,
+    long real,
+    short real
+);
+
+ALTER TABLE ONLY public.bybit_long_short
+    ADD CONSTRAINT bybit_long_short_pkey PRIMARY KEY (symbol, unixtime, "interval");
+
+CREATE INDEX bybit_long_short_0 ON public.bybit_long_short USING btree (symbol);
+CREATE INDEX bybit_long_short_1 ON public.bybit_long_short USING btree (unixtime);
+CREATE INDEX bybit_long_short_2 ON public.bybit_long_short USING btree ("interval");
+
+
 --
 -- Name: bybit_kline bybit_kline_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --

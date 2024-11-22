@@ -4,3 +4,4 @@ db.getSiblingDB("trade").createCollection("bybit_kline",        { timeseries: {t
 db.getSiblingDB("trade").createCollection("bybit_ticker",       { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "seconds" }})
 db.getSiblingDB("trade").createCollection("bybit_funding_rate", { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "hours"   }})
 db.getSiblingDB("trade").createCollection("bybit_open_interest",{ timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "minutes" }})
+db.getSiblingDB("trade").createCollection("bybit_long_short",   { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "minutes" }})

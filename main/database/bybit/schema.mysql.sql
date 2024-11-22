@@ -1587,6 +1587,15 @@ CREATE TABLE bybit_open_interest (
 );
 
 
+CREATE TABLE bybit_long_short (
+    symbol SMALLINT NOT NULL,
+    unixtime DATETIME NOT NULL,
+    `interval` SMALLINT NOT NULL,
+    long FLOAT,
+    short FLOAT,
+    PRIMARY KEY (symbol, unixtime, `interval`)
+);
+
 
 CREATE INDEX bybit_executions_0 ON bybit_executions (symbol);
 CREATE INDEX bybit_executions_1 ON bybit_executions (id);
@@ -1609,3 +1618,7 @@ CREATE INDEX bybit_funding_rate_1 ON bybit_funding_rate (unixtime);
 CREATE INDEX bybit_open_interest_0 ON bybit_open_interest (symbol);
 CREATE INDEX bybit_open_interest_1 ON bybit_open_interest (unixtime);
 CREATE INDEX bybit_open_interest_2 ON bybit_open_interest (`interval`);
+
+CREATE INDEX bybit_long_short_0 ON bybit_long_short (symbol);
+CREATE INDEX bybit_long_short_1 ON bybit_long_short (unixtime);
+CREATE INDEX bybit_long_short_2 ON bybit_long_short (`interval`);
