@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 # local package
 from kkpsgre.psgre import DBConnector
-from kkpsgre.util.com import check_type
+from kkpsgre.util.com import check_type, check_type_list
 from kkpsgre.util.logger import set_logger
 
 
@@ -67,7 +67,7 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     LOGGER.info("END")
     return df
 
-def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime.datetime, type: int, interval: int, sampling_rate: int):
+def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime.datetime, type: int, interval: int, sampling_rate: int, exchanges: str=["bybit", "binance"]):
     LOGGER.info("START")
     assert isinstance(db, DBConnector)
     assert isinstance(date_fr, datetime.datetime)
@@ -76,12 +76,21 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     assert isinstance(type, int)     and type in [0,1,2]
     assert isinstance(interval,      int) and (interval % 60) == 0
     assert isinstance(sampling_rate, int) and (interval % sampling_rate) == 0
-    df = db.select_sql(
+    assert exchanges is None or (isinstance(exchanges, list) and check_type_list(exchanges, str))
+    symbols = None
+    if exchanges is not None:
+        df_mst  = db.select_sql(f"select * from master_symbol where exchange in ('" + "','".join(exchanges) +"');")
+        symbols = df_mst["symbol_id"].tolist()
+    sql = (
         f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
         f"FROM mart_ohlc WHERE type = {type} AND interval = {interval} AND sampling_rate = {sampling_rate} AND " + 
         f"unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
-        f"unixtime <  '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+        f"unixtime <  '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' "
     )
+    if symbols is not None:
+        sql += " AND symbol in (" + ",".join([str(x) for x in symbols]) + ") "
+    sql += ";"
+    df = db.select_sql(sql)
     df = pd.concat([df.iloc[:, :-1], pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())[COLUMNS_MART]], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
     LOGGER.info("END")
