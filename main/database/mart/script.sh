@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eu
 
-ST_DATE="2019-12-12"
-ED_DATE="2022-01-01"
+ST_DATE="2019-01-01"
+ED_DATE="2024-09-30"
 
 python txs_to_ohlc.py --fr ${ST_DATE} --to ${ED_DATE} --hours 0,6,12,18 --update
 CR_DATE=$(date -d "$ST_DATE" +"%Y-%m-%d")

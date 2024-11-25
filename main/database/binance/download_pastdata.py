@@ -128,6 +128,7 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=lambda x: datetime.datetime.fromisoformat(str(x) + "T00:00:00Z"), help="--to 20200101", required=True)
     parser.add_argument("--chunk", type=int, help="--chunk 1000000")
     parser.add_argument("--num",   type=int, default=1000)
+    parser.add_argument("--sbls",  type=lambda x: [int(y) for y in x.split(",")], default=None)
     parser.add_argument("--fn",    type=lambda x: x.split(","), default="trade,index,fundingrate")
     parser.add_argument("--ip",   type=str, default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
@@ -144,6 +145,7 @@ if __name__ == "__main__":
     for x in args.fn: assert x in ["trade", "index", "fundingrate"]
     for date in [date_st + datetime.timedelta(days=x) for x in range((date_ed - date_st).days + 1)]:
         for symbol in mst_id.keys():
+            if args.sbls is not None and not mst_id[symbol] in args.sbls: continue
             LOGGER.info(f"date: {date}, symbol: {symbol}")
             # executions
             if "trade" in args.fn:

@@ -90,9 +90,11 @@ def check_first_date(db_bk: DBConnector, df_mst: pd.DataFrame):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", required=True)
-    parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", required=True)
-    parser.add_argument("--sr", type=int, help="--sr 600", default=600)
+    parser.add_argument("--fr",   type=str_to_datetime, help="--fr 20200101", required=True)
+    parser.add_argument("--to",   type=str_to_datetime, help="--to 20200101", required=True)
+    parser.add_argument("--tbls", type=lambda x: x.split(","), help="--sr 600", default=",".join(list(TABLES.keys())))
+    parser.add_argument("--dbs",  type=lambda x: x.split(","), help="--sr 600", default="bs,bk,to")
+    parser.add_argument("--sr",   type=int, help="--sr 600", default=600)
     args    = parser.parse_args()
     LOGGER.info(f"args: {args}")
     DB_BS    = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200)
@@ -105,7 +107,8 @@ if __name__ == "__main__":
     df_base  = pd.merge(df_base, df_mst, how="left", left_on="symbol", right_on="symbol_id")
     df_base  = pd.merge(df_base, pd.DataFrame([[x, str_to_datetime(y)] for x, y in SYMBOL_ACTIVE.items()], columns=["symbol", "active_date"]), how="left", on="symbol")
     # Base
-    for tblname, pkeys in TABLES.items():
+    for tblname, pkeys in {x: TABLES[x] for x in args.tbls}.items():
+        if not "bs" in args.dbs: continue
         exchange, table_type = tblname.split("_")[0], "_".join(tblname.split("_")[1:])
         if pkeys is None: pkeys = DB_BS.db_constraint[tblname]
         LOGGER.info(f"exchange: {exchange}, table_type: {table_type}, table name: {tblname}, pkeys: {pkeys}", color=["BOLD", "GREEN"])
@@ -119,20 +122,48 @@ if __name__ == "__main__":
         df_check = df_check.loc[df_check["exchange"] == exchange]
         df_check["unixtime"] = pd.to_datetime(df_check["timestamp"], unit="s", utc=True)
         if tblname in ["binance_funding_rate"]:
-            df_check = df_check.loc[df_check["unixtime"].dt.hour.isin([0, 8, 16])]
-            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0] != "SPOT"]
-        elif table_type in ["binance_long_short", "binance_open_interest", "binance_taker_volume"]:
-            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0] != "SPOT"]
+            df_check = df_check.loc[df_check["unixtime"].dt.hour.isin([0, 8, 16]) & (df_check["unixtime"].dt.minute == 0)]
+            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0].isin(["USDS", "COIN"])]
+        elif tblname in ["bybit_funding_rate"]:
+            df_check = df_check.loc[df_check["unixtime"].dt.hour.isin([0, 8, 16]) & (df_check["unixtime"].dt.minute == 0)]
+            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0].isin(["linear", "inverse"])]
         elif tblname in ["bitflyer_fundingrate"]:
             df_check = df_check.loc[df_check["symbol_name"] == "FX_BTC_JPY"]
+        elif tblname in ["binance_long_short", "binance_open_interest", "binance_taker_volume"]:
+            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0].isin(["USDS", "COIN"])]
+        elif tblname in ["bybit_long_short", "bybit_open_interest"]:
+            df_check = df_check.loc[df_check["symbol_name"].str.split("@").str[0].isin(["linear", "inverse"])]
         if df_check.shape[0] == 0:
             LOGGER.warning("Nothing data.")
         else:
             df_check = df_check.loc[df_check["unixtime"] >= df_check["active_date"]]
             for ndfwk in df_check.loc[df_check["n_records"].isna(), pkeys].values:
                 LOGGER.warning(", ".join([f"{x}: {y}" for x, y in zip(pkeys, ndfwk)]))
-
-    # df = DB_BK.select_sql(f"SELECT symbol, unixtime FROM {tblname} WHERE unixtime >= '{args.fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{args.to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-    # df["timestamp"] = (df["unixtime"].astype(int) // 10e8).astype(int)
-    # df["timestamp"] = df["timestamp"] // args.sr * args.sr
-    # df_check = pd.merge(df_base.loc[df_base["exchange"] == ""], df.groupby(["symbol", "timestamp"]).size().reset_index(), how="left", on="")
+    # Backup
+    for tblname, pkeys in {x: TABLES[x] for x in ["binance_executions", "bybit_executions"]}.items():
+        if not "bk" in args.dbs: continue
+        exchange, table_type = tblname.split("_")[0], "_".join(tblname.split("_")[1:])
+        list_datetime = [args.fr + datetime.timedelta(seconds=(x * 3600)) for x in range(0, int((args.to - args.fr).total_seconds() // 3600))] + [args.to] # Check hourly data
+        df = []
+        for _datetime in list_datetime[:-1]:
+            dfwk = DB_BK.select_sql(
+                f"SELECT symbol, unixtime FROM {tblname} WHERE " + 
+                f"unixtime >= '{_datetime.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
+                f"unixtime <  '{(_datetime + datetime.timedelta(seconds=120)).strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
+            )
+            df.append(dfwk)
+        df = pd.concat(df, axis=0, ignore_index=True, sort=False)
+        df["timestamp"] = (df["unixtime"].astype(int) // 10e8).astype(int)
+        df["timestamp"] = df["timestamp"] // args.sr * args.sr
+        df = df.groupby([x for x in pkeys if x != 'unixtime'] + ["timestamp"]).size().reset_index()
+        df.columns = df.columns[:-1].tolist() + ["n_records"]
+        df_check = pd.merge(df_base, df, how="left", on=["symbol", "timestamp"])
+        df_check = df_check.loc[df_check["exchange"] == exchange]
+        df_check["unixtime"] = pd.to_datetime(df_check["timestamp"], unit="s", utc=True)
+        df_check = df_check.loc[df_check["unixtime"].dt.minute == 0]
+        if df_check.shape[0] == 0:
+            LOGGER.warning("Nothing data.")
+        else:
+            df_check = df_check.loc[df_check["unixtime"] >= df_check["active_date"]]
+            for ndfwk in df_check.loc[df_check["n_records"].isna(), pkeys].values:
+                LOGGER.warning(", ".join([f"{x}: {y}" for x, y in zip(pkeys, ndfwk)]))
