@@ -13,6 +13,7 @@ python -m venv ~/kktrade/venv
 source ~/kktrade/venv/bin/activate
 cd ~/kktrade
 pip install -e .
+playwright install-deps
 playwright install
 ```
 

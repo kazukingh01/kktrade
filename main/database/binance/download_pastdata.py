@@ -166,22 +166,27 @@ if __name__ == "__main__":
             if "index" in args.fn:
                 df_oi, df_ls_n, df_ls_ta, df_ls_tp = download_index(symbol, date, mst_id=mst_id)
                 df = df_oi.copy()
+                if df.shape[0] > 0:
+                    df = df.loc[~df["open_interest"].isna()].copy()
                 if df.shape[0] > 0 and args.update:
                     insert(
                         src, df, f"{EXCHANGE}_open_interest", True,
                         add_sql=(
                             f"symbol = {df['symbol'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                            f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
-                        ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                            f"unixtime IN ('" + "','".join([x.strftime('%Y-%m-%d %H:%M:%S.%f%z') for x in df['unixtime'].tolist()]) + "');"
+                        )
                     )
                 for df in [df_ls_n, df_ls_ta, df_ls_tp]:
+                    if df.shape[0] > 0:
+                        # Sometimes data is all-nan even getdata.getalllongshortratio() has a value.
+                        df = df.loc[~df["long"].isna()].copy()
                     if df.shape[0] > 0 and args.update:
                         insert(
                             src, df, f"{EXCHANGE}_long_short", True,
                             add_sql=(
                                 f"symbol = {df['symbol'].iloc[0]} and ls_type = {df['ls_type'].iloc[0]} and interval = {df['interval'].iloc[0]} and " + 
-                                f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
-                            ) # latest data is more accurete. The data within 60s wouldn't be completed.
+                                f"unixtime IN ('" + "','".join([x.strftime('%Y-%m-%d %H:%M:%S.%f%z') for x in df['unixtime'].tolist()]) + "');"
+                            )
                         )
             # funding rate
             if "fundingrate" in args.fn:
