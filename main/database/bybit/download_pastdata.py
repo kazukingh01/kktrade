@@ -5,7 +5,7 @@ from io import StringIO
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 from kkpsgre.comapi import select, insert, delete
 from getdata import EXCHANGE
 from kkpsgre.psgre import DBConnector

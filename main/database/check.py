@@ -8,7 +8,7 @@ from kktrade.config.mart import \
     HOST_BS, PORT_BS, USER_BS, PASS_BS, DBNAME_BS, DBTYPE_BS, \
     HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK, \
     HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 
 
 LOGGER = set_logger(__name__)

@@ -3,7 +3,7 @@ import argparse, datetime
 from kkpsgre.comapi import select, insert, delete
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 from kkpsgre.psgre import DBConnector
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 
 
 LOGGER = set_logger(__name__)

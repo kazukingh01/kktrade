@@ -2,7 +2,7 @@ import datetime, requests, time, argparse, json
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 from kkpsgre.util.com import strfind
 from kkpsgre.comapi import select, insert
 from kkpsgre.psgre import DBConnector

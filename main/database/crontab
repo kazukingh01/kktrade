@@ -8,7 +8,7 @@ PATH=/home/ubuntu/kktrade/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr
 0   0   * * *   ubuntu  sleep 50 && pkill python
 */1 *   * * *   ubuntu  python ${HOMETRADE}/main/database/dbapi.py --check --logfilepath ${HOMETRADE}/main/log/dbapi.log >> ${HOMETRADE}/main/log/dbcheck.`date "+\%Y\%m\%d"`.log
 0   */1 * * *   ubuntu  cp ${HOMETRADE}/main/log/dbapi.log ${HOMETRADE}/main/log/dbapi.`date "+\%Y\%m\%d\%H\%M\%S"`.log && truncate -s 0 ${HOMETRADE}/main/log/dbapi.log
-0   2   * * *   ubuntu  python ${HOMETRADE}/main/log/remove.py --path ${HOMETRADE}/main/log/*.YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
-0   2   * * *   ubuntu  python ${HOMETRADE}/main/log/remove.py --path ${HOMETRADE}/main/log/dbapi.YYYYMMDDXXXXXX.log --rm --ut `date "+\%Y\%m\%d" --date '2 day ago'`
+0   2   * * *   ubuntu  kklogrm --path ${HOMETRADE}/main/log/\*.YYYYMMDD.log --rm --ut `date "+\%Y\%m\%d" --date '7 day ago'`
+0   2   * * *   ubuntu  kklogrm --path ${HOMETRADE}/main/log/dbapi.YYYYMMDDXXXXXX.log --rm --ut `date "+\%Y\%m\%d" --date '2 day ago'`
 # 0   2   * * *   ubuntu  sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -c "delete from binance_executions where unixtime < '`date -d "60 days ago" +"\%Y-\%m-\%d 00:00:00+0000"`';"
 # 1   2   * * *   ubuntu  sudo docker exec --user=postgres postgres psql -U postgres -d trade --port 5432 -c "delete from bybit_executions   where unixtime < '`date -d "60 days ago" +"\%Y-\%m-\%d 00:00:00+0000"`';"

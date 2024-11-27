@@ -1,7 +1,7 @@
 import requests, datetime, time, argparse
 import pandas as pd
 # local package
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 from kktrade.config.apikey import APIKEY_DUKASCOPY
 from kkpsgre.util.com import strfind
 from kkpsgre.comapi import select, insert

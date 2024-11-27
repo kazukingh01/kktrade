@@ -4,7 +4,7 @@ import numpy as np
 # local package
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import check_type, check_type_list
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 
 
 __all__ = {

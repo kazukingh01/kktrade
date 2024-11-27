@@ -2,8 +2,8 @@ import datetime
 import pandas as pd
 import numpy as np
 # local package
+from kklogger import set_logger
 from kkpsgre.util.com import check_type_list
-from kkpsgre.util.logger import set_logger
 from kktrade.util.math import NonLinearXY
 
 
