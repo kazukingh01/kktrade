@@ -152,6 +152,7 @@ if __name__ == "__main__":
                 dfs = download_trade(symbol, date, tmp_file_path=args.fname, chunk_size=args.chunk)
                 if not isinstance(dfs, pd.io.parsers.readers.TextFileReader): dfs = [dfs, ]
                 for df in dfs:
+                    if df.shape[0] == 0: continue
                     df = organize_df(df, mst_id=mst_id)
                     if df.shape[0] > 0:
                         df_exist = select(src, f"select id from {EXCHANGE}_executions where symbol = {df['symbol'].iloc[0]} and unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
