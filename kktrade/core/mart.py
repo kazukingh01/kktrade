@@ -72,7 +72,7 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     assert isinstance(db, DBConnector)
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)
-    assert date_fr < date_to and date_fr >= datetime.datetime(2019, 1, 1, tzinfo=datetime.UTC)
+    assert date_fr < date_to and date_fr >= datetime.datetime(2018,12,31,0,0,0, tzinfo=datetime.UTC)
     assert isinstance(type, int)     and type in [0,1,2]
     assert isinstance(interval,      int) and (interval % 60) == 0
     assert isinstance(sampling_rate, int) and (interval % sampling_rate) == 0
