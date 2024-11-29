@@ -223,8 +223,8 @@ def ana_size_price(df: pd.DataFrame, unixtime_name: str, interval: int, sampling
     # [ sampling_rate -> sampling_rate, interval ]
     if sampling_rate != interval:
         df_itvl = df_base.copy()
-        df_smpl["size"]   = df_smpl[["size_ask",   "size_bid"  ]].sum(axis=1)
-        df_smpl["volume"] = df_smpl[["volume_ask", "volume_bid"]].sum(axis=1)
+        df_smpl["size"]   = df_smpl[["size_ask",   "size_bid"  ]].sum(axis=1).fillna(0)
+        df_smpl["volume"] = df_smpl[["volume_ask", "volume_bid"]].sum(axis=1).fillna(0)
         ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
         df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
         dfwkwk  = df_smpl[["ave", "size", "var", "volume"]].iloc[ndf_idx].copy()
@@ -277,6 +277,7 @@ def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, 
             df_smpl = df.copy().sort_values(index_names).set_index(index_names)
         else:
             for name in ["ask", "bid"]:
+                df[f"ntx_{name}"] = df[f"ntx_{name}"].fillna(0).astype(int)
                 df["__func"] = df[[f"{x}_{name}" for x in columns]].apply(lambda x: NonLinearXY(list_qtl, x.values, is_ignore_nan=True), axis=1)
                 df["__tmp"]  = df[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
                 sewk = df.groupby(index_names)["__tmp"].apply(lambda x: np.concatenate(x.tolist()))
@@ -294,6 +295,7 @@ def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, 
         ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
         df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
         for name in ["ask", "bid"]:
+            df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
             df_smpl["__func"] = df_smpl[[f"{x}_{name}" for x in columns]].apply(lambda x: NonLinearXY(list_qtl, x.values, is_ignore_nan=True), axis=1)
             df_smpl["__tmp"]  = df_smpl[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
             df_itvl[f"ntx_{name}"] = df_smpl.groupby(index_names[:-1], as_index=False)[f"ntx_{name}"].rolling(n).sum()[f"ntx_{name}"]
