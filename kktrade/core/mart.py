@@ -81,11 +81,19 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     if exchanges is not None:
         df_mst  = db.select_sql(f"select * from master_symbol where exchange in ('" + "','".join(exchanges) +"');")
         symbols = df_mst["symbol_id"].tolist()
+    """
+    The data is like below.
+    unixtime  sr  itvl
+    0         60   60  ... -60 ~ -0.0000001
+    60        60   60  ...   0 ~ 59.9999999
+    ...
+    If you want 0s ~ 60s data, you must constrain 0 < unixtime <= 60. "<" and "<=" is important.
+    """
     sql = (
         f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
         f"FROM mart_ohlc WHERE type = {type} AND interval = {interval} AND sampling_rate = {sampling_rate} AND " + 
-        f"unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
-        f"unixtime <  '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' "
+        f"unixtime >  '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
+        f"unixtime <= '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' "
     )
     if symbols is not None:
         sql += " AND symbol in (" + ",".join([str(x) for x in symbols]) + ") "
@@ -93,5 +101,19 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     df = db.select_sql(sql)
     df = pd.concat([df.iloc[:, :-1], pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())[COLUMNS_MART]], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
+    # The datetime shoule be interpolated because new symbol's data is missing before it starts
+    ndf_tg = np.arange(
+        int(date_fr.timestamp()) // sampling_rate * sampling_rate + sampling_rate, # unixtime >  date_fr
+        int(date_to.timestamp()) // sampling_rate * sampling_rate + sampling_rate, # unixtime <= date_to
+        sampling_rate, dtype=int
+    )
+    ndf_idxs = df["symbol"].unique()
+    ndf_idxs = np.concatenate([np.repeat(ndf_idxs, ndf_tg.shape[0]).reshape(-1, 1), np.tile(ndf_tg, ndf_idxs.shape[0]).reshape(-1, 1)], axis=-1)
+    df = pd.merge(pd.DataFrame(ndf_idxs, columns=["symbol", "unixtime"]), df, how="left", on=["symbol", "unixtime"])
+    df["type"]          = df["type"         ].fillna(type         ).astype(int)
+    df["interval"]      = df["interval"     ].fillna(interval     ).astype(int)
+    df["sampling_rate"] = df["sampling_rate"].fillna(sampling_rate).astype(int)
+    # Ensure the conditions are the same for TX. In TX to OHLC, with sampling_rate=60, the data at 00:00:30 will be rounded to 00:00:00
+    df["unixtime"] = df["unixtime"] - df["sampling_rate"]
     LOGGER.info("END")
     return df
