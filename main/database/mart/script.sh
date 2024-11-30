@@ -43,5 +43,6 @@ NX_DATE=$(date -d "$CR_DATE + 1 day" +"%Y-%m-%d")
 while [ "$(date -d "$CR_DATE" +%Y%m%d)" != "$(date -d "$ED_DATE + 1 day" +%Y%m%d)" ]; do
   echo "from: $CR_DATE, to: $NX_DATE"
   python ohlc_to_ohlc.py --fr $(date -d "$CR_DATE" +%Y%m%d) --to $(date -d "$NX_DATE" +%Y%m%d) --frsr 2400 --tosr 2400 --itvls 14400,86400 --type 2 --update # 4h, 24h
+  CR_DATE=$NX_DATE
   NX_DATE=$(date -d "$CR_DATE + 1 day" +"%Y-%m-%d")
 done
