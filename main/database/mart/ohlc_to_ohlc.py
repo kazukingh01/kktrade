@@ -7,8 +7,7 @@ from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_vo
     ana_distribution_volume_price_over_time, ana_distribution_volume_over_price, ana_rank_corr_index
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import str_to_datetime
-from kktrade.config.mart import \
-    HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
+from kktrade.config.mart import HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
 from kklogger import set_logger
 
 
