@@ -118,7 +118,7 @@ def create_ohlc(
     if index_names is None: index_names = []
     df = check_common_input(df, unixtime_name, interval, sampling_rate, date_fr=date_fr, date_to=date_to, from_tx=from_tx, index_names=index_names)
     # create all index patterns
-    ndf_tg        = np.arange(int(date_fr.timestamp() - interval) // sampling_rate * sampling_rate, int(date_to.timestamp()) // sampling_rate * sampling_rate, sampling_rate, dtype=int)
+    ndf_tg = np.arange(int(date_fr.timestamp() - interval) // sampling_rate * sampling_rate, int(date_to.timestamp()) // sampling_rate * sampling_rate, sampling_rate, dtype=int)
     if len(index_names) > 0:
         ndf_idxs = [df[x].unique() for x in index_names]
         while len(ndf_idxs) >= 2:
@@ -159,6 +159,7 @@ def create_ohlc(
     df_smpl["high"] = df_smpl[["open", "high", "low", "close"]].max(axis=1) # It might be (df_smpl["open"] > df_smpl["high"])
     df_smpl["low" ] = df_smpl[["open", "high", "low", "close"]].min(axis=1) # It might be (df_smpl["open"] < df_smpl["low" ])
     # [ sampling_rate -> sampling_rate, interval ] open, high, low, close
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:
         df_itvl  = df_base.copy()
         _, _, _, index_names, n = indexes_to_aggregate(df_itvl.index.copy(), interval, sampling_rate)
@@ -221,6 +222,7 @@ def ana_size_price(df: pd.DataFrame, unixtime_name: str, interval: int, sampling
             dfwk["tmp"]    = ((dfwk["price"] - dfwk["ave"]).pow(2) + dfwk["var"]) * dfwk["size"]
             df_smpl["var"] = dfwk.groupby(index_names)["tmp"].sum() / dfwk.groupby(index_names)["size"].sum()
     # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:
         df_itvl = df_base.copy()
         df_smpl["size"]   = df_smpl[["size_ask",   "size_bid"  ]].sum(axis=1).fillna(0)
@@ -290,6 +292,7 @@ def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, 
                 for i, _ in enumerate(list_qtl):
                     df_smpl[(columns[i] + f"_{name}")] = sewk.str[i]
     # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:
         df_itvl = df_base.copy()
         ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
@@ -394,6 +397,7 @@ def ana_distribution_volume_price_over_time(df: pd.DataFrame, unixtime_name: str
             df_smpl[columnsa] = dfwk[columnsa]
             df_smpl[columnsr] = df_smpl[columnsr].fillna(0)
     # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:
         for x in (columnss + columnsv): df_smpl[x] = (df_smpl[f"{x}_ask"] + df_smpl[f"{x}_bid"]).fillna(0)
         ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])        
@@ -480,6 +484,7 @@ def ana_distribution_volume_over_price(df: pd.DataFrame, unixtime_name: str, int
                     df_smpl[f"{x}_{name}"] = sewk.str[i_offset + i]
                     df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
     # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:
         ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
         df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
@@ -527,6 +532,7 @@ def ana_rank_corr_index(df: pd.DataFrame, unixtime_name: str, interval: int, sam
     df_smpl = df.copy().sort_values(index_names).set_index(index_names)
     # [ sampling_rate -> sampling_rate, interval ]
     assert interval > sampling_rate
+    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
     df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
     ## RCI
