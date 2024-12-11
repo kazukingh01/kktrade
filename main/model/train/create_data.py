@@ -23,5 +23,11 @@ if __name__ == "__main__":
         DB, args.fr, args.to, SYMBOLS, [(120, 120), (120, 480), (120, 2400), (2400, 14400), (2400, 86400)]
     )
     if args.save is not None:
-        df.to_pickle(f"./{args.save}/df_{df.index.min()}_{df.index.max()}.pickle")
+        df.to_pickle(
+            f"./{args.save}/df_" + 
+            datetime.datetime.fromtimestamp(df.index.min(), tz=datetime.UTC).strftime("%Y%m%d%H%M%S") + 
+            "_" + 
+            datetime.datetime.fromtimestamp(df.index.max(), tz=datetime.UTC).strftime("%Y%m%d%H%M%S") + 
+            ".pickle"
+        )
 

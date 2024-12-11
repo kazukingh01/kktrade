@@ -15,11 +15,11 @@ __all__ = {
 
 LOGGER  = set_logger(__name__)
 SYMBOLS = [
-    6,   # 'spot@BTCUSDT',     'bybit', 'BTC', 'USDT', 't', NULL),
+    # 6,   # 'spot@BTCUSDT',     'bybit', 'BTC', 'USDT', 't', NULL),
     # 7,   # 'spot@ETHUSDC',     'bybit', 'ETH', 'USDC', 't', NULL),
     # 8,   # 'spot@BTCUSDC',     'bybit', 'BTC', 'USDC', 't', NULL),
-    9,   # 'spot@ETHUSDT',     'bybit', 'ETH', 'USDT', 't', NULL),
-    10,  # 'spot@XRPUSDT',     'bybit', 'XRP', 'USDT', 't', NULL),
+    # 9,   # 'spot@ETHUSDT',     'bybit', 'ETH', 'USDT', 't', NULL),
+    # 10,  # 'spot@XRPUSDT',     'bybit', 'XRP', 'USDT', 't', NULL),
     11,  # 'linear@BTCUSDT',   'bybit', 'BTC', 'USDT', 't', NULL),
     12,  # 'linear@ETHUSDT',   'bybit', 'ETH', 'USDT', 't', NULL),
     13,  # 'linear@XRPUSDT',   'bybit', 'XRP', 'USDT', 't', NULL),
@@ -58,6 +58,7 @@ VOLUME_BID_BASE = f"volume_bid_{BASE_INTERVAL}"
 def get_data_for_trainign(
     db: DBConnector, date_fr: datetime.datetime, date_to: datetime.datetime, sbls: list[int], sets_sr_itvl: list[list[int, int]],
 ) -> pd.DataFrame:
+    LOGGER.info("START")
     assert isinstance(db, DBConnector)
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)
@@ -119,10 +120,19 @@ def get_data_for_trainign(
         columns = [f"{x}_{itvl}" for x in df_mst.index[df_mst["type"].isna()].tolist()]
         df_main = pd.concat([df_main, df_base[columns]], axis=1, ignore_index=False, sort=False)
     df_main = df_main.set_index(["symbol", "unixtime"])
+    df_base = df_base.set_index(["symbol", "unixtime"])
     df_ret  = pd.DataFrame(index=ndf_tg)
     for sbl in sbls:
         dfwk = df_main.loc[sbl].copy()
         dfwk.columns = [f"{x}_s{sbl}" for x in dfwk.columns]
         df_ret = pd.concat([df_ret, dfwk], axis=1, ignore_index=False, sort=False)
+    # GT
+    df_ret["==="] = False
+    for sbl in sbls:
+        for _, interval in sets_sr_itvl:
+            dfwk = df_base.loc[sbl, [f"ave_{interval}", f"close_{interval}"]].copy()
+            dfwk.columns = [f"gt@ave_{interval}_s{sbl}", f"gt@close_{interval}_s{sbl}"]
+            df_ret = pd.concat([df_ret, dfwk], axis=1, ignore_index=False, sort=False)
+    LOGGER.info("EBD")
     return df_ret
 
