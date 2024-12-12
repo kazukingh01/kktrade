@@ -2,7 +2,7 @@ import datetime
 import pandas as pd
 import numpy as np
 # local package
-from kktrade.core.mart import DICT_MART, COLUMNS_MART
+from kktrade.core.mart import DICT_MART
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import check_type_list
 from kklogger import set_logger
@@ -89,13 +89,15 @@ def get_data_for_trainign(
         f"unixtime >  '{(date_fr - datetime.timedelta(seconds=int(ndf_sr.max()))).strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
         f"unixtime <= '{ date_to                                                 .strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
     )
-    df   = db.select_sql(sql)
-    dfwk = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
-    dfwk = dfwk.loc[:, dfwk.columns.isin(COLUMNS_MART)]
-    df   = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
+    df     = db.select_sql(sql)
+    df_mst = pd.DataFrame(DICT_MART).T
+    df_mst["train"] = df_mst["train"].astype(int)
+    df_mst = df_mst.loc[df_mst["train"] == 1]
+    dfwk   = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
+    dfwk   = dfwk.loc[:, dfwk.columns.isin(df_mst.index)]
+    df     = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
     # being relative by each interval
-    df_mst = pd.DataFrame(DICT_MART).T
     for name_vs in df_mst.loc[~df_mst["vs"].isna(), "vs"].unique():
         dfwk = df[df_mst.index[df_mst["vs"] == name_vs]].copy() / df[name_vs].values.reshape(-1, 1)
         dfwk.columns = [f"{x}_@rel@" for x in dfwk.columns]
