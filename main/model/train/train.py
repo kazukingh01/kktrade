@@ -61,13 +61,13 @@ if __name__ == "__main__":
         columns_ans = [f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_s{sbl}" for itvl in BASE_ITVLS for sbl in SYMBOLS_ANS]
         ndf_val     = df.loc[:, columns_ans].values.copy()
         ndf_ans     = np.ones(df.loc[:, columns_ans].shape) * -1
-        ndf_mean    = df[columns_ans].mean().values.reshape(1, -1)
-        ndf_sigma   = df[columns_ans].std(). values.reshape(1, -1)
-        z_values    = [-float("inf")] + [norm.ppf(p) for p in [0.1, 0.3, 0.7, 0.9]] + [float("inf")]
-        for i, x in enumerate(z_values[:-1]):
-            ndf_bool = (ndf_val >= (ndf_mean + (x * ndf_sigma))) & (ndf_val < (ndf_mean + (z_values[i+1] * ndf_sigma)))
+        list_thre   = [-float("inf"), 0.995, 0.999, 1.001, 1.005, float("inf")]
+        for i, x in enumerate(list_thre[:-1]):
+            ndf_bool = (ndf_val >= x) & (ndf_val < list_thre[i+1])
             ndf_ans[ndf_bool] = i
-        df = pd.concat([df, pd.DataFrame(ndf_ans.astype(int), index=df.index, columns=pd.Index(columns_ans).str.replace("gt@ratio", "gt@cls"))], axis=1, ignore_index=False)
+        columns_new = pd.Index(columns_ans).str.replace("gt@ratio", "gt@cls")
+        df = df.loc[:, ~df.columns.isin(columns_new)]
+        df = pd.concat([df, pd.DataFrame(ndf_ans.astype(int), index=df.index, columns=columns_new)], axis=1, ignore_index=False)
     if args.dfsave is not None:
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")
