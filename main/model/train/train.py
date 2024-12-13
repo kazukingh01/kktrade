@@ -30,7 +30,7 @@ if __name__ == "__main__":
         assert args.dir    is None
         assert args.dfsave is None
     if args.dfload is None:
-        list_data = glob.glob(f"{args.dr}/*.pickle")
+        list_data = glob.glob(f"{args.dir}/*.pickle")
         df = pd.concat([pd.read_pickle(x) for x in list_data], axis=0, ignore_index=False, sort=False)
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
