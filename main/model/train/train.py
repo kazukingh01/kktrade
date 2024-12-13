@@ -64,9 +64,9 @@ if __name__ == "__main__":
             ndf_bool = (ndf_val >= (ndf_mean + (x * ndf_sigma))) & (ndf_val < (ndf_mean + (z_values[i+1] * ndf_sigma)))
             ndf_ans[ndf_bool] = i
         df = pd.concat([df, pd.DataFrame(ndf_ans.astype(int), index=df.index, columns=pd.Index(columns_ans).str.replace("gt@ratio", "gt@cls"))], axis=1, ignore_index=False)
-        if args.dfsave is not None:
-            LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
-            df.to_pickle(f"{args.dfsave}")
+    if args.dfsave is not None:
+        LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
+        df.to_pickle(f"{args.dfsave}")
     if args.dftest is not None:
         LOGGER.info(f"load dataframe pickle [test] [{args.dftest}]")
         df_test = pd.read_pickle(args.dftest)
