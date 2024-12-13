@@ -12,6 +12,7 @@ LOGGER      = set_logger(__name__)
 BASE_SR     = 120
 BASE_ITVLS  = [120, 480, 2400]
 SYMBOLS_ANS = [11,12,13,14,15,16]
+COLNAME_ANS = "gt@cls_in240_120_s14"
 assert BASE_SR == BASE_ITVLS[0]
 
 
@@ -77,7 +78,7 @@ if __name__ == "__main__":
         df_test = None
     # preprocess
     if args.mlload is None:
-        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), "gt@cls_in240_120_s14", n_jobs=args.njob)
+        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), COLNAME_ANS, n_jobs=args.njob)
     else:
         manager = load_manager(args.mlload, args.njob)
     if args.cutv:
@@ -106,4 +107,5 @@ if __name__ == "__main__":
         df.loc[:, manager.columns.tolist() + df.columns[index_exp:].tolist()].to_pickle(args.dfsave)
     # test train
     if args.train:
+        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), COLNAME_ANS, n_jobs=args.njob)
         manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test)
