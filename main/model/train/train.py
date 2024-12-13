@@ -24,6 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("--mlsave", type=str)
     parser.add_argument("--mlload", type=str)
     parser.add_argument("--njob", type=int, default=1)
+    parser.add_argument("--gt",   action='store_true', default=False)
     parser.add_argument("--cutv", action='store_true', default=False)
     parser.add_argument("--cutt", action='store_true', default=False)
     parser.add_argument("--cuta", action='store_true', default=False)
@@ -39,9 +40,13 @@ if __name__ == "__main__":
     if args.compact:
         assert args.dfsave is not None
     if args.dfload is None:
-        LOGGER.info(f"load pickles in a directory. [{args.dir}")
+        LOGGER.info(f"load pickles in a directory. [{args.dir}]")
         list_data = glob.glob(f"{args.dir}/*.pickle")
         df = pd.concat([pd.read_pickle(x) for x in list_data], axis=0, ignore_index=False, sort=False)
+    else:
+        LOGGER.info(f"load dataframe pickle [{args.dfload}]")
+        df = pd.read_pickle(args.dfload)
+    if args.gt:
         LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
@@ -62,9 +67,6 @@ if __name__ == "__main__":
         if args.dfsave is not None:
             LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
             df.to_pickle(f"{args.dfsave}")
-    else:
-        LOGGER.info(f"load dataframe pickle [{args.dfload}]")
-        df = pd.read_pickle(args.dfload)
     if args.dftest is not None:
         LOGGER.info(f"load dataframe pickle [test] [{args.dftest}]")
         df_test = pd.read_pickle(args.dftest)
