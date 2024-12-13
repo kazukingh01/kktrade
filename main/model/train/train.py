@@ -17,11 +17,13 @@ assert BASE_SR == BASE_ITVLS[0]
 
 if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
-    parser.add_argument("--dir",     type=str)
-    parser.add_argument("--dfsave",  type=str)
-    parser.add_argument("--dfload",  type=str)
-    parser.add_argument("--manager", type=str)
-    parser.add_argument("--save", action='store_true', default=False)
+    parser.add_argument("--dir",    type=str)
+    parser.add_argument("--dfsave", type=str)
+    parser.add_argument("--dfload", type=str)
+    parser.add_argument("--mlsave", type=str)
+    parser.add_argument("--mlload", type=str)
+    parser.add_argument("--njob", type=int, default=1)
+    parser.add_argument("--gpu", action='store_true', default=False)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
@@ -29,6 +31,8 @@ if __name__ == "__main__":
     else:
         assert args.dir    is None
         assert args.dfsave is None
+    if args.mlload is not None:
+        assert args.mlsave is None
     if args.dfload is None:
         list_data = glob.glob(f"{args.dir}/*.pickle")
         df = pd.concat([pd.read_pickle(x) for x in list_data], axis=0, ignore_index=False, sort=False)
@@ -54,15 +58,17 @@ if __name__ == "__main__":
     else:
         df = pd.read_pickle(args.dfload)
     # preprocess
-    if args.manager is None:
-        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), "gt@cls_in240_120_s14", n_jobs=8)
+    if args.mlload is None:
+        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), "gt@cls_in240_120_s14", n_jobs=args.njob)
         manager.cut_features_by_variance(df, cutoff=0.9, ignore_nan=False, batch_size=16)
-        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=10, min_count=100)
-        if args.save:
-            manager.save("./mlmanager", exist_ok=True)
-        manager.cut_features_by_correlation(df, cutoff=0.95, dtype='float32', is_gpu=False, corr_type='pearson', batch_size=1, min_n=100)
+        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=5, min_count=1000, dtype=np.float16, batch_size=100, class_weight='balanced')
+        # manager.cut_features_by_adversarial_validation(df, df_test, cutoff=None, n_split=3, n_cv=2, dtype=np.float16, batch_size=100)
+        if args.gpu:
+            manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='pearson',  sample_size=50000, batch_size=2000, min_n=100)
+        if args.mlsave is not None:
+            manager.save(f"{args.mlsave}", exist_ok=True)
     else:
-        manager = load_manager(args.manager, 8)
+        manager = load_manager(args.mlload, args.njob)
     # set model
     # manager.set_model(
     #     KkGBDT, 5, model_func_predict="predict",
