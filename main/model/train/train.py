@@ -64,15 +64,28 @@ if __name__ == "__main__":
     else:
         manager = load_manager(args.mlload, args.njob)
     if args.cutv:
-        manager.cut_features_by_variance(df, cutoff=0.9, ignore_nan=False, batch_size=128)
+        manager.cut_features_by_variance(df, cutoff=0.999, ignore_nan=False, batch_size=128)
     if args.cutt:
         manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=5, min_count=1000, dtype=np.float16, batch_size=100, class_weight='balanced')
     if args.cuta:
         manager.cut_features_by_adversarial_validation(df, df_test, cutoff=None, n_split=3, n_cv=2, dtype=np.float16, batch_size=100)
     if args.cutc:
         manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='pearson',  sample_size=50000, batch_size=2000, min_n=100)
+        manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='spearman', sample_size=50000, batch_size=2000, min_n=100)
     if args.mlsave is not None:
         manager.save(f"{args.mlsave}", exist_ok=True)
+    # compact
+    if args.compact is not None:
+        manager.cut_features_auto(
+            list_proc = [
+                f"self.cut_features_by_variance(cutoff=0.99, ignore_nan=False, batch_size=128)",
+                f"self.cut_features_by_randomtree_importance(cutoff=0.95)",
+                f"self.cut_features_by_adversarial_validation(cutoff=100, thre_count='mean')",
+                f"self.cut_features_by_correlation(cutoff=0.92, corr_type='pearson')",
+                f"self.cut_features_by_correlation(cutoff=0.92, corr_type='spearman')",
+            ]
+        )
+            
     # set model
     # manager.set_model(
     #     KkGBDT, 5, model_func_predict="predict",
