@@ -30,6 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("--cuta", action='store_true', default=False)
     parser.add_argument("--cutc", action='store_true', default=False)
     parser.add_argument("--compact", action='store_true', default=False)
+    parser.add_argument("--train",   action='store_true', default=False)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
@@ -103,36 +104,6 @@ if __name__ == "__main__":
         )
         index_exp = np.where(df.columns == "===")[0][0]
         df.loc[:, manager.columns.tolist() + df.columns[index_exp:].tolist()].to_pickle(args.dfsave)
-    # set model
-    # manager.set_model(
-    #     KkGBDT, 5, model_func_predict="predict",
-    #     mode=args.mode, n_jobs=manager.n_jobs, **c["params"], **c["tc"]["kwargs_model"]
-    # )
-    # # registry proc
-    # manager.proc_registry(dict_proc={
-    #     "row": [],
-    #     "exp": [
-    #         '"ProcAsType", np.float32, batch_size=25', 
-    #         '"ProcToValues"', 
-    #         '"ProcReplaceInf", posinf=float("nan"), neginf=float("nan")', 
-    #     ],
-    #     "ans": [
-    #         '"ProcAsType", np.int32, n_jobs=1',
-    #         '"ProcToValues"',
-    #         '"ProcReshape", (-1, )',
-    #     ]
-    # })
-    # # training
-    # manager.fit(df_train, df_valid=df_valid, is_proc_fit=True, is_eval_train=True)
-    # # calibration
-    # manager.calibration(is_use_valid=True, n_bins=100)
-    # manager.calibration(is_use_valid=True, n_bins=100, is_binary_fit=True)
-    # # test evaluation
-    # df, se = manager.evaluate(df_valid, is_store=False)
-    # # cross validation
-    # manager.fit_cross_validation(df_train, n_split=5, n_cv=3, is_proc_fit_every_cv=True, is_save_cv_models=True)
-    # # calibration
-    # manager.calibration_cv_model(n_bins=100)
-    # manager.set_cvmodel(is_calib=True)
-    # # test evaluation
-    # df, se = manager.evaluate(df_valid, is_store=False)
+    # test train
+    if args.train:
+        manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test)
