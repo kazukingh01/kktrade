@@ -33,10 +33,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
-        assert args.dir is not None
+        assert args.dir    is not None
+        assert args.dfsave is not None
     else:
         assert args.dir    is None
-        assert args.dfsave is None
+        if args.compact: assert args.dfsave is not None
+        else:            assert args.dfsave is None
     if args.compact:
         assert args.dfsave is not None
     if args.dfload is None:
