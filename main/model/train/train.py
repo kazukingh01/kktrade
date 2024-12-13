@@ -36,16 +36,19 @@ if __name__ == "__main__":
     else:
         assert args.dir    is None
         assert args.dfsave is None
+    if args.compact:
+        assert args.dfsave is not None
     if args.dfload is None:
+        LOGGER.info(f"load pickles in a directory. [{args.dir}")
         list_data = glob.glob(f"{args.dir}/*.pickle")
         df = pd.concat([pd.read_pickle(x) for x in list_data], axis=0, ignore_index=False, sort=False)
+        LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
         for itvl in BASE_ITVLS:
             for sbl in ndf_sbls:
                 df[f"gt@ave_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int((itvl + BASE_SR) // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
                 df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@close_{BASE_SR}_{sbl}"]
-        # create answer
         columns_ans = [f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_s{sbl}" for itvl in BASE_ITVLS for sbl in SYMBOLS_ANS]
         ndf_val     = df.loc[:, columns_ans].values.copy()
         ndf_ans     = np.ones(df.loc[:, columns_ans].shape) * -1
@@ -57,10 +60,16 @@ if __name__ == "__main__":
             ndf_ans[ndf_bool] = i
         df = pd.concat([df, pd.DataFrame(ndf_ans.astype(int), index=df.index, columns=pd.Index(columns_ans).str.replace("gt@ratio", "gt@cls"))], axis=1, ignore_index=False)
         if args.dfsave is not None:
+            LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
             df.to_pickle(f"{args.dfsave}")
     else:
+        LOGGER.info(f"load dataframe pickle [{args.dfload}]")
         df = pd.read_pickle(args.dfload)
-    df_test = pd.read_pickle(args.dftest) if args.dftest is not None else None
+    if args.dftest is not None:
+        LOGGER.info(f"load dataframe pickle [test] [{args.dftest}]")
+        df_test = pd.read_pickle(args.dftest)
+    else:
+        df_test = None
     # preprocess
     if args.mlload is None:
         manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), "gt@cls_in240_120_s14", n_jobs=args.njob)
@@ -78,7 +87,7 @@ if __name__ == "__main__":
     if args.mlsave is not None:
         manager.save(f"{args.mlsave}", exist_ok=True)
     # compact
-    if args.compact is not None:
+    if args.compact:
         manager.cut_features_auto(
             list_proc = [
                 f"self.cut_features_by_variance(cutoff=0.99, ignore_nan=False, batch_size=128)",
@@ -88,7 +97,8 @@ if __name__ == "__main__":
                 f"self.cut_features_by_correlation(cutoff=0.92, corr_type='spearman')",
             ]
         )
-
+        index_exp = np.where(df.columns == "===")[0][0]
+        df.loc[:, manager.columns.tolist() + df.columns[index_exp:].tolist()].to_pickle(args.dfsave)
     # set model
     # manager.set_model(
     #     KkGBDT, 5, model_func_predict="predict",
