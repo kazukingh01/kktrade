@@ -20,6 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--dir",    type=str)
     parser.add_argument("--dfsave", type=str)
     parser.add_argument("--dfload", type=str)
+    parser.add_argument("--dftest", type=str)
     parser.add_argument("--mlsave", type=str)
     parser.add_argument("--mlload", type=str)
     parser.add_argument("--njob", type=int, default=1)
@@ -27,6 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--cutt", action='store_true', default=False)
     parser.add_argument("--cuta", action='store_true', default=False)
     parser.add_argument("--cutc", action='store_true', default=False)
+    parser.add_argument("--compact", action='store_true', default=False)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
@@ -58,6 +60,7 @@ if __name__ == "__main__":
             df.to_pickle(f"{args.dfsave}")
     else:
         df = pd.read_pickle(args.dfload)
+    df_test = pd.read_pickle(args.dftest) if args.dftest is not None else None
     # preprocess
     if args.mlload is None:
         manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), "gt@cls_in240_120_s14", n_jobs=args.njob)
@@ -85,7 +88,7 @@ if __name__ == "__main__":
                 f"self.cut_features_by_correlation(cutoff=0.92, corr_type='spearman')",
             ]
         )
-            
+
     # set model
     # manager.set_model(
     #     KkGBDT, 5, model_func_predict="predict",
