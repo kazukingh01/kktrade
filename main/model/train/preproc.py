@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]
                 sewk   = pd.cut(df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"], list_thre)
                 dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
-                df[f"gt@cls_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(int)
+                df[f"gt@cls_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
     if args.dfsave is not None and args.compact == False:
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")

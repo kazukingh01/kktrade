@@ -81,8 +81,9 @@ def get_data_for_trainign(
     df_base  = pd.DataFrame(ndf_idxs, columns=["symbol", "unixtime"])
     for x in ndf_sr: df_base[f"unixtime_sr_{x}"] = (df_base["unixtime"]) // x * x
     # query
+    columns = ["symbol", "unixtime", "interval", "sampling_rate", "open", "high", "low", "close", "ave", "attrs"]
     sql = (
-        f"SELECT symbol, unixtime, interval, sampling_rate, open, high, low, close, ave, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
+        f"SELECT " + ",".join(columns) + " " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
         f"FROM mart_ohlc WHERE " + 
         f"symbol IN (" + ",".join([str(x) for x in SYMBOLS]) + ") AND type IN (1,2) AND " +
         f"(sampling_rate, interval) IN (" + ",".join([f"({x}, {y})" for x, y in sets_sr_itvl]) + ") AND "
@@ -90,11 +91,13 @@ def get_data_for_trainign(
         f"unixtime <= '{ date_to                                                 .strftime('%Y-%m-%d %H:%M:%S.%f%z')}';"
     )
     df     = db.select_sql(sql)
+    df[["open", "high", "low", "close", "ave"]] = df[["open", "high", "low", "close", "ave"]].astype(np.float32)
+    df     = df.loc[:, columns]
     df_mst = pd.DataFrame(DICT_MART).T
     df_mst["train"] = df_mst["train"].astype(int)
     df_mst = df_mst.loc[df_mst["train"] == 1]
     dfwk   = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
-    dfwk   = dfwk.loc[:, dfwk.columns.isin(df_mst.index)]
+    dfwk   = dfwk.loc[:, dfwk.columns.isin(df_mst.index)].astype(np.float32)
     df     = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
     # being relative by each interval
