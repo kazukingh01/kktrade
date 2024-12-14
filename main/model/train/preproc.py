@@ -12,7 +12,7 @@ LOGGER      = set_logger(__name__)
 BASE_SR     = 120
 BASE_ITVLS  = [120, 480, 2400]
 SYMBOLS_ANS = [11,12,13,14,15,16]
-COLNAME_ANS = "gt@cls_in240_120_s14"
+COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_2400_s14"]
 assert BASE_SR == BASE_ITVLS[0]
 
 
@@ -54,20 +54,14 @@ if __name__ == "__main__":
         LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
+        list_thre = [-float("inf"), 0.992, 0.996, 0.999, 1.001, 1.004, 1.008, float("inf")]
         for itvl in BASE_ITVLS:
             for sbl in ndf_sbls:
                 df[f"gt@ave_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int((itvl + BASE_SR) // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
                 df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@close_{BASE_SR}_{sbl}"]
-        columns_ans = [f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_s{sbl}" for itvl in BASE_ITVLS for sbl in SYMBOLS_ANS]
-        ndf_val     = df.loc[:, columns_ans].values.copy()
-        ndf_ans     = np.ones(df.loc[:, columns_ans].shape) * -1
-        list_thre   = [-float("inf"), 0.995, 0.999, 1.001, 1.005, float("inf")]
-        for i, x in enumerate(list_thre[:-1]):
-            ndf_bool = (ndf_val >= x) & (ndf_val < list_thre[i+1])
-            ndf_ans[ndf_bool] = i
-        columns_new = pd.Index(columns_ans).str.replace("gt@ratio", "gt@cls")
-        df = df.loc[:, ~df.columns.isin(columns_new)]
-        df = pd.concat([df, pd.DataFrame(ndf_ans.astype(int), index=df.index, columns=columns_new)], axis=1, ignore_index=False)
+                sewk   = pd.cut(df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"], list_thre)
+                dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
+                df[f"gt@cls_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(int)
     if args.dfsave is not None:
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")
@@ -78,7 +72,7 @@ if __name__ == "__main__":
         df_test = None
     # preprocess
     if args.mlload is None:
-        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), COLNAME_ANS, n_jobs=args.njob)
+        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), COLUMNS_ANS[-1], n_jobs=args.njob)
     else:
         manager = load_manager(args.mlload, args.njob)
     if args.cutv:
@@ -107,5 +101,8 @@ if __name__ == "__main__":
         df.loc[:, manager.columns.tolist() + df.columns[index_exp:].tolist()].to_pickle(args.dfsave)
     # test train
     if args.train:
-        manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), COLNAME_ANS, n_jobs=args.njob)
-        manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test)
+        for colname_ans in COLUMNS_ANS:
+            LOGGER.info(f"Training [{colname_ans}]", color=["BOLD", "GREEN"])
+            LOGGER.info(f"{df.groupby([colname_ans]).size()}")
+            manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), colname_ans, n_jobs=args.njob)
+            manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, n_estimators=1000)
