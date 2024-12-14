@@ -58,7 +58,7 @@ if __name__ == "__main__":
         for itvl in BASE_ITVLS:
             for sbl in ndf_sbls:
                 df[f"gt@ave_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int((itvl + BASE_SR) // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
-                df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@close_{BASE_SR}_{sbl}"]
+                df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]
                 sewk   = pd.cut(df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"], list_thre)
                 dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
                 df[f"gt@cls_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(int)
