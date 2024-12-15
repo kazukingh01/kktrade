@@ -106,3 +106,5 @@ if __name__ == "__main__":
             LOGGER.info(f"{df.groupby([colname_ans]).size()}")
             manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), colname_ans, n_jobs=args.njob)
             manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, n_estimators=1000)
+            if args.mlsave is not None:
+                manager.save(f"{args.mlsave}", exist_ok=True)
