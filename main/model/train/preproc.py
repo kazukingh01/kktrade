@@ -10,10 +10,10 @@ from scipy.stats import norm
 
 LOGGER      = set_logger(__name__)
 BASE_SR     = 120
-BASE_ITVLS  = [120, 480, 2400]
+BASE_ITVLS  = [0, 120, 480, 2400]
 SYMBOLS_ANS = [11,12,13,14,15,16]
 COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_2400_s14"]
-assert BASE_SR == BASE_ITVLS[0]
+assert BASE_SR == BASE_ITVLS[1]
 
 
 if __name__ == "__main__":
@@ -84,7 +84,7 @@ if __name__ == "__main__":
     if args.cutc:
         manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='pearson',  sample_size=50000, batch_size=2000, min_n=100)
         manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='spearman', sample_size=50000, batch_size=2000, min_n=100)
-    if args.mlsave is not None:
+    if args.mlsave is not None and args.train == False:
         manager.save(f"{args.mlsave}", exist_ok=True)
     # compact
     if args.compact:
