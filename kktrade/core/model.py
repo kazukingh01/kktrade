@@ -1,10 +1,13 @@
 import datetime
+from functools import partial
+from joblib import Parallel, delayed
 import pandas as pd
 import numpy as np
 # local package
 from kktrade.core.mart import DICT_MART
 from kkpsgre.psgre import DBConnector
 from kkpsgre.util.com import check_type_list
+from kkmlmanager.features import create_features_by_basic_method
 from kklogger import set_logger
 
 
@@ -22,10 +25,10 @@ SYMBOLS = [
     # 10,  # 'spot@XRPUSDT',     'bybit', 'XRP', 'USDT', 't', NULL),
     11,  # 'linear@BTCUSDT',   'bybit', 'BTC', 'USDT', 't', NULL),
     12,  # 'linear@ETHUSDT',   'bybit', 'ETH', 'USDT', 't', NULL),
-    13,  # 'linear@XRPUSDT',   'bybit', 'XRP', 'USDT', 't', NULL),
+    # 13,  # 'linear@XRPUSDT',   'bybit', 'XRP', 'USDT', 't', NULL),
     14,  # 'inverse@BTCUSD',   'bybit', 'BTC', 'USD', 't', NULL),
     15,  # 'inverse@ETHUSD',   'bybit', 'ETH', 'USD', 't', NULL),
-    16,  # 'inverse@XRPUSD',   'bybit', 'XRP', 'USD', 't', NULL),
+    # 16,  # 'inverse@XRPUSD',   'bybit', 'XRP', 'USD', 't', NULL),
     # 136, # 'spot@SOLUSDT',     'bybit', 'SOL', 'USDT', 't', NULL),
     # 137, # 'linear@SOLUSDT',   'bybit', 'SOL', 'USDT', 't', NULL),
     # 138, # 'inverse@SOLUSD',   'bybit', 'SOL', 'USD',  't', NULL),
@@ -35,13 +38,13 @@ SYMBOLS = [
     # 120, # 'SPOT@ETHUSDC',     'binance', 'ETH', 'USDC', 't', NULL),
     # 121, # 'SPOT@BTCUSDC',     'binance', 'BTC', 'USDC', 't', NULL),
     122, # 'SPOT@ETHUSDT',     'binance', 'ETH', 'USDT', 't', NULL),
-    123, # 'SPOT@XRPUSDT',     'binance', 'XRP', 'USDT', 't', NULL),
+    # 123, # 'SPOT@XRPUSDT',     'binance', 'XRP', 'USDT', 't', NULL),
     124, # 'USDS@BTCUSDT',     'binance', 'BTC', 'USDT', 't', NULL),
     125, # 'USDS@ETHUSDT',     'binance', 'ETH', 'USDT', 't', NULL),
-    126, # 'USDS@XRPUSDT',     'binance', 'XRP', 'USDT', 't', NULL),
+    # 126, # 'USDS@XRPUSDT',     'binance', 'XRP', 'USDT', 't', NULL),
     127, # 'COIN@BTCUSD_PERP', 'binance', 'BTC', 'USD', 't', NULL),
     128, # 'COIN@ETHUSD_PERP', 'binance', 'ETH', 'USD', 't', NULL),
-    129, # 'COIN@XRPUSD_PERP', 'binance', 'XRP', 'USD', 't', NULL);
+    # 129, # 'COIN@XRPUSD_PERP', 'binance', 'XRP', 'USD', 't', NULL);
     # 130, # 'SPOT@SOLUSDT',     'binance', 'SOL', 'USDT', 't', NULL),
     # 131, # 'SPOT@BNBUSDT',     'binance', 'BNB', 'USDT', 't', NULL),
     # 132, # 'USDS@SOLUSDT',     'binance', 'SOL', 'USDT', 't', NULL),
@@ -100,18 +103,24 @@ def get_data_for_trainign(
     dfwk   = dfwk.loc[:, dfwk.columns.isin(df_mst.index)].astype(np.float32)
     df     = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
     df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
-    # being relative by each interval
+    # being relative by each interval [ (unixtime, symbol, sampling_rate, interval) -> () ]
     for name_vs in df_mst.loc[~df_mst["vs"].isna(), "vs"].unique():
         dfwk = df[df_mst.index[df_mst["vs"] == name_vs]].copy() / df[name_vs].values.reshape(-1, 1)
-        dfwk.columns = [f"{x}_@rel@" for x in dfwk.columns]
+        dfwk.columns = [f"rel@{x}" for x in dfwk.columns]
         df   = pd.concat([df, dfwk], axis=1, ignore_index=False, sort=False)
-    # join to base dataframe
+    # additional features
+    list_addf_names = []
+    for name, list_features in df_mst.loc[~df_mst["addf"].isna()].groupby("addf"):
+        dfwk = create_features_by_basic_method(df[[f"rel@{x}" for x in list_features.index]], f"addf@{name}", calc_list=["rank", "diff"])
+        df   = pd.concat([df, dfwk], axis=1, ignore_index=False, sort=False)
+        list_addf_names = list_addf_names + dfwk.columns.tolist()
+    # join to base dataframe [ (unixtime, symbol) -> (sampling_rate, interval) ]
     for sampling_rate, interval in sets_sr_itvl:
         dfwk    = df.loc[(df["sampling_rate"] == sampling_rate) & (df["interval"] == interval)].copy()
         dfwk.columns = [f"{x}_{interval}" for x in dfwk.columns]
         df_base = pd.merge(df_base, dfwk, how="left", left_on=["symbol", f"unixtime_sr_{sampling_rate}"], right_on=[f"symbol_{interval}", f"unixtime_{interval}"])
     # being relative by basic interval
-    df_main = df_base[["symbol", "unixtime"] + df_base.columns[df_base.columns.str.contains("@rel@")].tolist()].copy()
+    df_main = df_base[["symbol", "unixtime"] + df_base.columns[df_base.columns.str.find("rel@") == 0].tolist() + df_base.columns[df_base.columns.str.find("addf@") == 0].tolist()].copy()
     dictwk = {
         "price"     : PRICE_BASE,
         "volume_ask": VOLUME_ASK_BASE,
@@ -124,6 +133,7 @@ def get_data_for_trainign(
     for itvl in ndf_sets[:, 1]:
         columns = [f"{x}_{itvl}" for x in df_mst.index[df_mst["type"].isna()].tolist()]
         df_main = pd.concat([df_main, df_base[columns]], axis=1, ignore_index=False, sort=False)
+    # [ (unixtime) -> (sampling_rate, interval, symbol) ]
     df_main = df_main.set_index(["symbol", "unixtime"])
     df_base = df_base.set_index(["symbol", "unixtime"])
     df_ret  = pd.DataFrame(index=ndf_tg)
@@ -131,12 +141,17 @@ def get_data_for_trainign(
         dfwk = df_main.loc[sbl].copy()
         dfwk.columns = [f"{x}_s{sbl}" for x in dfwk.columns]
         df_ret = pd.concat([df_ret, dfwk], axis=1, ignore_index=False, sort=False)
+    # other features
+    ### Time
+    sewk             = (df_ret.index % (24 * 60 * 60))
+    df_ret["hour"]   = (sewk // (60 * 60))
+    df_ret["minute"] = (sewk % (60 * 60) // 60)
     # GT
     df_ret["==="] = False
     for sbl in sbls:
         for _, interval in sets_sr_itvl:
-            dfwk = df_base.loc[sbl, [f"ave_{interval}", f"close_{interval}"]].copy()
-            dfwk.columns = [f"gt@ave_{interval}_s{sbl}", f"gt@close_{interval}_s{sbl}"]
+            dfwk = df_base.loc[sbl, [f"ave_{interval}", f"open_{interval}", f"high_{interval}", f"low_{interval}", f"close_{interval}"]].copy()
+            dfwk.columns = [f"gt@ave_{interval}_s{sbl}", f"gt@open_{interval}_s{sbl}", f"gt@high_{interval}_s{sbl}", f"gt@low_{interval}_s{sbl}", f"gt@close_{interval}_s{sbl}"]
             df_ret = pd.concat([df_ret, dfwk], axis=1, ignore_index=False, sort=False)
     LOGGER.info("EBD")
     return df_ret
