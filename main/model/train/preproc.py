@@ -10,10 +10,11 @@ from scipy.stats import norm
 
 LOGGER      = set_logger(__name__)
 BASE_SR     = 120
-BASE_ITVLS  = [0, 120, 480, 2400]
+BASE_ITVLS  = [120, 480, 2400]
+MOVE_IN     = [120, 240, 360, 600, 2520]
 SYMBOLS_ANS = [11,12,13,14,15,16]
 COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_2400_s14"]
-assert BASE_SR == BASE_ITVLS[1]
+assert BASE_SR == BASE_ITVLS[0]
 
 
 if __name__ == "__main__":
@@ -55,13 +56,15 @@ if __name__ == "__main__":
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
         list_thre = [-float("inf"), 0.992, 0.996, 0.999, 1.001, 1.004, 1.008, float("inf")]
-        for itvl in BASE_ITVLS:
-            for sbl in ndf_sbls:
-                df[f"gt@ave_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int((itvl + BASE_SR) // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
-                df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]
-                sewk   = pd.cut(df[f"gt@ratio_in{int(itvl + BASE_SR)}_{itvl}_{sbl}"], list_thre)
-                dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
-                df[f"gt@cls_in{  int(itvl + BASE_SR)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
+        for sbl in ndf_sbls:
+            for itvl in BASE_ITVLS:
+                for movein in MOVE_IN:
+                    if movein < itvl: continue
+                    df[f"gt@ave_in{  int(movein)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int(movein // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
+                    df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(movein)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]
+                    sewk   = pd.cut(df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"], list_thre)
+                    dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
+                    df[f"gt@cls_in{  int(movein)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
     if args.dfsave is not None and args.compact == False:
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")
