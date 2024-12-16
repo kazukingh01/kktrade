@@ -1,11 +1,10 @@
-import glob, argparse
+import glob, argparse, warnings
 import pandas as pd
 import numpy as np
 # local package
 # from kkgbdt.model import KkGBDT
 from kkmlmanager.manager import MLManager, load_manager
 from kklogger import set_logger
-from scipy.stats import norm
 
 
 LOGGER      = set_logger(__name__)
@@ -13,7 +12,7 @@ BASE_SR     = 120
 BASE_ITVLS  = [120, 480, 2400]
 MOVE_IN     = [120, 240, 360, 600, 2520]
 SYMBOLS_ANS = [11,12,13,14,15,16]
-COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_2400_s14"]
+COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_480_s14", "gt@cls_in2520_2400_s14"]
 assert BASE_SR == BASE_ITVLS[0]
 
 
@@ -60,11 +59,14 @@ if __name__ == "__main__":
             for itvl in BASE_ITVLS:
                 for movein in MOVE_IN:
                     if movein < itvl: continue
-                    df[f"gt@ave_in{  int(movein)}_{itvl}_{sbl}"] = df[f"gt@ave_{itvl}_{sbl}"].shift(-int(movein // BASE_SR)) # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
-                    df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"] = df[f"gt@ave_in{int(movein)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]
-                    sewk   = pd.cut(df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"], list_thre)
-                    dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
-                    df[f"gt@cls_in{  int(movein)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
+                        for colname in ["ave", "open", "high", "low", "close"]:
+                            df[f"gt@{colname}_in{int(movein)}_{itvl}_{sbl}"] = df[f"gt@{colname}_{itvl}_{sbl}"].shift(-int(movein // BASE_SR)).copy()
+                        df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"] = (df[f"gt@ave_in{int(movein)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]).copy() # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
+                        sewk   = pd.cut(df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"], list_thre)
+                        dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
+                        df[f"gt@cls_in{  int(movein)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
     if args.dfsave is not None and args.compact == False:
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")
@@ -81,9 +83,9 @@ if __name__ == "__main__":
     if args.cutv:
         manager.cut_features_by_variance(df, cutoff=0.999, ignore_nan=False, batch_size=128)
     if args.cutt:
-        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=5, min_count=1000, dtype=np.float16, batch_size=100, class_weight='balanced')
+        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=5, min_count=1000, dtype=np.float32, batch_size=100, class_weight='balanced')
     if args.cuta:
-        manager.cut_features_by_adversarial_validation(df, df_test, cutoff=None, n_split=3, n_cv=2, dtype=np.float16, batch_size=100)
+        manager.cut_features_by_adversarial_validation(df, df_test, cutoff=None, n_split=3, n_cv=2, dtype=np.float32, batch_size=100)
     if args.cutc:
         manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='pearson',  sample_size=50000, batch_size=2000, min_n=100)
         manager.cut_features_by_correlation(df, cutoff=None, dtype='float32', is_gpu=True, corr_type='spearman', sample_size=50000, batch_size=2000, min_n=100)
@@ -111,3 +113,4 @@ if __name__ == "__main__":
             manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, n_estimators=1000)
             if args.mlsave is not None:
                 manager.save(f"{args.mlsave}", exist_ok=True)
+                manager.save(f"{args.mlsave}", exist_ok=True, is_minimum=True)
