@@ -32,6 +32,8 @@ if __name__ == "__main__":
     parser.add_argument("--cutc", action='store_true', default=False)
     parser.add_argument("--compact", action='store_true', default=False)
     parser.add_argument("--train",   action='store_true', default=False)
+    parser.add_argument("--ncv",   type=int, default=2)
+    parser.add_argument("--ntree", type=int, default=100)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         list_data = glob.glob(f"{args.dir}/*.pickle")
         df = pd.concat([pd.read_pickle(x) for x in list_data], axis=0, ignore_index=False, sort=False)
     else:
-        LOGGER.info(f"load dataframe pickle [{args.dfload}]")
+        LOGGER.info(f"load dataframe pickle [train] {args.dfload}")
         df = pd.read_pickle(args.dfload)
     if args.gt:
         LOGGER.info(f"create ground truth.")
@@ -71,7 +73,7 @@ if __name__ == "__main__":
         LOGGER.info(f"save dataframe pickle [{args.dfsave}]")
         df.to_pickle(f"{args.dfsave}")
     if args.dftest is not None:
-        LOGGER.info(f"load dataframe pickle [test] [{args.dftest}]")
+        LOGGER.info(f"load dataframe pickle [test ] {args.dftest}")
         df_test = pd.read_pickle(args.dftest)
     else:
         df_test = None
@@ -98,8 +100,8 @@ if __name__ == "__main__":
                 f"self.cut_features_by_variance(cutoff=0.99, ignore_nan=False, batch_size=128)",
                 f"self.cut_features_by_randomtree_importance(cutoff=0.95)",
                 f"self.cut_features_by_adversarial_validation(cutoff=100, thre_count='mean')",
-                f"self.cut_features_by_correlation(cutoff=0.92, corr_type='pearson')",
-                f"self.cut_features_by_correlation(cutoff=0.92, corr_type='spearman')",
+                f"self.cut_features_by_correlation(cutoff=0.90, corr_type='pearson')",
+                f"self.cut_features_by_correlation(cutoff=0.90, corr_type='spearman')",
             ]
         )
         index_exp = np.where(df.columns == "===")[0][0]
@@ -110,7 +112,7 @@ if __name__ == "__main__":
             LOGGER.info(f"Training [{colname_ans}]", color=["BOLD", "GREEN"])
             LOGGER.info(f"{df.groupby([colname_ans]).size()}")
             manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), colname_ans, n_jobs=args.njob)
-            manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, n_estimators=1000)
+            manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, ncv=args.ncv, n_estimators=args.ntree)
             if args.mlsave is not None:
                 manager.save(f"{args.mlsave}", exist_ok=True)
                 manager.save(f"{args.mlsave}", exist_ok=True, is_minimum=True)
