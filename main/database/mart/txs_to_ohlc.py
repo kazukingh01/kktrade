@@ -24,7 +24,7 @@ if __name__ == "__main__":
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
     parser.add_argument("--sr", type=int, help="sampling rate. --sr 60", default=60)
     parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], default="60")
-    parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=7)))
+    parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=9)))
     parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
