@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument("--train",   action='store_true', default=False)
     parser.add_argument("--ncv",   type=int, default=2)
     parser.add_argument("--ntree", type=int, default=100)
+    parser.add_argument("--depth", type=int, default=-1)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     if args.dfload is None:
@@ -56,7 +57,7 @@ if __name__ == "__main__":
         LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
-        list_thre = [-float("inf"), 0.992, 0.996, 0.999, 1.001, 1.004, 1.008, float("inf")]
+        list_thre = [-float("inf"), 0.992, 0.995, 0.998, 1.002, 1.005, 1.008, float("inf")] # Divided by basis on taker and maker fee.
         for sbl in ndf_sbls:
             for itvl in BASE_ITVLS:
                 for movein in MOVE_IN:
@@ -112,7 +113,6 @@ if __name__ == "__main__":
             LOGGER.info(f"Training [{colname_ans}]", color=["BOLD", "GREEN"])
             LOGGER.info(f"{df.groupby([colname_ans]).size()}")
             manager = MLManager(df.columns[:np.where(df.columns == "===")[0][0]].tolist(), colname_ans, n_jobs=args.njob)
-            manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, ncv=args.ncv, n_estimators=args.ntree)
+            manager.fit_basic_treemodel(df, df_valid=None, df_test=df_test, ncv=args.ncv, n_estimators=args.ntree, model_kwargs={"max_depth": args.depth})
             if args.mlsave is not None:
-                manager.save(f"{args.mlsave}", exist_ok=True)
                 manager.save(f"{args.mlsave}", exist_ok=True, is_minimum=True)
