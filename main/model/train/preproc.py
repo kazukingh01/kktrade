@@ -57,7 +57,7 @@ if __name__ == "__main__":
         LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
         ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
-        list_thre = [-float("inf"), 0.992, 0.995, 0.998, 1.002, 1.005, 1.008, float("inf")] # Divided by basis on taker and maker fee.
+        list_thre = [-float("inf"), 0.992, 0.995, 0.9989, 0.9996, 1.0004, 1.00110, 1.005, 1.008, float("inf")] # Divided by basis on taker and maker fee. 0.00055, 0.00020
         for sbl in ndf_sbls:
             for itvl in BASE_ITVLS:
                 for movein in MOVE_IN:
