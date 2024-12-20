@@ -52,12 +52,12 @@ if __name__ == "__main__":
         if is_sell:
             if status is None:
                 assert len(list_entry) == 0
-                LOGGER.info("SELL     !!!!!!")
+                LOGGER.info(f"i: {i_entry}, SELL     !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
                 status = "sell"
             elif status == "sell":
-                LOGGER.info("CONTINUE !!!!!!")
+                LOGGER.info(f"i: {i_entry}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
             elif status == "buy":
@@ -66,11 +66,11 @@ if __name__ == "__main__":
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
                 status = None
-                list_return = []
+                list_entry = []
         elif is_buy:
             if status is None:
                 assert len(list_entry) == 0
-                LOGGER.info("BUY      !!!!!!")
+                LOGGER.info(f"i: {i_entry}, BUY      !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
                 status = "buy"
@@ -80,9 +80,9 @@ if __name__ == "__main__":
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
                 status = None
-                list_return = []
+                list_entry = []
             elif status == "buy":
-                LOGGER.info("CONTINUE !!!!!!")
+                LOGGER.info(f"i: {i_entry}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
         if i_entry == (df_pred.shape[0] - 1):
@@ -94,5 +94,5 @@ if __name__ == "__main__":
                 amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
-            list_return = []
+            list_entry = []
     LOGGER.info(f"return: {sum(list_return)}, fee: {sum(list_fees)}")
