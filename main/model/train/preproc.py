@@ -53,6 +53,7 @@ if __name__ == "__main__":
     else:
         LOGGER.info(f"load dataframe pickle [train] {args.dfload}")
         df = pd.read_pickle(args.dfload)
+    df = df.sort_index()
     if args.gt:
         LOGGER.info(f"create ground truth.")
         ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])

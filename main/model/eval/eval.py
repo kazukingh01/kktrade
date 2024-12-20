@@ -38,6 +38,7 @@ if __name__ == "__main__":
     else:
         df_pred = pd.read_pickle(args.dfload)
         colname_base_price, colname_entry_price = df_pred.columns[-2:]
+    df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
     df_pred["is_cond_pred_sell"] = (df_pred["pred_sell"] >= THRE_SELL)
@@ -46,9 +47,9 @@ if __name__ == "__main__":
     df_pred.loc[boolwk, "is_cond_pred_sell"] = True
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
     list_entry, status, list_fees, list_return = [], None, [], []
-    for i_entry, (price_base, price_entry, is_cond_pred_sell, is_cond_pred_buy) in enumerate(df_pred[[colname_base_price, colname_entry_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
+    for x_index, (price_base, price_entry, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
         is_sell, is_buy = False, False
-        strdate = datetime.datetime.fromtimestamp(df_pred.index[i_entry], tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
+        strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
             if (price_base * RATIO_SELL) < price_entry:
                 is_sell = True
