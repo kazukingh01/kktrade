@@ -12,7 +12,7 @@ RATIO_BUY  = 1.0011
 RATIO_SELL = 0.9989
 FEE_TAKER  = 0.055 / 100.0
 FEE_MAKER  = 0.020 / 100.0
-CLS_BUY    = [4, 5, 6]
+CLS_BUY    = [6, 7, 8]
 CLS_SELL   = [0, 1, 2]
 
 if __name__ == "__main__":
@@ -66,6 +66,7 @@ if __name__ == "__main__":
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
                 status = None
+                list_return = []
         elif is_buy:
             if status is None:
                 assert len(list_entry) == 0
@@ -79,6 +80,7 @@ if __name__ == "__main__":
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
                 status = None
+                list_return = []
             elif status == "buy":
                 LOGGER.info("CONTINUE !!!!!!")
                 list_entry.append(price_entry)
@@ -92,4 +94,5 @@ if __name__ == "__main__":
                 amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
+            list_return = []
     LOGGER.info(f"return: {sum(list_return)}, fee: {sum(list_fees)}")
