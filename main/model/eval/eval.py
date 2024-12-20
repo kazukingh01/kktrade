@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
-    if (len(list_entry) > 0):
+    if (len(list_entry) > 0) and price_entry != float("nan") and price_entry != float("nan"):
         if status == "sell":
             amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
             list_return.append(amount_ret)
