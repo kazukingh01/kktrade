@@ -85,7 +85,7 @@ if __name__ == "__main__":
                 LOGGER.info(f"i: {i_entry}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
-        if i_entry == (df_pred.shape[0] - 1):
+        if (i_entry == (df_pred.shape[0] - 1)) and (len(list_entry) > 0):
             if status == "sell":
                 amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
                 list_return.append(amount_ret)
