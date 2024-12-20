@@ -11,7 +11,6 @@ LOGGER      = set_logger(__name__)
 BASE_SR     = 120
 BASE_ITVLS  = [120, 480, 2400]
 MOVE_IN     = [120, 240, 360, 600, 2520]
-SYMBOLS_ANS = [11,12,13,14,15,16]
 COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_480_s14", "gt@cls_in2520_2400_s14"]
 assert BASE_SR == BASE_ITVLS[0]
 
@@ -53,11 +52,11 @@ if __name__ == "__main__":
     else:
         LOGGER.info(f"load dataframe pickle [train] {args.dfload}")
         df = pd.read_pickle(args.dfload)
-    df = df.sort_index()
+    df        = df.sort_index()
+    ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
+    ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
     if args.gt:
         LOGGER.info(f"create ground truth.")
-        ndf_sbls  = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-1])
-        ndf_itbls = np.unique(df.columns[np.where(df.columns == "===")[0][0] + 1:].str.split("_").str[-2]).astype(int)
         list_thre = [-float("inf"), 0.992, 0.995, 0.9989, 0.9996, 1.0004, 1.0011, 1.005, 1.008, float("inf")] # Divided by basis on taker and maker fee. 0.00055, 0.00020
         for sbl in ndf_sbls:
             for itvl in BASE_ITVLS:
@@ -110,6 +109,9 @@ if __name__ == "__main__":
         df.loc[:, manager.columns.tolist() + df.columns[index_exp:].tolist()].to_pickle(args.dfsave)
     # test train
     if args.train:
+        boolwk = np.zeros(df.shape[0]).astype(bool)
+        for x in ndf_sbls: boolwk = (boolwk | df[f"gt@ave_120_{x}"].isna().values)
+        df = df.loc[~boolwk]
         for colname_ans in COLUMNS_ANS:
             LOGGER.info(f"Training [{colname_ans}]", color=["BOLD", "GREEN"])
             LOGGER.info(f"{df.groupby([colname_ans]).size()}")
