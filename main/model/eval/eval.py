@@ -48,7 +48,7 @@ if __name__ == "__main__":
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
     list_entry, status, list_fees, list_return = [], None, [], []
     for x_index, (price_base, price_entry, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
-        if price_entry == float("nan") or price_entry == float("nan"): continue
+        if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
@@ -93,7 +93,7 @@ if __name__ == "__main__":
                 LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
-    if (len(list_entry) > 0) and price_entry != float("nan") and price_entry != float("nan"):
+    if (len(list_entry) > 0) and np.isnan(price_base) == False and np.isnan(price_entry) == False:
         if status == "sell":
             amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
             list_return.append(amount_ret)
@@ -102,5 +102,4 @@ if __name__ == "__main__":
             amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
             list_return.append(amount_ret)
             list_fees. append(FEE_TAKER)
-        list_entry = []
     LOGGER.info(f"return: {sum(list_return)}, fee: {sum(list_fees)}")
