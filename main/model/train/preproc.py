@@ -76,7 +76,7 @@ if __name__ == "__main__":
         df.to_pickle(f"{args.dfsave}")
     if args.dftest is not None:
         LOGGER.info(f"load dataframe pickle [test ] {args.dftest}")
-        df_test = pd.read_pickle(args.dftest)
+        df_test = pd.read_pickle(args.dftest).sort_index()
     else:
         df_test = None
     # preprocess
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     if args.cutv:
         manager.cut_features_by_variance(df, cutoff=0.999, ignore_nan=False, batch_size=128)
     if args.cutt:
-        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=5, min_count=1000, dtype=np.float32, batch_size=100, class_weight='balanced')
+        manager.cut_features_by_randomtree_importance(df, cutoff=None, max_iter=10, min_count=1000, dtype=np.float32, batch_size=100, class_weight='balanced')
     if args.cuta:
         manager.cut_features_by_adversarial_validation(df, df_test, cutoff=None, n_split=3, n_cv=2, dtype=np.float32, batch_size=100)
     if args.cutc:
