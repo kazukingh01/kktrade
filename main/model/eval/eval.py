@@ -30,26 +30,26 @@ if __name__ == "__main__":
         df = pd.read_pickle(args.dfload)
         manager = load_manager(args.mlload, args.njob)
         output, input_y, input_index = manager.predict(df=df)
-        COL_ANS             = manager.columns_ans[0].replace("cls_", "ave_")
+        COL_ANS             = manager.columns_ans[0].replace("cls_", "close_")
         colname_base_price  = COL_ANS.split("_")[0] + "_120_" + COL_ANS.split("_")[-1]
-        colname_entry_price = (COL_ANS.split("_")[0] + "_in120_120_" + COL_ANS.split("_")[-1]).replace("ave_", "close_")
-        colname_high_price  = COL_ANS.replace("ave_", "high_")
-        colname_low_price   = COL_ANS.replace("ave_", "low_")
+        colname_entry_price = (COL_ANS.split("_")[0] + "_in120_120_" + COL_ANS.split("_")[-1])
+        colname_high_price  = COL_ANS.replace("close_", "high_")
+        colname_low_price   = COL_ANS.replace("close_", "low_")
         df_pred = pd.DataFrame(output, columns=[f"pred_{x}" for x in range(output.shape[-1])], index=input_index)
-        df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
+        df_pred[[COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
         if args.dfsave is not None:
             df_pred.to_pickle(f"{args.dfsave}")
     else:
         df_pred = pd.read_pickle(args.dfload)
-        colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-4:]
+        COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-5:]
     """
                                                                 pred_X
                                                           colname_high_price
                                                           colname_low_price
        -240                   -120                     0           ^         120                    240
-    -----+-----------|----------+----------------------+-----------|----------+-----------|----------+
-                     v                                 v
-            colname_base_price                 colname_entry_price     
+    -----+----------------------+----------------------+-----------|----------+-----------|----------+
+                                v                      v
+                        colname_base_price     colname_entry_price     
     """
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)

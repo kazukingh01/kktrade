@@ -66,7 +66,7 @@ if __name__ == "__main__":
                         warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
                         for colname in ["ave", "open", "high", "low", "close"]:
                             df[f"gt@{colname}_in{int(movein)}_{itvl}_{sbl}"] = df[f"gt@{colname}_{itvl}_{sbl}"].shift(-int(movein // BASE_SR)).copy()
-                        df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"] = (df[f"gt@ave_in{int(movein)}_{itvl}_{sbl}"] / df[f"gt@ave_{BASE_SR}_{sbl}"]).copy() # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
+                        df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"] = (df[f"gt@ave_in{int(movein)}_{itvl}_{sbl}"] / df[f"gt@close_{BASE_SR}_{sbl}"]).copy() # predict in 2+2min, 8+2min and 40+2min. Additional 2min is prepared for processing of creating mart data.
                         sewk   = pd.cut(df[f"gt@ratio_in{int(movein)}_{itvl}_{sbl}"], list_thre)
                         dictwk = {x:i for i, x in enumerate(np.sort(sewk[~sewk.isna()].unique()))}
                         df[f"gt@cls_in{  int(movein)}_{itvl}_{sbl}"] = sewk.map(dictwk).astype(float).fillna(-1).astype(np.int32)
