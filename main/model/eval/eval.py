@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 limit_buy  = price_base * RATIO_CLOSE_SELL
                 limit_sell = None
             elif is_buy or (count_thre >= 2):
-                amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
+                amount_ret = (np.array(list_entry) / price_entry - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 count_thre += 1
         elif status == "buy":
             if is_sell or (count_thre >= 2):
-                amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
+                amount_ret = (price_entry / np.array(list_entry) - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 count_thre += 1
         if   limit_buy is not None:
             if price_low <= limit_buy <= price_high:
-                amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
+                amount_ret = (limit_buy / np.array(list_entry) - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_MAKER)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                 limit_sell = None
         elif limit_sell is not None:
             if price_low <= limit_sell <= price_high:
-                amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
+                amount_ret = (np.array(list_entry) / limit_buy - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_MAKER)
@@ -150,11 +150,11 @@ if __name__ == "__main__":
                 limit_sell = None
     if (len(list_entry) > 0) and np.isnan(price_base) == False and np.isnan(price_entry) == False:
         if status == "sell":
-            amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
+            amount_ret = (np.array(list_entry) / price_entry - 1).sum()
             list_return.append(amount_ret)
             list_fees. append(FEE_TAKER)
         elif status == "buy":
-            amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
+            amount_ret = (price_entry / np.array(list_entry) - 1).sum()
             list_return.append(amount_ret)
             list_fees. append(FEE_TAKER)
     LOGGER.info(f"return: {sum(list_return)}, fee: {sum(list_fees)}")
