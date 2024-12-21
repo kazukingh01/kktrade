@@ -6,10 +6,12 @@ from kklogger import set_logger
 
 
 LOGGER     = set_logger(__name__)
-THRE_BUY   = 0.35
-THRE_SELL  = 0.35
-RATIO_BUY  = 1.0011
-RATIO_SELL = 0.9989
+THRE_BUY   = 0.40
+THRE_SELL  = 0.40
+RATIO_ENTRY_BUY  = 1.00055
+RATIO_ENTRY_SELL = 0.99945
+RATIO_CLOSE_BUY  = 1.003
+RATIO_CLOSE_SELL = 0.997
 FEE_TAKER  = 0.055 / 100.0
 FEE_MAKER  = 0.020 / 100.0
 CLS_BUY    = [6, 7, 8]
@@ -31,13 +33,24 @@ if __name__ == "__main__":
         COL_ANS             = manager.columns_ans[0].replace("cls_", "ave_")
         colname_base_price  = COL_ANS.split("_")[0] + "_120_" + COL_ANS.split("_")[-1]
         colname_entry_price = (COL_ANS.split("_")[0] + "_in120_120_" + COL_ANS.split("_")[-1]).replace("ave_", "close_")
+        colname_high_price  = COL_ANS.replace("ave_", "high_")
+        colname_low_price   = COL_ANS.replace("ave_", "low_")
         df_pred = pd.DataFrame(output, columns=[f"pred_{x}" for x in range(output.shape[-1])], index=input_index)
-        df_pred[[colname_base_price, colname_entry_price]] = df[[colname_base_price, colname_entry_price]].copy()
+        df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
         if args.dfsave is not None:
             df_pred.to_pickle(f"{args.dfsave}")
     else:
         df_pred = pd.read_pickle(args.dfload)
-        colname_base_price, colname_entry_price = df_pred.columns[-2:]
+        colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-4:]
+    """
+                                                                pred_X
+                                                          colname_high_price
+                                                          colname_low_price
+       -240                   -120                     0           ^         120                    240
+    -----+-----------|----------+----------------------+-----------|----------+-----------|----------+
+                     v                                 v
+            colname_base_price                 colname_entry_price     
+    """
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
@@ -46,35 +59,42 @@ if __name__ == "__main__":
     boolwk = (df_pred["is_cond_pred_sell"] & df_pred["is_cond_pred_buy"]) & (df_pred["pred_sell"] > df_pred["pred_buy"])
     df_pred.loc[boolwk, "is_cond_pred_sell"] = True
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
-    list_entry, status, list_fees, list_return, count_thre = [], None, [], [], 0
-    for x_index, (price_base, price_entry, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
+    list_entry, status, list_fees, list_return, count_thre, limit_buy, limit_sell = [], None, [], [], 0, None, None
+    for x_index, (price_base, price_entry, price_high, price_low, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
         if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
-            if (price_base * RATIO_SELL) < price_entry:
+            if (price_base * RATIO_ENTRY_SELL) < price_entry:
                 is_sell = True
         elif is_cond_pred_buy:
-            if (price_base * RATIO_BUY) > price_entry:
+            if (price_base * RATIO_ENTRY_BUY) > price_entry:
                 is_buy = True
         if status is None:
+            # Entry
             if is_sell:
                 assert len(list_entry) == 0
                 LOGGER.info(f"{strdate}, SELL     !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
-                status = "sell"
+                status     = "sell"
+                limit_buy  = price_base * RATIO_CLOSE_SELL
+                limit_sell = None
             elif is_buy:
                 assert len(list_entry) == 0
                 LOGGER.info(f"{strdate}, BUY      !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
-                status = "buy"
+                status     = "buy"
+                limit_buy  = None
+                limit_sell = price_base * RATIO_CLOSE_BUY
         elif status == "sell":
             if is_sell:
                 LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
+                limit_buy  = price_base * RATIO_CLOSE_SELL
+                limit_sell = None
             elif is_buy or (count_thre >= 2):
                 amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
@@ -83,6 +103,8 @@ if __name__ == "__main__":
                 status = None
                 list_entry = []
                 count_thre = 0
+                limit_buy  = None
+                limit_sell = None
             else:
                 count_thre += 1
         elif status == "buy":
@@ -94,12 +116,38 @@ if __name__ == "__main__":
                 status = None
                 list_entry = []
                 count_thre = 0
+                limit_buy  = None
+                limit_sell = None
             elif is_buy:
                 LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
+                limit_buy  = None
+                limit_sell = price_base * RATIO_CLOSE_BUY
             else:
                 count_thre += 1
+        if   limit_buy is not None:
+            if price_low <= limit_buy <= price_high:
+                amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
+                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
+                list_return.append(amount_ret)
+                list_fees. append(FEE_MAKER)
+                status = None
+                list_entry = []
+                count_thre = 0
+                limit_buy  = None
+                limit_sell = None
+        elif limit_sell is not None:
+            if price_low <= limit_sell <= price_high:
+                amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
+                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
+                list_return.append(amount_ret)
+                list_fees. append(FEE_MAKER)
+                status = None
+                list_entry = []
+                count_thre = 0
+                limit_buy  = None
+                limit_sell = None
     if (len(list_entry) > 0) and np.isnan(price_base) == False and np.isnan(price_entry) == False:
         if status == "sell":
             amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
