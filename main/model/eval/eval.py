@@ -46,7 +46,7 @@ if __name__ == "__main__":
     boolwk = (df_pred["is_cond_pred_sell"] & df_pred["is_cond_pred_buy"]) & (df_pred["pred_sell"] > df_pred["pred_buy"])
     df_pred.loc[boolwk, "is_cond_pred_sell"] = True
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
-    list_entry, status, list_fees, list_return = [], None, [], []
+    list_entry, status, list_fees, list_return, count_thre = [], None, [], [], 0
     for x_index, (price_base, price_entry, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
         if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
@@ -57,42 +57,49 @@ if __name__ == "__main__":
         elif is_cond_pred_buy:
             if (price_base * RATIO_BUY) > price_entry:
                 is_buy = True
-        if is_sell:
-            if status is None:
+        if status is None:
+            if is_sell:
                 assert len(list_entry) == 0
                 LOGGER.info(f"{strdate}, SELL     !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
                 status = "sell"
-            elif status == "sell":
-                LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
-                list_entry.append(price_entry)
-                list_fees. append(FEE_TAKER)
-            elif status == "buy":
-                amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
-                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
-                list_return.append(amount_ret)
-                list_fees. append(FEE_TAKER)
-                status = None
-                list_entry = []
-        elif is_buy:
-            if status is None:
+            elif is_buy:
                 assert len(list_entry) == 0
                 LOGGER.info(f"{strdate}, BUY      !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
                 status = "buy"
-            elif status == "sell":
+        elif status == "sell":
+            if is_sell:
+                LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
+                list_entry.append(price_entry)
+                list_fees. append(FEE_TAKER)
+            elif is_buy or (count_thre >= 2):
                 amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_TAKER)
                 status = None
                 list_entry = []
-            elif status == "buy":
+                count_thre = 0
+            else:
+                count_thre += 1
+        elif status == "buy":
+            if is_sell or (count_thre >= 2):
+                amount_ret = ((np.array(list_entry) - price_entry) / price_entry).sum()
+                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
+                list_return.append(amount_ret)
+                list_fees. append(FEE_TAKER)
+                status = None
+                list_entry = []
+                count_thre = 0
+            elif is_buy:
                 LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
                 list_entry.append(price_entry)
                 list_fees. append(FEE_TAKER)
+            else:
+                count_thre += 1
     if (len(list_entry) > 0) and np.isnan(price_base) == False and np.isnan(price_entry) == False:
         if status == "sell":
             amount_ret = (-1 * (np.array(list_entry) - price_entry) / price_entry).sum()
