@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 count_thre += 1
         if   limit_buy is not None:
             if price_low <= limit_buy <= price_high:
-                amount_ret = (limit_buy / np.array(list_entry) - 1).sum()
+                amount_ret = (np.array(list_entry) / limit_buy - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_MAKER)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                 limit_sell = None
         elif limit_sell is not None:
             if price_low <= limit_sell <= price_high:
-                amount_ret = (np.array(list_entry) / limit_sell - 1).sum()
+                amount_ret = (limit_sell / np.array(list_entry) - 1).sum()
                 LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
                 list_return.append(amount_ret)
                 list_fees. append(FEE_MAKER)
