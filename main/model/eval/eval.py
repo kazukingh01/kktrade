@@ -172,6 +172,7 @@ if __name__ == "__main__":
         if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
+        LOGGER.info(f"{strdate}, price: {price_entry}")
         if is_cond_pred_sell:
             if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
                 is_sell = True
@@ -179,10 +180,10 @@ if __name__ == "__main__":
             if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
                 is_buy = True
         if is_sell:
-            pos.sell(price_entry, is_taker=True)
+            pos.sell(price_entry, SIZE, is_taker=True)
             pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 + (RATIO_CLOSE * 2)))
         elif is_buy:
-            pos.buy(price_entry, is_taker=True)
+            pos.buy(price_entry, SIZE, is_taker=True)
             pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 - (RATIO_CLOSE * 2)))
         pos.step(price_entry, price_high, price_low)
     pos.close_all_positions(price_base)
