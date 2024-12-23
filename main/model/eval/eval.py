@@ -135,6 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--mlload", type=str)
     parser.add_argument("--dfsave", type=str)
     parser.add_argument("--njob",   type=int, default=1)
+    parser.add_argument("--lt",     type=int,   help="lifetime", default=2)
     parser.add_argument("--thre",   type=float, help="threshold for predict", default=0.4)
     parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
     parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
@@ -190,11 +191,11 @@ if __name__ == "__main__":
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.sell(price_entry, SIZE, is_taker=True)
-            pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=3, stop_price=price_base * (1 + args.rs))
+            pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 + args.rs))
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
-            pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=3, stop_price=price_base * (1 - args.rs))
+            pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
         pos.step(price_entry, price_high, price_low, price_close)
     pos.close_all_positions(price_base)
     LOGGER.info(f"{pos.amount}")
