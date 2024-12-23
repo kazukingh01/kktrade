@@ -175,7 +175,7 @@ if __name__ == "__main__":
     parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
     parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
     parser.add_argument("--rs",     type=float, help="ratio to stop",  default=0.002)
-    parser.add_argument("--pl",     type=float, help="priority limit order", sdefault=0.0)
+    parser.add_argument("--pl",     type=float, help="priority limit order", default=0.0)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     assert args.dfload is not None
