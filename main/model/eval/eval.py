@@ -171,7 +171,8 @@ if __name__ == "__main__":
     parser.add_argument("--dfsave", type=str)
     parser.add_argument("--njob",   type=int, default=1)
     parser.add_argument("--lt",     type=int,   help="lifetime", default=2)
-    parser.add_argument("--thre",   type=float, help="threshold for predict", default=0.4)
+    parser.add_argument("--threp",   type=float, help="threshold for probability", default=0.2)
+    parser.add_argument("--thred",   type=float, help="threshold for difference",  default=0.05)
     parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
     parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
     parser.add_argument("--rs",     type=float, help="ratio to stop",  default=0.002)
@@ -206,8 +207,8 @@ if __name__ == "__main__":
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
-    df_pred["is_cond_pred_sell"] = ((df_pred["pred_sell"] - df_pred["pred_buy" ]) >= args.thre)
-    df_pred["is_cond_pred_buy"]  = ((df_pred["pred_buy" ] - df_pred["pred_sell"]) >= args.thre)
+    df_pred["is_cond_pred_sell"] = ((df_pred["pred_sell"] >= args.threp) & ((df_pred["pred_sell"] - df_pred["pred_buy" ]) >= args.thred))
+    df_pred["is_cond_pred_buy"]  = ((df_pred["pred_buy" ] >= args.threp) & ((df_pred["pred_buy" ] - df_pred["pred_sell"]) >= args.thred))
     pos  = Position()
     SIZE = 0.001
     for x_index, (price_base, price_entry, price_high, price_low, price_close, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_close_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
