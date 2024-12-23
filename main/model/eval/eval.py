@@ -15,7 +15,7 @@ CLS_SELL   = [0, 1, 2]
 RATIO_WITHIN     = FEE_TAKER
 RATIO_ENTRY_BUY  = 1 - FEE_TAKER
 RATIO_ENTRY_SELL = 1 + FEE_TAKER
-RATIO_CLOSE      = 0.003
+RATIO_CLOSE      = 0.002
 
 
 class Position:
@@ -67,6 +67,8 @@ class Position:
                     limits_buy.append((price, size, lifetime, stop_price))
                 elif lifetime is not None and lifetime > 1:
                     limits_buy.append((price, size, lifetime - 1, stop_price))
+                else:
+                    self.buy(price, size, is_taker=True)
         limits_sell = []
         for price, size, lifetime, stop_price in self.limits_sell:
             assert price > price_open
@@ -81,6 +83,8 @@ class Position:
                     limits_sell.append((price, size, lifetime, stop_price))
                 elif lifetime is not None and lifetime > 1:
                     limits_sell.append((price, size, lifetime - 1, stop_price))
+                else:
+                    self.sell(price, size, is_taker=True)
         self.limits_buy  = limits_buy
         self.limits_sell = limits_sell
     def buy(self, price: float, size: int | float, is_taker: bool=False):
@@ -181,10 +185,10 @@ if __name__ == "__main__":
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.sell(price_entry, SIZE, is_taker=True)
-            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 + (RATIO_CLOSE * 2)))
+            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 + (RATIO_CLOSE * 2)))
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
-            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 - (RATIO_CLOSE * 2)))
+            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 - (RATIO_CLOSE * 2)))
         pos.step(price_entry, price_high, price_low)
     pos.close_all_positions(price_base)
