@@ -29,6 +29,11 @@ class Position:
         self.limits_sell = []
         self.fee_taker   = 0.055 / 100.0
         self.fee_maker   = 0.020 / 100.0
+    def add_amount(self, amount: float, amount_type: str):
+        if amount_type in self.amount:
+            self.amount[amount_type] += amount
+        else:
+            self.amount[amount_type]  = amount
     def set_limit_buy(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
         LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
         assert isinstance(price, float) and price > 0
@@ -103,7 +108,7 @@ class Position:
             else:
                 amount         = (self.price_ave - price) * self.size
                 self.price_ave = price
-            self.amount[amout_type] += amount
+            self.add_amount(amount, amout_type)
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
         self.size       += size
         self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
@@ -120,7 +125,7 @@ class Position:
             else:
                 amount         = (price - self.price_ave) * self.size
                 self.price_ave = price
-            self.amount[amout_type] += amount
+            self.add_amount(amount, amout_type)
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
         self.size       -= size
         self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
