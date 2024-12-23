@@ -206,11 +206,8 @@ if __name__ == "__main__":
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
-    df_pred["is_cond_pred_sell"] = (df_pred["pred_sell"] >= args.thre)
-    df_pred["is_cond_pred_buy"]  = (df_pred["pred_buy"]  >= args.thre)
-    boolwk = (df_pred["is_cond_pred_sell"] & df_pred["is_cond_pred_buy"]) & (df_pred["pred_sell"] > df_pred["pred_buy"])
-    df_pred.loc[boolwk, "is_cond_pred_sell"] = True
-    df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
+    df_pred["is_cond_pred_sell"] = ((df_pred["pred_sell"] - df_pred["pred_buy" ]) >= args.thre)
+    df_pred["is_cond_pred_buy"]  = ((df_pred["pred_buy" ] - df_pred["pred_sell"]) >= args.thre)
     pos  = Position()
     SIZE = 0.001
     for x_index, (price_base, price_entry, price_high, price_low, price_close, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_close_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
