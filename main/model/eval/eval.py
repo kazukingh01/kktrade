@@ -58,12 +58,11 @@ class Position:
         self.limits_sell.append((target_price, size, lifetime, stop_price, conditional))
     def step(self, price_open: float, price_high: float, price_low: float, price_close: float, priority_limit: float=0):
         assert 0 <= priority_limit < 1
-        val_random = np.random.rand()
         limits_buy  = []
         limits_sell = []
         for price, size, lifetime, stop_price, c in self.limits_buy:
             assert price < price_open
-            is_limit_first = (val_random >= priority_limit)
+            is_limit_first = (np.random.rand() >= priority_limit)
             is_run         = True
             if is_limit_first:
                 if price_low <= price <= price_high:
@@ -105,7 +104,7 @@ class Position:
                     self.buy(price_close, size, is_taker=True, amout_type="lifetime")
         for price, size, lifetime, stop_price, c in self.limits_sell:
             assert price > price_open
-            is_limit_first = (val_random >= priority_limit)
+            is_limit_first = (np.random.rand() >= priority_limit)
             is_run         = True
             if is_limit_first:
                 if price_low <= price <= price_high:
@@ -247,20 +246,20 @@ if __name__ == "__main__":
                 is_buy = True
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
-            # pos.sell(price_entry, SIZE, is_taker=True)
-            # pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 + args.rs))
-            pos.set_limit_sell(
-                price_entry, price_entry * (1 + args.re), SIZE, lifetime=1, stop_price=None,
-                conditional={"is_buy": True, "price": price_base * (1 - args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 + args.rs)}
-            )
+            pos.sell(price_entry, SIZE, is_taker=True)
+            pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 + args.rs))
+            # pos.set_limit_sell(
+            #     price_entry, price_entry * (1 + args.re), SIZE, lifetime=1, stop_price=None,
+            #     conditional={"is_buy": True, "price": price_base * (1 - args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 + args.rs)}
+            # )
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
-            # pos.buy(price_entry, SIZE, is_taker=True)
-            # pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
-            pos.set_limit_buy(
-                price_entry, price_entry * (1 - args.re), SIZE, lifetime=1, stop_price=None,
-                conditional={"is_buy": False, "price": price_base * (1 + args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 - args.rs)}
-            )
+            pos.buy(price_entry, SIZE, is_taker=True)
+            pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
+            # pos.set_limit_buy(
+            #     price_entry, price_entry * (1 - args.re), SIZE, lifetime=1, stop_price=None,
+            #     conditional={"is_buy": False, "price": price_base * (1 + args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 - args.rs)}
+            # )
         pos.step(price_entry, price_high, price_low, price_close, priority_limit=args.pl)
     pos.close_all_positions(price_base)
     LOGGER.info(f"{pos.amount}")
