@@ -2,7 +2,6 @@ import glob, argparse, warnings
 import pandas as pd
 import numpy as np
 # local package
-# from kkgbdt.model import KkGBDT
 from kkmlmanager.manager import MLManager, load_manager
 from kklogger import set_logger
 

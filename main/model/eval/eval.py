@@ -8,8 +8,7 @@ from kklogger import set_logger
 LOGGER     = set_logger(__name__)
 CLS_BUY    = [7, 8]
 CLS_SELL   = [0, 1]
-FEE_TAKER  = 0.055 / 100.0
-FEE_MAKER  = 0.020 / 100.0
+CLS_THRE   = 0.005
 
 
 class Position:
@@ -196,7 +195,7 @@ if __name__ == "__main__":
     parser.add_argument("--lt",     type=int,   help="lifetime", default=2)
     parser.add_argument("--threp",   type=float, help="threshold for probability", default=0.2)
     parser.add_argument("--thred",   type=float, help="threshold for difference",  default=0.05)
-    parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
+    parser.add_argument("--re",     type=float, help="ratio to entry", default=Position().fee_taker)
     parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
     parser.add_argument("--rs",     type=float, help="ratio to stop",  default=0.002)
     parser.add_argument("--pl",     type=float, help="priority limit order", default=0.0)
@@ -212,13 +211,14 @@ if __name__ == "__main__":
         colname_entry_price = (colname_close_price.split("_")[0] + "_in120_120_" + colname_close_price.split("_")[-1])
         colname_high_price  = (colname_close_price.split("_")[0] + "_in240_120_" + colname_close_price.split("_")[-1]).replace("close_", "high_")
         colname_low_price   = (colname_close_price.split("_")[0] + "_in240_120_" + colname_close_price.split("_")[-1]).replace("close_", "low_")
+        colname_ans_price   = colname_close_price.replace("close_", "ave_")
         df_pred = pd.DataFrame(output, columns=[f"pred_{x}" for x in range(output.shape[-1])], index=input_index)
-        df_pred[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
+        df_pred[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_ans_price]] = df[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_ans_price]].copy()
         if args.dfsave is not None:
             df_pred.to_pickle(f"{args.dfsave}")
     else:
         df_pred = pd.read_pickle(args.dfload)
-        colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-5:]
+        colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_ans_price = df_pred.columns[-6:]
     """
                                                           colname_high_price
                                                           colname_low_price
@@ -230,6 +230,19 @@ if __name__ == "__main__":
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
+    df_pred["gt_sell"  ] = ((df_pred[colname_base_price] * (1 - CLS_THRE)) > df_pred[colname_ans_price])
+    df_pred["gt_buy"   ] = ((df_pred[colname_base_price] * (1 + CLS_THRE)) < df_pred[colname_ans_price])
+    df_pred["gt_ratio" ] = (df_pred[colname_ans_price] / df_pred[colname_base_price])
+    # evalation
+    for x in np.arange(0, 0.5, 0.02):
+        boolwk       = (df_pred["pred_sell"] >= x)
+        n_acc        = (df_pred["gt_sell"] == boolwk).sum()
+        n_pred       = boolwk.sum()
+        n_gt         = df_pred["gt_sell"].sum()
+        n_gt_in_pred = df_pred.loc[boolwk, "gt_sell"].sum()
+        n_pred_in_gt = boolwk[df_pred["gt_sell"]].sum()
+        LOGGER.info(f"thre: {x}, acc: {n_acc / df_pred.shape[0]:.3f}, rec: {n_pred_in_gt / n_gt:.3f}, pre: {n_gt_in_pred / n_pred:.3f}... n_pred_in_gt: {n_pred_in_gt}, n_gt: {n_gt}, n_gt_in_pred: {n_gt_in_pred}, n_pred: {n_pred}")
+    # simulation
     df_pred["is_cond_pred_sell"] = ((df_pred["pred_sell"] >= args.threp) & ((df_pred["pred_sell"] - df_pred["pred_buy" ]) >= args.thred))
     df_pred["is_cond_pred_buy"]  = ((df_pred["pred_buy" ] >= args.threp) & ((df_pred["pred_buy" ] - df_pred["pred_sell"]) >= args.thred))
     pos  = Position()
