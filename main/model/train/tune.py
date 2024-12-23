@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_argument("--ans",    type=str)
     parser.add_argument("--njob",  type=int, default=1)
     parser.add_argument("--iter",  type=int, default=500)
+    parser.add_argument("--lr",    type=float, default=0.1)
     parser.add_argument("--new",   action='store_true', default=False)
 
     args = parser.parse_args()
