@@ -16,6 +16,7 @@ RATIO_WITHIN     = FEE_TAKER
 RATIO_ENTRY_BUY  = 1 - FEE_TAKER
 RATIO_ENTRY_SELL = 1 + FEE_TAKER
 RATIO_CLOSE      = 0.002
+RATIO_STOP       = 0.005
 
 
 class Position:
@@ -68,6 +69,7 @@ class Position:
                 elif lifetime is not None and lifetime > 1:
                     limits_buy.append((price, size, lifetime - 1, stop_price))
                 else:
+                    LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
                     self.buy(price, size, is_taker=True)
         limits_sell = []
         for price, size, lifetime, stop_price in self.limits_sell:
@@ -84,6 +86,7 @@ class Position:
                 elif lifetime is not None and lifetime > 1:
                     limits_sell.append((price, size, lifetime - 1, stop_price))
                 else:
+                    LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
                     self.sell(price, size, is_taker=True)
         self.limits_buy  = limits_buy
         self.limits_sell = limits_sell
@@ -185,10 +188,10 @@ if __name__ == "__main__":
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.sell(price_entry, SIZE, is_taker=True)
-            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 + (RATIO_CLOSE * 2)))
+            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 + RATIO_STOP))
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
-            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 - (RATIO_CLOSE * 2)))
+            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 - RATIO_STOP))
         pos.step(price_entry, price_high, price_low)
     pos.close_all_positions(price_base)
