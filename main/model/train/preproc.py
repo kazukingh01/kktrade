@@ -11,7 +11,8 @@ LOGGER      = set_logger(__name__)
 BASE_SR     = 120
 BASE_ITVLS  = [120, 480, 2400]
 MOVE_IN     = [120, 240, 360, 600, 2520]
-COLUMNS_ANS = ["gt@cls_in240_120_s14", "gt@cls_in600_480_s14", "gt@cls_in2520_480_s14", "gt@cls_in2520_2400_s14"]
+SYMBOL      = 12
+COLUMNS_ANS = [f"gt@cls_in240_120_s{SYMBOL}", f"gt@cls_in600_480_s{SYMBOL}", f"gt@cls_in2520_2400_s{SYMBOL}"]
 assert BASE_SR == BASE_ITVLS[0]
 
 
