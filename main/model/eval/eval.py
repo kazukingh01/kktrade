@@ -56,17 +56,33 @@ class Position:
         if stop_price is not None:
             assert price > stop_price
         self.limits_sell.append((target_price, size, lifetime, stop_price))
-    def step(self, price_open: float, price_high: float, price_low: float, price_close: float):
+    def step(self, price_open: float, price_high: float, price_low: float, price_close: float, priority_limit: float=0):
+        assert 0 <= priority_limit < 1
+        val_random = np.random.rand()
         limits_buy = []
         for price, size, lifetime, stop_price in self.limits_buy:
             assert price < price_open
-            if price_low <= price <= price_high:
-                LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
-                self.buy(price, size, is_taker=False, amout_type="limit")
-            elif stop_price is not None and price_low <= stop_price <= price_high:
-                LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
-                self.buy(stop_price, size, is_taker=True, amout_type="stop")
+            is_limit_first = (val_random >= priority_limit)
+            is_run         = True
+            if is_limit_first:
+                if price_low <= price <= price_high:
+                    LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                    self.buy(price, size, is_taker=False, amout_type="limit")
+                elif stop_price is not None and price_low <= stop_price <= price_high:
+                    LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                    self.buy(stop_price, size, is_taker=True, amout_type="stop")
+                else:
+                    is_run = False
             else:
+                if stop_price is not None and price_low <= stop_price <= price_high:
+                    LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                    self.buy(stop_price, size, is_taker=True, amout_type="stop")
+                elif price_low <= price <= price_high:
+                    LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                    self.buy(price, size, is_taker=False, amout_type="limit")
+                else:
+                    is_run = False
+            if is_run == False:
                 if lifetime is None:
                     limits_buy.append((price, size, lifetime, stop_price))
                 elif lifetime is not None and lifetime > 1:
@@ -77,13 +93,27 @@ class Position:
         limits_sell = []
         for price, size, lifetime, stop_price in self.limits_sell:
             assert price > price_open
-            if price_low <= price <= price_high:
-                LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
-                self.sell(price, size, is_taker=False, amout_type="limit")
-            elif stop_price is not None and price_low <= stop_price <= price_high:
-                LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
-                self.sell(stop_price, size, is_taker=True, amout_type="stop")
+            is_limit_first = (val_random >= priority_limit)
+            is_run         = True
+            if is_limit_first:
+                if price_low <= price <= price_high:
+                    LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                    self.sell(price, size, is_taker=False, amout_type="limit")
+                elif stop_price is not None and price_low <= stop_price <= price_high:
+                    LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                    self.sell(stop_price, size, is_taker=True, amout_type="stop")
+                else:
+                    is_run = False
             else:
+                if stop_price is not None and price_low <= stop_price <= price_high:
+                    LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                    self.sell(stop_price, size, is_taker=True, amout_type="stop")
+                elif price_low <= price <= price_high:
+                    LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                    self.sell(price, size, is_taker=False, amout_type="limit")
+                else:
+                    is_run = False
+            if is_run == False:
                 if lifetime is None:
                     limits_sell.append((price, size, lifetime, stop_price))
                 elif lifetime is not None and lifetime > 1:
@@ -145,6 +175,7 @@ if __name__ == "__main__":
     parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
     parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
     parser.add_argument("--rs",     type=float, help="ratio to stop",  default=0.002)
+    parser.add_argument("--pl",     type=float, help="priority limit order", sdefault=0.0)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     assert args.dfload is not None
@@ -155,8 +186,8 @@ if __name__ == "__main__":
         colname_close_price = manager.columns_ans[0].replace("cls_", "close_")
         colname_base_price  = colname_close_price.split("_")[0] + "_120_" + colname_close_price.split("_")[-1]
         colname_entry_price = (colname_close_price.split("_")[0] + "_in120_120_" + colname_close_price.split("_")[-1])
-        colname_high_price  = colname_close_price.replace("close_", "high_")
-        colname_low_price   = colname_close_price.replace("close_", "low_")
+        colname_high_price  = (colname_close_price.split("_")[0] + "_in240_120_" + colname_close_price.split("_")[-1]).replace("close_", "high_")
+        colname_low_price   = (colname_close_price.split("_")[0] + "_in240_120_" + colname_close_price.split("_")[-1]).replace("close_", "low_")
         df_pred = pd.DataFrame(output, columns=[f"pred_{x}" for x in range(output.shape[-1])], index=input_index)
         df_pred[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
         if args.dfsave is not None:
@@ -165,13 +196,12 @@ if __name__ == "__main__":
         df_pred = pd.read_pickle(args.dfload)
         colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-5:]
     """
-                                                                pred_X
                                                           colname_high_price
                                                           colname_low_price
-       -240                   -120                     0           ^         120                    240
-    -----+----------------------+----------------------+-----------|----------+-----------|----------+
-                                v                      v                      v
-                        colname_base_price     colname_entry_price     colname_close_price
+       -240                   -120                     0           ^         120                                            X
+    -----+----------------------+----------------------+-----------|----------+----------------------|----------------------+
+                                v                      v                                             v                      v
+                        colname_base_price     colname_entry_price                                 pred_X          colname_close_price
     """
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
@@ -201,7 +231,7 @@ if __name__ == "__main__":
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
             pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
-        pos.step(price_entry, price_high, price_low, price_close)
+        pos.step(price_entry, price_high, price_low, price_close, priority_limit=args.pl)
     pos.close_all_positions(price_base)
     LOGGER.info(f"{pos.amount}")
     LOGGER.info(f"{pos.fees}")
