@@ -23,7 +23,7 @@ class Position:
     def __init__(self):
         self.price_ave   = 0
         self.size        = 0
-        self.amount      = 0
+        self.amount      = {}
         self.fees        = 0
         self.limits_buy  = []
         self.limits_sell = []
@@ -59,10 +59,10 @@ class Position:
             assert price < price_open
             if price_low <= price <= price_high:
                 LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
-                self.buy(price, size, is_taker=False)
+                self.buy(price, size, is_taker=False, amout_type="limit")
             elif stop_price is not None and price_low <= stop_price <= price_high:
                 LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
-                self.buy(stop_price, size, is_taker=True)
+                self.buy(stop_price, size, is_taker=True, amout_type="stop")
             else:
                 if lifetime is None:
                     limits_buy.append((price, size, lifetime, stop_price))
@@ -70,16 +70,16 @@ class Position:
                     limits_buy.append((price, size, lifetime - 1, stop_price))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
-                    self.buy(price_close, size, is_taker=True)
+                    self.buy(price_close, size, is_taker=True, amout_type="lifetime")
         limits_sell = []
         for price, size, lifetime, stop_price in self.limits_sell:
             assert price > price_open
             if price_low <= price <= price_high:
                 LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
-                self.sell(price, size, is_taker=False)
+                self.sell(price, size, is_taker=False, amout_type="limit")
             elif stop_price is not None and price_low <= stop_price <= price_high:
                 LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
-                self.sell(stop_price, size, is_taker=True)
+                self.sell(stop_price, size, is_taker=True, amout_type="stop")
             else:
                 if lifetime is None:
                     limits_sell.append((price, size, lifetime, stop_price))
@@ -87,10 +87,10 @@ class Position:
                     limits_sell.append((price, size, lifetime - 1, stop_price))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
-                    self.sell(price_close, size, is_taker=True)
+                    self.sell(price_close, size, is_taker=True, amout_type="lifetime")
         self.limits_buy  = limits_buy
         self.limits_sell = limits_sell
-    def buy(self, price: float, size: int | float, is_taker: bool=False):
+    def buy(self, price: float, size: int | float, is_taker: bool=False, amout_type: str="_"):
         assert isinstance(price, float) and price > 0
         assert isinstance(size, int) or isinstance(size, float)
         assert size > 0
@@ -103,11 +103,11 @@ class Position:
             else:
                 amount         = (self.price_ave - price) * self.size
                 self.price_ave = price
-            self.amount += amount
+            self.amount[amout_type] += amount
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
         self.size       += size
         self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
-    def sell(self, price: float, size: int | float, is_taker: bool=False):
+    def sell(self, price: float, size: int | float, is_taker: bool=False, amout_type: str="_"):
         assert isinstance(price, float) and price > 0
         assert isinstance(size, int) or isinstance(size, float)
         assert size > 0
@@ -120,15 +120,15 @@ class Position:
             else:
                 amount         = (price - self.price_ave) * self.size
                 self.price_ave = price
-            self.amount += amount
+            self.amount[amout_type] += amount
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
         self.size       -= size
         self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
     def close_all_positions(self, price: float):
         if self.size > 0:
-            self.sell(price, self.size, is_taker=True)
+            self.sell(price, self.size, is_taker=True, amout_type="lifetime")
         elif self.size < 0:
-            self.buy(price, -1 * self.size, is_taker=True)
+            self.buy(price, -1 * self.size, is_taker=True, amout_type="lifetime")
 
 
 if __name__ == "__main__":
