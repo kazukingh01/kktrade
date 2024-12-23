@@ -53,7 +53,7 @@ class Position:
         if stop_price is not None:
             assert price > stop_price
         self.limits_sell.append((target_price, size, lifetime, stop_price))
-    def step(self, price_open: float, price_high: float, price_low: float):
+    def step(self, price_open: float, price_high: float, price_low: float, price_close: float):
         limits_buy = []
         for price, size, lifetime, stop_price in self.limits_buy:
             assert price < price_open
@@ -70,7 +70,7 @@ class Position:
                     limits_buy.append((price, size, lifetime - 1, stop_price))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
-                    self.buy(price, size, is_taker=True)
+                    self.buy(price_close, size, is_taker=True)
         limits_sell = []
         for price, size, lifetime, stop_price in self.limits_sell:
             assert price > price_open
@@ -87,7 +87,7 @@ class Position:
                     limits_sell.append((price, size, lifetime - 1, stop_price))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
-                    self.sell(price, size, is_taker=True)
+                    self.sell(price_close, size, is_taker=True)
         self.limits_buy  = limits_buy
         self.limits_sell = limits_sell
     def buy(self, price: float, size: int | float, is_taker: bool=False):
@@ -144,26 +144,26 @@ if __name__ == "__main__":
         df = pd.read_pickle(args.dfload)
         manager = load_manager(args.mlload, args.njob)
         output, input_y, input_index = manager.predict(df=df)
-        COL_ANS             = manager.columns_ans[0].replace("cls_", "close_")
-        colname_base_price  = COL_ANS.split("_")[0] + "_120_" + COL_ANS.split("_")[-1]
-        colname_entry_price = (COL_ANS.split("_")[0] + "_in120_120_" + COL_ANS.split("_")[-1])
-        colname_high_price  = COL_ANS.replace("close_", "high_")
-        colname_low_price   = COL_ANS.replace("close_", "low_")
+        colname_close_price = manager.columns_ans[0].replace("cls_", "close_")
+        colname_base_price  = colname_close_price.split("_")[0] + "_120_" + colname_close_price.split("_")[-1]
+        colname_entry_price = (colname_close_price.split("_")[0] + "_in120_120_" + colname_close_price.split("_")[-1])
+        colname_high_price  = colname_close_price.replace("close_", "high_")
+        colname_low_price   = colname_close_price.replace("close_", "low_")
         df_pred = pd.DataFrame(output, columns=[f"pred_{x}" for x in range(output.shape[-1])], index=input_index)
-        df_pred[[COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
+        df_pred[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]] = df[[colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price]].copy()
         if args.dfsave is not None:
             df_pred.to_pickle(f"{args.dfsave}")
     else:
         df_pred = pd.read_pickle(args.dfload)
-        COL_ANS, colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-5:]
+        colname_close_price, colname_base_price, colname_entry_price, colname_high_price, colname_low_price = df_pred.columns[-5:]
     """
                                                                 pred_X
                                                           colname_high_price
                                                           colname_low_price
        -240                   -120                     0           ^         120                    240
     -----+----------------------+----------------------+-----------|----------+-----------|----------+
-                                v                      v
-                        colname_base_price     colname_entry_price     
+                                v                      v                      v
+                        colname_base_price     colname_entry_price     colname_close_price
     """
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
@@ -175,7 +175,7 @@ if __name__ == "__main__":
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
     pos  = Position()
     SIZE = 0.001
-    for x_index, (price_base, price_entry, price_high, price_low, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
+    for x_index, (price_base, price_entry, price_high, price_low, price_close, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_close_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
         if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
@@ -193,5 +193,5 @@ if __name__ == "__main__":
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
             pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 - RATIO_STOP))
-        pos.step(price_entry, price_high, price_low)
+        pos.step(price_entry, price_high, price_low, price_close)
     pos.close_all_positions(price_base)
