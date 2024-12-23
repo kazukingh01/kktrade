@@ -6,17 +6,10 @@ from kklogger import set_logger
 
 
 LOGGER     = set_logger(__name__)
-THRE_BUY   = 0.40
-THRE_SELL  = 0.40
+CLS_BUY    = [7, 8]
+CLS_SELL   = [0, 1]
 FEE_TAKER  = 0.055 / 100.0
 FEE_MAKER  = 0.020 / 100.0
-CLS_BUY    = [6, 7, 8]
-CLS_SELL   = [0, 1, 2]
-RATIO_WITHIN     = FEE_TAKER
-RATIO_ENTRY_BUY  = 1 - FEE_TAKER
-RATIO_ENTRY_SELL = 1 + FEE_TAKER
-RATIO_CLOSE      = 0.002
-RATIO_STOP       = 0.005
 
 
 class Position:
@@ -142,6 +135,10 @@ if __name__ == "__main__":
     parser.add_argument("--mlload", type=str)
     parser.add_argument("--dfsave", type=str)
     parser.add_argument("--njob",   type=int, default=1)
+    parser.add_argument("--thre",   type=float, help="threshold for predict", default=0.4)
+    parser.add_argument("--re",     type=float, help="ratio to entry", default=FEE_TAKER)
+    parser.add_argument("--rc",     type=float, help="ratio to close", default=0.002)
+    parser.add_argument("--rs",     type=float, help="ratio to stop",  default=0.002)
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
     assert args.dfload is not None
@@ -173,8 +170,8 @@ if __name__ == "__main__":
     df_pred = df_pred.sort_index()
     df_pred["pred_sell"] = df_pred[[f"pred_{x}" for x in CLS_SELL]].sum(axis=1)
     df_pred["pred_buy" ] = df_pred[[f"pred_{x}" for x in CLS_BUY ]].sum(axis=1)
-    df_pred["is_cond_pred_sell"] = (df_pred["pred_sell"] >= THRE_SELL)
-    df_pred["is_cond_pred_buy"]  = (df_pred["pred_buy"]  >= THRE_BUY )
+    df_pred["is_cond_pred_sell"] = (df_pred["pred_sell"] >= args.thre)
+    df_pred["is_cond_pred_buy"]  = (df_pred["pred_buy"]  >= args.thre)
     boolwk = (df_pred["is_cond_pred_sell"] & df_pred["is_cond_pred_buy"]) & (df_pred["pred_sell"] > df_pred["pred_buy"])
     df_pred.loc[boolwk, "is_cond_pred_sell"] = True
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
@@ -185,18 +182,18 @@ if __name__ == "__main__":
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
-            if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
+            if (1 - args.re) < (price_entry / price_base) < (1 + args.re):
                 is_sell = True
         elif is_cond_pred_buy:
-            if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
+            if (1 - args.re) < (price_entry / price_base) < (1 + args.re):
                 is_buy = True
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.sell(price_entry, SIZE, is_taker=True)
-            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 + RATIO_STOP))
+            pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=3, stop_price=price_base * (1 + args.rs))
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
             pos.buy(price_entry, SIZE, is_taker=True)
-            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=3, stop_price=price_base * (1 - RATIO_STOP))
+            pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=3, stop_price=price_base * (1 - args.rs))
         pos.step(price_entry, price_high, price_low, price_close)
     pos.close_all_positions(price_base)
