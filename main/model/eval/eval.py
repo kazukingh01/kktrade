@@ -8,14 +8,121 @@ from kklogger import set_logger
 LOGGER     = set_logger(__name__)
 THRE_BUY   = 0.40
 THRE_SELL  = 0.40
-RATIO_ENTRY_BUY  = 1.00055
-RATIO_ENTRY_SELL = 0.99945
-RATIO_CLOSE_BUY  = 1.003
-RATIO_CLOSE_SELL = 0.997
 FEE_TAKER  = 0.055 / 100.0
 FEE_MAKER  = 0.020 / 100.0
 CLS_BUY    = [6, 7, 8]
 CLS_SELL   = [0, 1, 2]
+RATIO_WITHIN     = FEE_TAKER
+RATIO_ENTRY_BUY  = 1 - FEE_TAKER
+RATIO_ENTRY_SELL = 1 + FEE_TAKER
+RATIO_CLOSE      = 0.003
+
+
+class Position:
+    def __init__(self):
+        self.price_ave   = 0
+        self.volume      = 0
+        self.amount      = 0
+        self.fees        = 0
+        self.limits_buy  = []
+        self.limits_sell = []
+        self.fee_taker   = 0.055 / 100.0
+        self.fee_maker   = 0.020 / 100.0
+    def set_limit_buy(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
+        LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
+        assert isinstance(price, float) and price > 0
+        assert isinstance(target_price, float) and target_price > 0
+        assert isinstance(size, int) or isinstance(size, float)
+        assert size > 0
+        assert lifetime is None or (isinstance(lifetime, int) and lifetime > 0)
+        assert stop_price is None or (isinstance(stop_price, float) and stop_price > 0)
+        assert price > target_price
+        if stop_price is not None:
+            assert price < stop_price
+        self.limits_buy.append((target_price, size, lifetime, stop_price))
+    def set_limit_sell(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
+        LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
+        assert isinstance(price, float) and price > 0
+        assert isinstance(target_price, float) and target_price > 0
+        assert isinstance(size, int) or isinstance(size, float)
+        assert size > 0
+        assert lifetime is None or (isinstance(lifetime, int) and lifetime > 0)
+        assert stop_price is None or (isinstance(stop_price, float) and stop_price > 0)
+        assert price < target_price
+        if stop_price is not None:
+            assert price > stop_price
+        self.limits_sell.append((target_price, size, lifetime, stop_price))
+    def step(self, price_open: float, price_high: float, price_low: float):
+        limits_buy = []
+        for price, size, lifetime, stop_price in self.limits_buy:
+            assert price < price_open
+            if price_low <= price <= price_high:
+                LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                self.buy(price, size, is_taker=False)
+            elif stop_price is not None and price_low <= stop_price <= price_high:
+                LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                self.buy(stop_price, size, is_taker=True)
+            else:
+                if lifetime is None:
+                    limits_buy.append((price, size, lifetime, stop_price))
+                elif lifetime is not None and lifetime > 1:
+                    limits_buy.append((price, size, lifetime - 1, stop_price))
+        limits_sell = []
+        for price, size, lifetime, stop_price in self.limits_sell:
+            assert price > price_open
+            if price_low <= price <= price_high:
+                LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
+                self.sell(price, size, is_taker=False)
+            elif stop_price is not None and price_low <= stop_price <= price_high:
+                LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
+                self.sell(stop_price, size, is_taker=True)
+            else:
+                if lifetime is None:
+                    limits_sell.append((price, size, lifetime, stop_price))
+                elif lifetime is not None and lifetime > 1:
+                    limits_sell.append((price, size, lifetime - 1, stop_price))
+        self.limits_buy  = limits_buy
+        self.limits_sell = limits_sell
+    def buy(self, price: float, size: int | float, is_taker: bool=False):
+        assert isinstance(price, float) and price > 0
+        assert isinstance(size, int) or isinstance(size, float)
+        assert size > 0
+        if self.size >= 0:
+            self.price_ave = (self.price_ave * abs(self.size) + price * size) / (abs(self.size) + size)
+            LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}")
+        else:
+            if (self.size + size) <= 0:
+                amount         = (self.price_ave - price) * size
+            else:
+                amount         = (self.price_ave - price) * self.size
+                self.price_ave = price
+            self.amount += amount
+            LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
+        self.size       += size
+        self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
+    def sell(self, price: float, size: int | float, is_taker: bool=False):
+        assert isinstance(price, float) and price > 0
+        assert isinstance(size, int) or isinstance(size, float)
+        assert size > 0
+        if self.size <= 0:
+            self.price_ave  = (self.price_ave * abs(self.size) + price * size) / (abs(self.size) + size)
+            LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}")
+        else:
+            if (self.size - size) >= 0:
+                amount         = (price - self.price_ave) * size
+            else:
+                amount         = (price - self.price_ave) * self.size
+                self.price_ave = price
+            self.amount += amount
+            LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
+        self.size       -= size
+        self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
+    def close_all_positions(self, price: float):
+        if self.size > 0:
+            self.sell(price, self.size, is_taker=True)
+        elif self.size < 0:
+            self.buy(price, -1 * self.size, is_taker=True)
+
 
 if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
@@ -59,102 +166,23 @@ if __name__ == "__main__":
     boolwk = (df_pred["is_cond_pred_sell"] & df_pred["is_cond_pred_buy"]) & (df_pred["pred_sell"] > df_pred["pred_buy"])
     df_pred.loc[boolwk, "is_cond_pred_sell"] = True
     df_pred.loc[boolwk, "is_cond_pred_buy" ] = False
-    list_entry, status, list_fees, list_return, count_thre, limit_buy, limit_sell = [], None, [], [], 0, None, None
+    pos  = Position()
+    SIZE = 0.001
     for x_index, (price_base, price_entry, price_high, price_low, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
         if np.isnan(price_base) or np.isnan(price_entry): continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
-            if (price_base * RATIO_ENTRY_SELL) < price_entry:
+            if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
                 is_sell = True
         elif is_cond_pred_buy:
-            if (price_base * RATIO_ENTRY_BUY) > price_entry:
+            if (1 - RATIO_WITHIN) < (price_entry / price_base) < (1 + RATIO_WITHIN):
                 is_buy = True
-        if status is None:
-            # Entry
-            if is_sell:
-                assert len(list_entry) == 0
-                LOGGER.info(f"{strdate}, SELL     !!!!!!")
-                list_entry.append(price_entry)
-                list_fees. append(FEE_TAKER)
-                status     = "sell"
-                limit_buy  = price_base * RATIO_CLOSE_SELL
-                limit_sell = None
-            elif is_buy:
-                assert len(list_entry) == 0
-                LOGGER.info(f"{strdate}, BUY      !!!!!!")
-                list_entry.append(price_entry)
-                list_fees. append(FEE_TAKER)
-                status     = "buy"
-                limit_buy  = None
-                limit_sell = price_base * RATIO_CLOSE_BUY
-        elif status == "sell":
-            if is_sell:
-                LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
-                list_entry.append(price_entry)
-                list_fees. append(FEE_TAKER)
-                limit_buy  = price_base * RATIO_CLOSE_SELL
-                limit_sell = None
-            elif is_buy or (count_thre >= 2):
-                amount_ret = (np.array(list_entry) / price_entry - 1).sum()
-                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
-                list_return.append(amount_ret)
-                list_fees. append(FEE_TAKER)
-                status = None
-                list_entry = []
-                count_thre = 0
-                limit_buy  = None
-                limit_sell = None
-            else:
-                count_thre += 1
-        elif status == "buy":
-            if is_sell or (count_thre >= 2):
-                amount_ret = (price_entry / np.array(list_entry) - 1).sum()
-                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
-                list_return.append(amount_ret)
-                list_fees. append(FEE_TAKER)
-                status = None
-                list_entry = []
-                count_thre = 0
-                limit_buy  = None
-                limit_sell = None
-            elif is_buy:
-                LOGGER.info(f"{strdate}, CONTINUE !!!!!!")
-                list_entry.append(price_entry)
-                list_fees. append(FEE_TAKER)
-                limit_buy  = None
-                limit_sell = price_base * RATIO_CLOSE_BUY
-            else:
-                count_thre += 1
-        if   limit_buy is not None:
-            if price_low <= limit_buy <= price_high:
-                amount_ret = (np.array(list_entry) / limit_buy - 1).sum()
-                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
-                list_return.append(amount_ret)
-                list_fees. append(FEE_MAKER)
-                status = None
-                list_entry = []
-                count_thre = 0
-                limit_buy  = None
-                limit_sell = None
-        elif limit_sell is not None:
-            if price_low <= limit_sell <= price_high:
-                amount_ret = (limit_sell / np.array(list_entry) - 1).sum()
-                LOGGER.info(f"{strdate}, status: {status}, retrun: {amount_ret}")
-                list_return.append(amount_ret)
-                list_fees. append(FEE_MAKER)
-                status = None
-                list_entry = []
-                count_thre = 0
-                limit_buy  = None
-                limit_sell = None
-    if (len(list_entry) > 0) and np.isnan(price_base) == False and np.isnan(price_entry) == False:
-        if status == "sell":
-            amount_ret = (np.array(list_entry) / price_entry - 1).sum()
-            list_return.append(amount_ret)
-            list_fees. append(FEE_TAKER)
-        elif status == "buy":
-            amount_ret = (price_entry / np.array(list_entry) - 1).sum()
-            list_return.append(amount_ret)
-            list_fees. append(FEE_TAKER)
-    LOGGER.info(f"return: {sum(list_return)}, fee: {sum(list_fees)}")
+        if is_sell:
+            pos.sell(price_entry, is_taker=True)
+            pos.set_limit_buy( price_entry, price_base * (1 - RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 + (RATIO_CLOSE * 2)))
+        elif is_buy:
+            pos.buy(price_entry, is_taker=True)
+            pos.set_limit_sell(price_entry, price_base * (1 + RATIO_CLOSE), SIZE, lifetime=None, stop_price=price_base * (1 - (RATIO_CLOSE * 2)))
+        pos.step(price_entry, price_high, price_low)
+    pos.close_all_positions(price_base)
