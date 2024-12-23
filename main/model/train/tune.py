@@ -15,6 +15,7 @@ if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
     parser.add_argument("--dfload", type=str)
     parser.add_argument("--dftest", type=str)
+    parser.add_argument("--ans",    type=str)
     parser.add_argument("--njob",  type=int, default=1)
     parser.add_argument("--iter",  type=int, default=500)
     parser.add_argument("--new",   action='store_true', default=False)
@@ -26,7 +27,7 @@ if __name__ == "__main__":
     df_train = pd.read_pickle(args.dfload)
     df_test  = pd.read_pickle(args.dftest)
     # manager
-    manager = MLManager(df_train.columns[:np.where(df_train.columns == "===")[0][0]].tolist(), colname_ans, n_jobs=args.njob)
+    manager = MLManager(df_train.columns[:np.where(df_train.columns == "===")[0][0]].tolist(), args.ans, n_jobs=args.njob)
     manager.proc_registry(dict_proc={
         "row": [
             f'"ProcCondition", "{x} >= 0"' for x in manager.columns_ans
