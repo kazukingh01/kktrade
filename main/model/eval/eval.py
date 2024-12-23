@@ -32,7 +32,7 @@ class Position:
             self.fees[fee_type] += fee
         else:
             self.fees[fee_type]  = fee
-    def set_limit_buy(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
+    def set_limit_buy(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None, conditional: dict=None):
         LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
         assert isinstance(price, float) and price > 0
         assert isinstance(target_price, float) and target_price > 0
@@ -41,10 +41,10 @@ class Position:
         assert lifetime is None or (isinstance(lifetime, int) and lifetime > 0)
         assert stop_price is None or (isinstance(stop_price, float) and stop_price > 0)
         assert price > target_price
-        if stop_price is not None:
-            assert price < stop_price
-        self.limits_buy.append((target_price, size, lifetime, stop_price))
-    def set_limit_sell(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
+        if stop_price is not None: assert price < stop_price
+        assert conditional is None or (isinstance(conditional, dict) and "is_buy" in conditional)
+        self.limits_buy.append((target_price, size, lifetime, stop_price, conditional))
+    def set_limit_sell(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None, conditional: dict=None):
         LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
         assert isinstance(price, float) and price > 0
         assert isinstance(target_price, float) and target_price > 0
@@ -53,14 +53,15 @@ class Position:
         assert lifetime is None or (isinstance(lifetime, int) and lifetime > 0)
         assert stop_price is None or (isinstance(stop_price, float) and stop_price > 0)
         assert price < target_price
-        if stop_price is not None:
-            assert price > stop_price
-        self.limits_sell.append((target_price, size, lifetime, stop_price))
+        if stop_price is not None: assert price > stop_price
+        assert conditional is None or (isinstance(conditional, dict) and "is_buy" in conditional)
+        self.limits_sell.append((target_price, size, lifetime, stop_price, conditional))
     def step(self, price_open: float, price_high: float, price_low: float, price_close: float, priority_limit: float=0):
         assert 0 <= priority_limit < 1
         val_random = np.random.rand()
-        limits_buy = []
-        for price, size, lifetime, stop_price in self.limits_buy:
+        limits_buy  = []
+        limits_sell = []
+        for price, size, lifetime, stop_price, c in self.limits_buy:
             assert price < price_open
             is_limit_first = (val_random >= priority_limit)
             is_run         = True
@@ -68,6 +69,12 @@ class Position:
                 if price_low <= price <= price_high:
                     LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
                     self.buy(price, size, is_taker=False, amout_type="limit")
+                    if c is not None:
+                        _price, _size, _lifetime, _stop_price = c["price"], c["size"], c["lifetime"], c["stop_price"]
+                        if c["is_buy"]:
+                            limits_buy. append((_price, _size, _lifetime, _stop_price, None))
+                        else:
+                            limits_sell.append((_price, _size, _lifetime, _stop_price, None))
                 elif stop_price is not None and price_low <= stop_price <= price_high:
                     LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
                     self.buy(stop_price, size, is_taker=True, amout_type="stop")
@@ -80,18 +87,23 @@ class Position:
                 elif price_low <= price <= price_high:
                     LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
                     self.buy(price, size, is_taker=False, amout_type="limit")
+                    if c is not None:
+                        _price, _size, _lifetime, _stop_price = c["price"], c["size"], c["lifetime"], c["stop_price"]
+                        if c["is_buy"]:
+                            limits_buy. append((_price, _size, _lifetime, _stop_price, None))
+                        else:
+                            limits_sell.append((_price, _size, _lifetime, _stop_price, None))
                 else:
                     is_run = False
             if is_run == False:
                 if lifetime is None:
-                    limits_buy.append((price, size, lifetime, stop_price))
+                    limits_buy.append((price, size, lifetime,     stop_price, c))
                 elif lifetime is not None and lifetime > 1:
-                    limits_buy.append((price, size, lifetime - 1, stop_price))
+                    limits_buy.append((price, size, lifetime - 1, stop_price, c))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
                     self.buy(price_close, size, is_taker=True, amout_type="lifetime")
-        limits_sell = []
-        for price, size, lifetime, stop_price in self.limits_sell:
+        for price, size, lifetime, stop_price, c in self.limits_sell:
             assert price > price_open
             is_limit_first = (val_random >= priority_limit)
             is_run         = True
@@ -99,6 +111,12 @@ class Position:
                 if price_low <= price <= price_high:
                     LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
                     self.sell(price, size, is_taker=False, amout_type="limit")
+                    if c is not None:
+                        _price, _size, _lifetime, _stop_price = c["price"], c["size"], c["lifetime"], c["stop_price"]
+                        if c["is_buy"]:
+                            limits_buy. append((_price, _size, _lifetime, _stop_price, None))
+                        else:
+                            limits_sell.append((_price, _size, _lifetime, _stop_price, None))
                 elif stop_price is not None and price_low <= stop_price <= price_high:
                     LOGGER.info("!!!!! STOP order !!!!!",  color=["BOLD", "YELLOW"])
                     self.sell(stop_price, size, is_taker=True, amout_type="stop")
@@ -111,13 +129,19 @@ class Position:
                 elif price_low <= price <= price_high:
                     LOGGER.info("!!!!! LIMIT order !!!!!", color=["BOLD", "GREEN"])
                     self.sell(price, size, is_taker=False, amout_type="limit")
+                    if c is not None:
+                        _price, _size, _lifetime, _stop_price = c["price"], c["size"], c["lifetime"], c["stop_price"]
+                        if c["is_buy"]:
+                            limits_buy. append((_price, _size, _lifetime, _stop_price, None))
+                        else:
+                            limits_sell.append((_price, _size, _lifetime, _stop_price, None))
                 else:
                     is_run = False
             if is_run == False:
                 if lifetime is None:
-                    limits_sell.append((price, size, lifetime, stop_price))
+                    limits_sell.append((price, size, lifetime,     stop_price, c))
                 elif lifetime is not None and lifetime > 1:
-                    limits_sell.append((price, size, lifetime - 1, stop_price))
+                    limits_sell.append((price, size, lifetime - 1, stop_price, c))
                 else:
                     LOGGER.info("!!!!! LIFETIME !!!!!", color=["BOLD", "CYAN"])
                     self.sell(price_close, size, is_taker=True, amout_type="lifetime")
@@ -223,12 +247,20 @@ if __name__ == "__main__":
                 is_buy = True
         if is_sell:
             LOGGER.info(f"{strdate}, price: {price_entry}")
-            pos.sell(price_entry, SIZE, is_taker=True)
-            pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 + args.rs))
+            # pos.sell(price_entry, SIZE, is_taker=True)
+            # pos.set_limit_buy( price_entry, price_base * (1 - args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 + args.rs))
+            pos.set_limit_sell(
+                price_entry, price_entry * (1 + args.re), SIZE, lifetime=1, stop_price=None,
+                conditional={"is_buy": True, "price": price_base * (1 - args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 + args.rs)}
+            )
         elif is_buy:
             LOGGER.info(f"{strdate}, price: {price_entry}")
-            pos.buy(price_entry, SIZE, is_taker=True)
-            pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
+            # pos.buy(price_entry, SIZE, is_taker=True)
+            # pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=args.lt, stop_price=price_base * (1 - args.rs))
+            pos.set_limit_buy(
+                price_entry, price_entry * (1 - args.re), SIZE, lifetime=1, stop_price=None,
+                conditional={"is_buy": False, "price": price_base * (1 + args.rc), "size": SIZE, "lifetime": args.lt, "stop_price": price_base * (1 - args.rs)}
+            )
         pos.step(price_entry, price_high, price_low, price_close, priority_limit=args.pl)
     pos.close_all_positions(price_base)
     LOGGER.info(f"{pos.amount}")
