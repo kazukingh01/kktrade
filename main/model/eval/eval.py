@@ -21,7 +21,7 @@ RATIO_CLOSE      = 0.003
 class Position:
     def __init__(self):
         self.price_ave   = 0
-        self.volume      = 0
+        self.size        = 0
         self.amount      = 0
         self.fees        = 0
         self.limits_buy  = []
