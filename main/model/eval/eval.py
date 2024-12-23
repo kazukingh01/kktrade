@@ -214,7 +214,7 @@ if __name__ == "__main__":
     pos  = Position()
     SIZE = 0.001
     for x_index, (price_base, price_entry, price_high, price_low, price_close, is_cond_pred_sell, is_cond_pred_buy) in zip(df_pred.index, df_pred[[colname_base_price, colname_entry_price, colname_high_price, colname_low_price, colname_close_price, "is_cond_pred_sell", "is_cond_pred_buy"]].values):
-        if np.isnan(price_base) or np.isnan(price_entry): continue
+        if np.isnan([price_base, price_entry, price_high, price_low, price_close]).sum() > 0: continue
         is_sell, is_buy = False, False
         strdate = datetime.datetime.fromtimestamp(x_index, tz=datetime.UTC).strftime("%Y-%m-%d %H:%M")
         if is_cond_pred_sell:
