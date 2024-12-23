@@ -197,3 +197,5 @@ if __name__ == "__main__":
             pos.set_limit_sell(price_entry, price_base * (1 + args.rc), SIZE, lifetime=3, stop_price=price_base * (1 - args.rs))
         pos.step(price_entry, price_high, price_low, price_close)
     pos.close_all_positions(price_base)
+    LOGGER.info(f"{pos.amount}")
+    LOGGER.info(f"{pos.fees}")
