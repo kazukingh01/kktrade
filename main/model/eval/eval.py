@@ -17,7 +17,7 @@ class Position:
         self.price_ave   = 0
         self.size        = 0
         self.amount      = {}
-        self.fees        = 0
+        self.fees        = {}
         self.limits_buy  = []
         self.limits_sell = []
         self.fee_taker   = 0.055 / 100.0
@@ -27,6 +27,11 @@ class Position:
             self.amount[amount_type] += amount
         else:
             self.amount[amount_type]  = amount
+    def add_fees(self, fee: float, fee_type: str):
+        if fee_type in self.fees:
+            self.fees[fee_type] += fee
+        else:
+            self.fees[fee_type]  = fee
     def set_limit_buy(self, price: float, target_price: float, size: int | float, lifetime: int=None, stop_price: float=None):
         LOGGER.info(f"price: {price}, target_price: {target_price}, size: {size}, lifetime: {lifetime}, stop_price: {stop_price}")
         assert isinstance(price, float) and price > 0
@@ -103,8 +108,8 @@ class Position:
                 self.price_ave = price
             self.add_amount(amount, amout_type)
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
-        self.size       += size
-        self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
+        self.size += size
+        self.add_fees((self.fee_taker if is_taker else self.fee_maker) * size * price, is_taker)
     def sell(self, price: float, size: int | float, is_taker: bool=False, amout_type: str="_"):
         assert isinstance(price, float) and price > 0
         assert isinstance(size, int) or isinstance(size, float)
@@ -120,8 +125,8 @@ class Position:
                 self.price_ave = price
             self.add_amount(amount, amout_type)
             LOGGER.info(f"price: {price}, size: {size}, is_taker: {is_taker}, price_ave: {self.price_ave}, amount: {amount}")
-        self.size       -= size
-        self.fees       += (self.fee_taker if is_taker else self.fee_maker) * size * price
+        self.size -= size
+        self.add_fees((self.fee_taker if is_taker else self.fee_maker) * size * price, is_taker)
     def close_all_positions(self, price: float):
         if self.size > 0:
             self.sell(price, self.size, is_taker=True, amout_type="lifetime")
