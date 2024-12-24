@@ -68,6 +68,9 @@ if __name__ == "__main__":
         params_fit=params_fit, params_fit_evaldict={},
         is_proc_fit_every_cv=False, is_save_cv_models=True, colname_sample_weight=None
     )
+    manager.set_cvmodel()
+    if df_test is not None:
+        manager.evaluate(df_test, is_store=True)
     if args.mlsave is not None:
         manager.save(f"{args.mlsave}", exist_ok=True, is_minimum=True)
 
