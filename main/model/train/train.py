@@ -14,6 +14,7 @@ if __name__ == "__main__":
     parser.add_argument("--json",    type=str)
     parser.add_argument("--dftrain", type=str)
     parser.add_argument("--dftest",  type=str)
+    parser.add_argument("--mlsave",  type=str)
     parser.add_argument("--ans",     type=str)
     parser.add_argument("--iter",    type=int)
     parser.add_argument("--lr",      type=float)
@@ -67,3 +68,6 @@ if __name__ == "__main__":
         params_fit=params_fit, params_fit_evaldict={},
         is_proc_fit_every_cv=False, is_save_cv_models=True, colname_sample_weight=None
     )
+    if args.mlsave is not None:
+        manager.save(f"{args.mlsave}", exist_ok=True, is_minimum=True)
+
