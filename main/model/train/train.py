@@ -13,6 +13,7 @@ if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
     parser.add_argument("--json",    type=str)
     parser.add_argument("--dftrain", type=str)
+    parser.add_argument("--dfvalid", type=str)
     parser.add_argument("--dftest",  type=str)
     parser.add_argument("--mlsave",  type=str)
     parser.add_argument("--ans",     type=str)
@@ -30,7 +31,8 @@ if __name__ == "__main__":
     LOGGER.info(f"config: {c}")
     # load pickle
     df_train = pd.read_pickle(args.dftrain)
-    df_test  = pd.read_pickle(args.dftest)
+    df_valid = pd.read_pickle(args.dfvalid) if args.dfvalid is not None else None
+    df_test  = pd.read_pickle(args.dftest ) if args.dftest  is not None else None
     # manager
     manager = MLManager(
         df_train.columns[:np.where(df_train.columns == "===")[0][0]].tolist(),
@@ -62,13 +64,19 @@ if __name__ == "__main__":
         early_stopping_rounds={c['config']['early_stopping_rounds']}, early_stopping_name={c['config']['early_stopping_name']}, 
         sample_weight='balanced', categorical_features={np.where(np.isin(manager.columns, c["data"]["categorical_features"]))[0].tolist()}
     )"""
-    manager.fit_cross_validation(
-        df_train, n_split=c["config"]["ncv"], mask_split=None, cols_multilabel_split=(c["data"]["split_by"] + list(manager.columns_ans)),
-        n_cv=c["config"]["ncv"], indexes_train=None, indexes_valid=None,
-        params_fit=params_fit, params_fit_evaldict={},
-        is_proc_fit_every_cv=False, is_save_cv_models=True, colname_sample_weight=None
-    )
-    manager.set_cvmodel()
+    if df_valid is None:
+        manager.fit_cross_validation(
+            df_train, n_split=c["config"]["ncv"], mask_split=None, cols_multilabel_split=(c["data"]["split_by"] + list(manager.columns_ans)),
+            n_cv=c["config"]["ncv"], indexes_train=None, indexes_valid=None,
+            params_fit=params_fit, params_fit_evaldict={},
+            is_proc_fit_every_cv=False, is_save_cv_models=True, colname_sample_weight=None
+        )
+        manager.set_cvmodel()
+    else:
+        manager.fit(
+            df_train, df_valid=df_valid, is_proc_fit=True, params_fit=params_fit,
+            is_eval_train=False, colname_sample_weight=None
+        )
     if df_test is not None:
         manager.evaluate(df_test, is_store=True)
     if args.mlsave is not None:
