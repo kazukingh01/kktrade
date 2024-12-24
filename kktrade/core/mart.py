@@ -208,17 +208,19 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     assert isinstance(date_to, datetime.datetime)
     assert isinstance(date_sw, datetime.datetime)
     assert date_fr < date_to
-    df_mst = db_bs.select_sql(f"select * from master_symbol where is_active = true and exchange = '{exchange}';")
+    LOGGER.info(f"from: {date_fr}, to: {date_to}")
+    df_mst  = db_bs.select_sql(f"select * from master_symbol where is_active = true and exchange = '{exchange}';")
+    columns = ",".join(["unixtime", "symbol", "side", "price", "size"])
     if exchange in ["bitflyer"]:
-        df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+        df = db_bs.select_sql( f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
     else:
         if   date_fr >= date_sw:
-            df = db_bs.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+            df = db_bs.select_sql( f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         elif date_to <= date_sw:
-            df = db_bk.select_sql( f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+            df = db_bk.select_sql( f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
         else:
-            df1 = db_bk.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-            df2 = db_bs.select_sql(f"SELECT * FROM {exchange}_executions WHERE unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+            df1 = db_bk.select_sql(f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
+            df2 = db_bs.select_sql(f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
             df  = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
     if df.shape[0] == 0:
         LOGGER.info("END")
@@ -247,6 +249,7 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     assert isinstance(interval,      int) and (interval % 60) == 0
     assert isinstance(sampling_rate, int) and (interval % sampling_rate) == 0
     assert exchanges is None or (isinstance(exchanges, list) and check_type_list(exchanges, str))
+    LOGGER.info(f"from: {date_fr}, to: {date_to}")
     symbols = None
     if exchanges is not None:
         df_mst  = db.select_sql(f"select * from master_symbol where exchange in ('" + "','".join(exchanges) +"');")

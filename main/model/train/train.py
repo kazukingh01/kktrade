@@ -41,7 +41,7 @@ if __name__ == "__main__":
             f'"ProcCondition", "{x} >= 0"' for x in manager.columns_ans
         ],
         "exp": [
-            '"ProcAsType", np.float32, batch_size=500, n_jobs=1, is_jobs_fix=True', 
+            '"ProcAsType", np.float32, n_jobs=1, is_jobs_fix=True', 
             '"ProcToValues"', 
             '"ProcReplaceInf", posinf=float("nan"), neginf=float("nan")', 
         ],
