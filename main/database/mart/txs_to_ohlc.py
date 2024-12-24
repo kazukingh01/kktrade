@@ -23,15 +23,16 @@ if __name__ == "__main__":
     parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", default=(timenow - datetime.timedelta(hours=1)))
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
     parser.add_argument("--sr", type=int, help="sampling rate. --sr 60", default=60)
+    parser.add_argument("--exmin",  type=int, help="extra minute to read DB. --exmin 30", default=30)
     parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], default="60")
     parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=9)))
     parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
     LOGGER.info(f"args: {args}")
-    DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200)
-    DB_BK  = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200)
-    DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
+    DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200, is_read_layout=False)
+    DB_BK  = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200, is_read_layout=False)
+    DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, is_read_layout=True)
     list_dates = [args.fr + datetime.timedelta(days=x) + datetime.timedelta(hours=hour) for x in range(0, (args.to - args.fr).days + 1, 1) for hour in args.hours]
     if len(list_dates) == 1: list_dates = list_dates + [args.to, ]
     for i_date in range(1, len(list_dates)):
@@ -39,7 +40,7 @@ if __name__ == "__main__":
         date_to = list_dates[i_date  ]
         for exchange in EXCHANGES:
             LOGGER.info(f"exchange: {exchange}, from: {date_fr}, to: {date_to}")
-            df = get_executions(DB_BS, DB_BK, exchange, date_fr - datetime.timedelta(minutes=30), date_to, args.switch)
+            df = get_executions(DB_BS, DB_BK, exchange, date_fr - datetime.timedelta(minutes=args.exmin), date_to, args.switch)
             if df.shape[0] == 0: continue
             for interval in args.itvls:
                 df_ohlc    = create_ohlc(df[["symbol", "unixtime", "price"]], "unixtime", interval, args.sr, date_fr - datetime.timedelta(minutes=30), date_to, index_names=["symbol"], from_tx=True)
@@ -53,7 +54,7 @@ if __name__ == "__main__":
                 df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
                 df_ohlc = df_ohlc.reset_index()
                 df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
-                df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(date_fr.timestamp())) & (df_ohlc["unixtime"] < int(date_to.timestamp()))]
+                df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(date_fr.timestamp() // args.sr * args.sr)) & (df_ohlc["unixtime"] < int(date_to.timestamp() // args.sr * args.sr))]
                 df_ohlc["type"]     = 0
                 df_ohlc["unixtime"] = (df_ohlc["unixtime"] + args.sr)
                 df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)

@@ -20,6 +20,26 @@ if __name__ == "__main__":
         0: from tx. 60s
         1: from 60s ( means from 60s )
         2: from other
+    
+    tx -> 60s
+        buffer         2 minute ago                                                          now
+        --------------------|                                                                 |  
+        00:09:40   00:10:00   00:10:20   00:10:40   00:11:00   00:11:20   00:11:40   00:12:00   00:12:20   00:12:40
+            v          v          v          v          v          v          v          v          v
+        00:09:00   00:10:00   00:10:00   00:10:00   00:11:00   00:11:00   00:11:00   00:12:00   00:12:00
+                                                                                         x          x     No need.
+                                        ( Add 60 s )
+        00:10:00   00:11:00   00:11:00   00:11:00   00:12:00   00:12:00   00:12:00
+
+    60s -> 120s
+                   00:11:00   00:11:00   00:11:00   00:12:00   00:12:00   00:12:00
+                                        ( Sub 60 s )
+                   00:10:00   00:10:00   00:10:00   00:11:00   00:11:00   00:11:00
+                       v          v          v          v          v          v
+                   00:10:00   00:10:00   00:10:00   00:10:00   00:10:00   00:10:00
+                                        ( Add 120 s )
+                   00:12:00   00:12:00   00:12:00   00:12:00   00:12:00   00:12:00
+
     """
     timenow = datetime.datetime.now(tz=datetime.UTC)
     parser  = argparse.ArgumentParser()
@@ -59,7 +79,7 @@ if __name__ == "__main__":
         df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
         df_ohlc = df_ohlc.reset_index()
         df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
-        df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(args.fr.timestamp())) & (df_ohlc["unixtime"] < int(args.to.timestamp()))]
+        df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(args.fr.timestamp() // args.tosr * args.tosr)) & (df_ohlc["unixtime"] < int(args.to.timestamp() // args.tosr * args.tosr))]
         df_ohlc["type"]     = args.type
         df_ohlc["unixtime"] = (df_ohlc["unixtime"] + args.tosr)
         df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)

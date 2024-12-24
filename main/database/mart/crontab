@@ -1,0 +1,2 @@
+*/1  *   * * *   ubuntu  sleep 10 & bash ${HOMETRADE}/main/database/mart/create_mart_online1.sh
+*/10 *   * * *   ubuntu  sleep 10 & bash ${HOMETRADE}/main/database/mart/create_mart_online2.sh
