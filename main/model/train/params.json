@@ -1,0 +1,50 @@
+{
+    "config": {
+        "gt": "gt@cls_in2520_2400_s14",
+        "iter": 2000,
+        "n_classes": 9,
+        "ncv": 3,
+        "is_reg": false,
+        "is_ans_int": true,
+        "loss_func": "multiclass",
+        "loss_func_eval": [
+            "multiclass",
+            "Accuracy(top_k=1)",
+            "Accuracy(top_k=3)"
+        ],
+        "is_unbalance": true,
+        "early_stopping_rounds": 20,
+        "early_stopping_name": 0,
+        "kwargs_model": {
+            "is_softmax": false
+        }
+    },
+    "data": {
+        "train": null,
+        "valid": null,
+        "test": null,
+        "split_by": [
+            "hour"
+        ],
+        "categorical_features": [
+        ]
+    },
+    "parameters": {
+        "learning_rate": 0.03,
+        "num_leaves": 1000,
+        "is_gpu": false,
+        "random_seed": 0,
+        "max_depth": 0,
+        "subsample": 1.0,
+        "max_bin": 64,
+        "min_child_weight": 0.11738408367155427,
+        "colsample_bytree": 0.050431917769072916,
+        "colsample_bynode": 0.3370459971976315,
+        "colsample_bylevel": 1.0,
+        "reg_alpha": 0.010439371043702017,
+        "reg_lambda": 59.436605429314056,
+        "min_split_gain": 0.09432378798919398,
+        "min_child_samples": 7,
+        "path_smooth": 0.026587617829098017    
+    }
+}

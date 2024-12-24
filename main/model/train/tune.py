@@ -21,10 +21,8 @@ if __name__ == "__main__":
     parser.add_argument("--trials", type=int, default=100)
     parser.add_argument("--lr",     type=float, default=0.1)
     parser.add_argument("--new",    action='store_true', default=False)
-
     args = parser.parse_args()
     LOGGER.info(f"args: {args}")
-
     # load pickle
     df_train = pd.read_pickle(args.dfload)
     df_test  = pd.read_pickle(args.dftest)
