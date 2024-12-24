@@ -202,7 +202,7 @@ COLUMNS_MART = list(DICT_MART.keys())
 def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_fr: datetime.datetime, date_to: datetime.datetime, date_sw: datetime.datetime):
     LOGGER.info("START")
     assert isinstance(db_bs, DBConnector)
-    assert isinstance(db_bk, DBConnector)
+    assert isinstance(db_bk, DBConnector) or db_bk is None
     assert isinstance(exchange, str) and exchange in EXCHANGES
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)

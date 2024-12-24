@@ -31,8 +31,11 @@ if __name__ == "__main__":
     args   = parser.parse_args()
     LOGGER.info(f"args: {args}")
     DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200, is_read_layout=False)
-    DB_BK  = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200, is_read_layout=False)
     DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, is_read_layout=True)
+    if (args.switch + datetime.timedelta(days=7)) < args.fr:
+        DB_BK = None # No need to connect.
+    else:
+        DB_BK = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200, is_read_layout=False)
     list_dates = [args.fr + datetime.timedelta(days=x) + datetime.timedelta(hours=hour) for x in range(0, (args.to - args.fr).days + 1, 1) for hour in args.hours]
     if len(list_dates) == 1: list_dates = list_dates + [args.to, ]
     for i_date in range(1, len(list_dates)):
