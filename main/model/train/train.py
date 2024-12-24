@@ -32,7 +32,10 @@ if __name__ == "__main__":
     # load pickle
     df_train = pd.read_pickle(args.dftrain)
     df_valid = pd.read_pickle(args.dfvalid) if args.dfvalid is not None else None
-    df_test  = pd.read_pickle(args.dftest ) if args.dftest  is not None else None
+    if args.dftest is not None:
+        df_test = df_valid if args.dftest == args.dfvalid else pd.read_pickle(args.dftest) 
+    else:
+        df_test = None
     # manager
     manager = MLManager(
         df_train.columns[:np.where(df_train.columns == "===")[0][0]].tolist(),
