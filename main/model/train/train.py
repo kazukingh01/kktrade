@@ -56,7 +56,7 @@ if __name__ == "__main__":
     )
     # model fit
     params_fit=f"""dict(
-        loss_func=loss_func, num_iterations={c['config']['iter']},
+        loss_func="{c['config']['loss_func']}", num_iterations={c['config']['iter']},
         x_valid=_validation_x, y_valid=_validation_y, loss_func_eval={c['config']['loss_func_eval']}, 
         early_stopping_rounds={c['config']['early_stopping_rounds']}, early_stopping_name={c['config']['early_stopping_name']}, 
         sample_weight='balanced', categorical_features={np.where(np.isin(manager.columns, c["data"]["categorical_features"]))[0].tolist()}

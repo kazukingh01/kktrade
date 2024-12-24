@@ -8,9 +8,7 @@
         "is_ans_int": true,
         "loss_func": "multiclass",
         "loss_func_eval": [
-            "multiclass",
-            "Accuracy(top_k=1)",
-            "Accuracy(top_k=3)"
+            "multiclass"
         ],
         "is_unbalance": true,
         "early_stopping_rounds": 20,
