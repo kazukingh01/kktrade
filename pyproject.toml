@@ -1,12 +1,10 @@
 [project]
 name = "kktrade"
-version = "1.2.2"
+version = "1.3.0"
 requires-python = ">= 3.12.2"
 description = "python libraries for trade."
 dependencies = [
     'kkpsgre      @ git+https://github.com/kazukingh01/kkpsgre.git@74902b09598f2ede5d424ad5580f002364323645',
-    'kkgbdt       @ git+https://github.com/kazukingh01/kkgbdt.git@8d44e317688a93f290a0e7e6b01e8c55b33ccf59',
-    'kkmlmanager  @ git+https://github.com/kazukingh01/kkmlmanager.git@220d9cebc3a601adc08b87ec401303fbbca5caf0',
     'pandas==2.2.1',
     'numpy==1.26.4',
     'joblib==1.4.2',
