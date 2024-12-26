@@ -30,8 +30,8 @@ def check_common_input(
     assert not ("timegrp" in df.columns)
     assert unixtime_name in df.columns and df[unixtime_name].dtype in [int, float] # !! NOT check_type(df[unixtime_name].dtype, [int, float]) !!
     assert (df[unixtime_name] >= datetime.datetime(2000,1,1).timestamp()).sum() == (df[unixtime_name] <= datetime.datetime(2099,1,1).timestamp()).sum() == df.shape[0]
-    assert isinstance(interval,      int) and interval      >= 30
-    assert isinstance(sampling_rate, int) and sampling_rate >= 30
+    assert isinstance(interval,      int) and interval      >= 1
+    assert isinstance(sampling_rate, int) and sampling_rate >= 1
     assert interval % sampling_rate == 0
     if date_fr is not None:
         assert isinstance(date_fr, datetime.datetime)
@@ -149,13 +149,15 @@ def create_ohlc(
             df_smpl["close"] = df.groupby(index_names + ["timegrp"])["close"].last()
             df_smpl["high" ] = df.groupby(index_names + ["timegrp"])["high" ].max()
             df_smpl["low"  ] = df.groupby(index_names + ["timegrp"])["low"  ].min()
-            ## Below process means fill missing value in "open" -> "close" order by using pandas ffill method, in case original OHLC is not completed.
-            df_smpl["open" ] = df_smpl.groupby(["symbol"])[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 0], index=x.index.get_level_values("timegrp")))
-            df_smpl["close"] = df_smpl.groupby(["symbol"])[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 1], index=x.index.get_level_values("timegrp")))
     if len(index_names) > 0:
-        df_smpl["open"] = df_smpl.groupby(index_names)["close"].shift(1)
+        ## Below process means fill missing value in "open" -> "close" order by using pandas ffill method, in case original OHLC is not completed.
+        df_smpl["open" ] = df_smpl.groupby(index_names)[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 0], index=x.index.get_level_values("timegrp")))
+        df_smpl["close"] = df_smpl.groupby(index_names)[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 1], index=x.index.get_level_values("timegrp")))
+        df_smpl["open"]  = df_smpl.groupby(index_names)["close"].shift(1)
     else:
-        df_smpl["open"] = df_smpl["close"].shift(1)
+        df_smpl["open"]  = pd.DataFrame(df_smpl[["open", "close"]].values.reshape(-1)).ffill().values.reshape(-1, 2)[:, 0]
+        df_smpl["close"] = pd.DataFrame(df_smpl[["open", "close"]].values.reshape(-1)).ffill().values.reshape(-1, 2)[:, 1]
+        df_smpl["open"]  = df_smpl["close"].shift(1)
     df_smpl["high"] = df_smpl[["open", "high", "low", "close"]].max(axis=1) # It might be (df_smpl["open"] > df_smpl["high"])
     df_smpl["low" ] = df_smpl[["open", "high", "low", "close"]].min(axis=1) # It might be (df_smpl["open"] < df_smpl["low" ])
     # [ sampling_rate -> sampling_rate, interval ] open, high, low, close

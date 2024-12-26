@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], default="60")
     parser.add_argument("--switch", type=str_to_datetime, help="--switch 20200101", default=(timenow - datetime.timedelta(days=9)))
     parser.add_argument("--hours",  type=lambda x: [int(y) for y in x.split(",")], default="0")
+    parser.add_argument("--ohlc",   action='store_true', default=False)
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
     LOGGER.info(f"args: {args}")
@@ -48,20 +49,22 @@ if __name__ == "__main__":
             for interval in args.itvls:
                 df_ohlc    = create_ohlc(df[["symbol", "unixtime", "price"]], "unixtime", interval, args.sr, date_fr - datetime.timedelta(minutes=30), date_to, index_names=["symbol"], from_tx=True)
                 index_base = df_ohlc.index.copy()
-                list_df    = []
-                list_df.append(ana_size_price(                         df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True))
-                list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
-                list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=10))
-                list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "price", "side", "volume"        ]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
-                df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
+                if args.ohlc == False:
+                    list_df    = []
+                    list_df.append(ana_size_price(                         df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True))
+                    list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
+                    list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "price", "size", "volume", "side"]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=10))
+                    list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "price", "side", "volume"        ]], "unixtime", interval, args.sr, index_base, from_tx=True, n_div=20))
+                    df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
                 df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
                 df_ohlc = df_ohlc.reset_index()
                 df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
                 df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(date_fr.timestamp() // args.sr * args.sr)) & (df_ohlc["unixtime"] < int(date_to.timestamp() // args.sr * args.sr))]
-                df_ohlc["type"]     = 0
+                df_ohlc["type"]     = 0 if args.ohlc == False else -1
                 df_ohlc["unixtime"] = (df_ohlc["unixtime"] + args.sr)
                 df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
-                df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB_TO.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
+                if args.ohlc == False:
+                    df_ohlc["attrs"] = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB_TO.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
                 if args.update and df_ohlc.shape[0] > 0:
                     DB_TO.delete_sql("mart_ohlc", str_where=(
                         f"interval = {interval} and sampling_rate = {args.sr} and type = {df_ohlc['type'].iloc[0]} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 

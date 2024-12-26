@@ -5,7 +5,8 @@ ST_DATE="2019-01-01"
 ED_DATE="2024-09-30"
 
 # tx to 60s
-python txs_to_ohlc.py --fr $(date -d "$ST_DATE" +%Y%m%d) --to $(date -d "$ED_DATE" +%Y%m%d) --hours 0,6,12,18 --update
+python txs_to_ohlc.py --fr $(date -d "$ST_DATE" +%Y%m%d) --to $(date -d "$ED_DATE" +%Y%m%d) --sr 60 --itvls 60 --hours 0,6,12,18 --update
+# python txs_to_ohlc.py --fr $(date -d "$ST_DATE" +%Y%m%d) --to $(date -d "$ED_DATE" +%Y%m%d) --sr 5 --itvls 5 --exmin 5 --hours 0,12 --ohlc --update
 
 # 60s to 120s
 CR_DATE=$(date -d "$ST_DATE" +"%Y-%m-%d")
