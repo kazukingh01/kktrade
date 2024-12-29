@@ -8,7 +8,7 @@ import numpy as np
 from kklogger import set_logger
 from kkpsgre.comapi import select, insert, delete
 from getdata import EXCHANGE
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 

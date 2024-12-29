@@ -5,7 +5,7 @@ from kklogger import set_logger
 from kktrade.config.apikey import APIKEY_DUKASCOPY
 from kkpsgre.util.com import strfind
 from kkpsgre.comapi import select, insert
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 

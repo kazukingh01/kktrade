@@ -1,7 +1,7 @@
 import argparse, requests, json, datetime
 import pandas as pd
 # local package
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kkpsgre.webapi import create_app
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 

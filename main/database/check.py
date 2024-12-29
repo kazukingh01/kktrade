@@ -2,7 +2,7 @@ import datetime, argparse
 import pandas as pd
 import numpy as np
 # local package
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import str_to_datetime
 from kktrade.config.mart import \
     HOST_BS, PORT_BS, USER_BS, PASS_BS, DBNAME_BS, DBTYPE_BS, \

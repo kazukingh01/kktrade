@@ -1,7 +1,7 @@
 import requests, datetime, websockets, asyncio, json, time, argparse
 import pandas as pd
 # local package
-from kkpsgre.psgre import Psgre
+from kkpsgre.connector import DBConnector
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 from kktrade.config.apikey import APIKEY_EODHD
 

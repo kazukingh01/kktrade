@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 # local package
 from kklogger import set_logger
 from kkpsgre.comapi import insert
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
 
 

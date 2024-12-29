@@ -1,5 +1,6 @@
-import datetime
+import datetime, re
 import pandas as pd
+import polars as pl
 import numpy as np
 # local package
 from kklogger import set_logger
@@ -17,41 +18,46 @@ __all__ = [
 
 
 LOGGER = set_logger(__name__)
+CHECK_DATETIME_MIN = datetime.datetime(2000,1,1).timestamp()
+CHECK_DATETIME_MAX = datetime.datetime(2099,1,1).timestamp()
 
 
 def check_common_input(
-    df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, 
+    df: pl.DataFrame, interval: int, sampling_rate: int, unixtime_name: str="unixtime", 
     date_fr: datetime.datetime=None, date_to: datetime.datetime=None, from_tx: bool=None,
     index_names: str | list[str]=None, 
-):
+) -> tuple[pl.DataFrame, list[str]]:
     LOGGER.info("STRAT")
-    assert isinstance(df, pd.DataFrame)
-    assert isinstance(unixtime_name, str) and unixtime_name != "timegrp"
-    assert not ("timegrp" in df.columns)
-    assert unixtime_name in df.columns and df[unixtime_name].dtype in [int, float] # !! NOT check_type(df[unixtime_name].dtype, [int, float]) !!
-    assert (df[unixtime_name] >= datetime.datetime(2000,1,1).timestamp()).sum() == (df[unixtime_name] <= datetime.datetime(2099,1,1).timestamp()).sum() == df.shape[0]
+    assert isinstance(df, pl.DataFrame)
     assert isinstance(interval,      int) and interval      >= 1
     assert isinstance(sampling_rate, int) and sampling_rate >= 1
+    assert isinstance(unixtime_name, str) and unixtime_name != "timegrp"
+    assert not ("timegrp" in df.columns)
+    assert unixtime_name in df.columns and df.schema[unixtime_name] in [pl.Float64(), pl.Int64(), pl.Int128(), pl.Int32(), pl.Float32()]
+    assert (df[unixtime_name] >= CHECK_DATETIME_MIN).sum() == (df[unixtime_name] <= CHECK_DATETIME_MAX).sum() == df.shape[0]
     assert interval % sampling_rate == 0
     if date_fr is not None:
-        assert isinstance(date_fr, datetime.datetime)
-        assert isinstance(date_to, datetime.datetime)
+        assert isinstance(date_fr, datetime.datetime) and date_fr.tzinfo == datetime.UTC
+        assert isinstance(date_to, datetime.datetime) and date_to.tzinfo == datetime.UTC
         assert date_fr <= date_to
-    if from_tx is not None:
-        assert isinstance(from_tx, bool)
+    assert isinstance(from_tx, bool)
     if index_names is not None:
         if isinstance(index_names, str): index_names = [index_names, ]
         assert isinstance(index_names, list) and check_type_list(index_names, str)
-    df            = df.copy()
-    df["timegrp"] = (df[unixtime_name] // sampling_rate * sampling_rate).astype(int)
+    else:
+        index_names = []
+    df = df.with_columns((pl.col(unixtime_name) // sampling_rate * sampling_rate).cast(pl.Int64).alias("timegrp"))
     LOGGER.info("END")
-    return df
+    return df, index_names
 
-def check_interval(df: pd.DataFrame, unixtime_name: str, sampling_rate: int, index_names: str | list[str]=[]):
+def check_interval(df: pl.DataFrame, unixtime_name: str="unixtime", index_names: str | list[str]=[]):
     LOGGER.info("STRAT")
     assert isinstance(unixtime_name, str)
-    assert unixtime_name in df.columns and df[unixtime_name].dtype == int
-    assert "interval" in df.columns and df["interval"].dtype == int
+    for x in ["sampling_rate", "interval", unixtime_name]:
+        assert x in df.columns and df.schema[x] in [pl.Int32, pl.Int64, pl.Int128]
+    assert df["sampling_rate"].unique().shape[0] == 1
+    assert df["interval"     ].unique().shape[0] == 1
+    assert df["sampling_rate"][0] == df["interval"][0]
     if index_names is not None:
         if isinstance(index_names, str): index_names = [index_names, ]
         assert isinstance(index_names, list) and check_type_list(index_names, str)
@@ -59,68 +65,65 @@ def check_interval(df: pd.DataFrame, unixtime_name: str, sampling_rate: int, ind
             index_names = [x for x in index_names if x != "timegrp"]
     else:
         index_names = []
-    assert isinstance(sampling_rate, int)
-    assert (df["interval"] <= sampling_rate).sum() == df.shape[0] and df["interval"].unique().shape[0] == 1
     for x in index_names: assert x in df.columns
-    df = df[index_names + [unixtime_name, "interval"]].copy().sort_values(index_names + [unixtime_name]).reset_index(drop=True)
     if len(index_names) > 0:
-        df["__tmp"] = (df[unixtime_name] + df["interval"])
-        df["__tmp"] = df.groupby(index_names)["__tmp"].shift(1)
+        assert df.group_by(index_names).agg(pl.len().alias("__size")).select("__size").unique().shape[0] == 1 # Group size must be same
+        dfwk = df.group_by(index_names).agg(pl.col("timegrp").shift(1)).explode("timegrp").with_columns((df["timegrp"] - df["sampling_rate"]).alias("compare")) # Don't do >>> df = df.sort(index_names + ["timegrp"]). because this function is for check.
     else:
-        df["__tmp"] = (df[unixtime_name] + df["interval"]).shift(1)
-    df = df.loc[~df["__tmp"].isna()]
-    assert (df["__tmp"] == df[unixtime_name]).sum() == df.shape[0]
-    assert sampling_rate % df["interval"].iloc[0] == 0
+        dfwk = df.with_columns(pl.col("timegrp").shift(1).alias("compare"))
+    assert ((dfwk["timegrp"] == dfwk["compare"]) == False).sum() == 0 # difference between next timegrp and the timegrp is sampling_rete except null value.
     LOGGER.info("END")
 
-def indexes_to_aggregate(index_base: pd.Index | pd.MultiIndex, interval: int, sampling_rate: int):
+def indexes_to_aggregate(df_base: pl.DataFrame, interval: int, sampling_rate: int):
     LOGGER.info("STRAT")
-    assert type(index_base) in [pd.Index, pd.MultiIndex]
+    assert isinstance(df_base, pl.DataFrame)
     assert isinstance(interval,      int)
     assert isinstance(sampling_rate, int)
     assert interval % sampling_rate == 0
-    if type(index_base) == pd.Index:
-        assert index_base.name == "timegrp"
-        ndf_tg      = index_base.values.copy()
-        index_names = [index_base.name, ]
+    assert "timegrp" in df_base.columns
+    if df_base.shape[1] > 1:
+        sewk     = df_base.select(pl.struct(pl.col(df_base.columns[:-1])).alias("group"))["group"]
+        ndf_idx1 = sewk.unique().sort().to_numpy()
+        n_group  = sewk.unique().shape[0]
+        ndf_tg   = df_base.filter(sewk.is_in([sewk[0]]))["timegrp"].to_numpy()
+        n_tg     = ndf_tg.shape[0]
+        assert (n_group * n_tg) == df_base.shape[0]
     else:
-        assert type(index_base) == pd.MultiIndex
-        assert index_base.names[-1] == "timegrp"
-        ndf_tg      = index_base.get_loc_level(index_base.droplevel(-1)[0])[1].values.copy()
-        index_names = list(index_base.names)
-    try:
-        ndf_idx1 = np.unique(index_base.droplevel(-1).copy().values)
-    except ValueError:
-        # It means dfwk index is only "timegrp"
-        ndf_idx1 = [slice(None), ]
-    for idx in ndf_idx1:
-        ndfwk = index_base.get_loc_level(idx)[1].values.copy()
-        assert np.all(ndfwk == ndf_tg)
-    df = pd.DataFrame(index=index_base).reset_index()
-    if len(index_names) >= 2:
-        df["__tmp"] = (df["timegrp"] + sampling_rate)
-        df["__tmp"] = df.groupby(index_names[:-1])["__tmp"].shift(1)
-    else:
-        df["__tmp"] = (df["timegrp"] + sampling_rate).shift(1)
-    df = df.loc[~df["__tmp"].isna()]
-    assert (df["__tmp"] == df["timegrp"]).sum() == df.shape[0]
+        ndf_idx1 = np.array([])
+        ndf_tg   = df_base["timegrp"].to_numpy()
+    index_names  = df_base.columns
+    assert index_names[-1] == "timegrp"
+    sewk = df_base.group_by(*df_base.columns[:-1]).map_groups(
+        lambda x: x.with_columns((x["timegrp"].shift(1) + sampling_rate).alias("compare"))
+    ).select((pl.col("timegrp") != pl.col("compare")).alias("compare"))["compare"]
+    assert sewk.sum() == 0
     n        = interval // sampling_rate
-    ndf_idx2 = np.concatenate([np.arange(x - n + 1, x + 1, 1, dtype=int) for x in np.arange(ndf_tg.shape[0], dtype=int)])
-    ndf_idx2 = ndf_idx2[n * (n - 1):]
+    ndf_idx2 = np.stack([np.arange(x - n + 1, x + 1, 1, dtype=int) for x in np.arange(ndf_tg.shape[0], dtype=int)])
+    ndf_idx2[ndf_idx2 < 0] = df_base.shape[0] + 1
+    ndf_idx3 = np.concatenate([ndf_idx2 + (ndf_tg.shape[0] * i) for i in range(ndf_idx1.shape[0])], axis=0)
+    ndf_idx3[ndf_idx3 > df_base.shape[0]] = -1
+    ndf_bool = (ndf_idx3[:, 0] >= 0)
+    assert ndf_bool.shape[0] == df_base.shape[0]
     LOGGER.info("END")
-    return ndf_idx1, ndf_idx2, ndf_tg, index_names, n
+    return ndf_idx1, ndf_idx2, ndf_idx3, ndf_bool, ndf_tg, index_names, n
 
 def create_ohlc(
-    df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, date_fr: datetime.datetime, date_to: datetime.datetime,
-    index_names: str | list[str]=None, from_tx: bool=False
-):
+    df: pl.DataFrame, interval: int, sampling_rate: int, date_fr: datetime.datetime, date_to: datetime.datetime,
+    unixtime_name="unixtime", index_names: str | list[str]=None, from_tx: bool=False
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     LOGGER.info("STRAT")
-    if index_names is None: index_names = []
-    df = check_common_input(df, unixtime_name, interval, sampling_rate, date_fr=date_fr, date_to=date_to, from_tx=from_tx, index_names=index_names)
+    df, index_names = check_common_input(
+        df, interval, sampling_rate,
+        unixtime_name=unixtime_name, date_fr=date_fr, date_to=date_to, from_tx=from_tx, index_names=index_names
+    )
     # create all index patterns
-    ndf_tg = np.arange(int(date_fr.timestamp() - interval) // sampling_rate * sampling_rate, int(date_to.timestamp()) // sampling_rate * sampling_rate, sampling_rate, dtype=int)
+    ndf_tg = np.arange(
+        int(date_fr.timestamp() - interval) // sampling_rate * sampling_rate,
+        int(date_to.timestamp()           ) // sampling_rate * sampling_rate,
+        sampling_rate, dtype=int
+    )
     if len(index_names) > 0:
-        ndf_idxs = [df[x].unique() for x in index_names]
+        ndf_idxs = [df[x].unique().to_numpy() for x in index_names]
         while len(ndf_idxs) >= 2:
             ndf_tmp  = np.concatenate([np.repeat(ndf_idxs[0], ndf_idxs[1].shape[0]).reshape(-1, 1), np.tile(ndf_idxs[1], ndf_idxs[0].shape[0]).reshape(-1, 1)], axis=-1)
             ndf_idxs = [ndf_tmp, ] + ndf_idxs[2:]
@@ -128,276 +131,287 @@ def create_ohlc(
         ndf_idxs = np.concatenate([np.repeat(ndf_idxs, ndf_tg.shape[0]).reshape(-1, 1), np.tile(ndf_tg, ndf_idxs.shape[0]).reshape(-1, 1)], axis=-1)
     else:
         ndf_idxs = ndf_tg
-    df_base = pd.DataFrame(ndf_idxs, columns=(index_names + ["timegrp"])).set_index(index_names + ["timegrp"])
-    df_base = df_base.sort_values(index_names + ["timegrp"])
+    df_base = pl.DataFrame(ndf_idxs, schema=(index_names + ["timegrp"])).sort((index_names + ["timegrp"]))
+    ndf_idx1, ndf_idx2, ndf_idx3, ndf_bool, ndf_tg, index_names, n = indexes_to_aggregate(df_base, interval, sampling_rate)
     # [ unixtime -> sampling_rate, sampling_rate ] open, high, low, close
+    is_run = True
     if from_tx:
-        assert "price" in df.columns and df["price"].dtype == float
-        df   = df.sort_values(index_names + [unixtime_name, "price"]).reset_index(drop=True)
-        dfwk = pd.merge(df_base.reset_index(), df[index_names + ["timegrp", "price"]], how="left", on=(index_names + ["timegrp"]))
-        dfwk["price"] = dfwk.groupby(index_names + ["timegrp"])["price"].ffill()
-        df_smpl       = df_base.copy()
-        df_smpl[["open", "high", "low", "close"]] = dfwk.groupby(index_names + ["timegrp"])["price"].aggregate(["first", "max", "min", "last"])
+        assert "price" in df.columns and df.schema["price"] in [pl.Float32, pl.Float64]
+        df      = df.sort(index_names + [unixtime_name, "price"])
+        df_smpl = df.group_by(index_names).agg(
+            pl.col("price").first().alias("open"),
+            pl.col("price").max()  .alias("high"),
+            pl.col("price").min()  .alias("low"),
+            pl.col("price").last() .alias("close"),
+        )
     else:
-        df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
-        check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
-        if (df["interval"] == sampling_rate).sum() == df.shape[0]:
-            df_smpl = df.copy().sort_values(index_names + [unixtime_name]).set_index(index_names + ["timegrp"])
+        for x in ["open", "high", "low", "close"]: assert x in df.columns
+        df = df.sort(index_names + [unixtime_name])
+        check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
+        if df["sampling_rate"][0] == sampling_rate:
+            for x in index_names[:-1]:
+                assert (df[x].unique().is_in(df_base[x].unique()) == False).sum() == 0
+            assert (df_base["timegrp"].unique().is_in(df["timegrp"].unique()) == False).sum() == 0
+            df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
+            is_run  = False
         else:
-            df_smpl = df_base.copy()
-            df_smpl["open" ] = df.groupby(index_names + ["timegrp"])["open" ].first()
-            df_smpl["close"] = df.groupby(index_names + ["timegrp"])["close"].last()
-            df_smpl["high" ] = df.groupby(index_names + ["timegrp"])["high" ].max()
-            df_smpl["low"  ] = df.groupby(index_names + ["timegrp"])["low"  ].min()
-    if len(index_names) > 0:
-        ## Below process means fill missing value in "open" -> "close" order by using pandas ffill method, in case original OHLC is not completed.
-        df_smpl["open" ] = df_smpl.groupby(index_names)[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 0], index=x.index.get_level_values("timegrp")))
-        df_smpl["close"] = df_smpl.groupby(index_names)[["open", "close"]].apply(lambda x: pd.DataFrame(pd.DataFrame(np.concatenate(x[["open", "close"]].values)).ffill().values.reshape(-1, 2)[:, 1], index=x.index.get_level_values("timegrp")))
-        df_smpl["open"]  = df_smpl.groupby(index_names)["close"].shift(1)
-    else:
-        df_smpl["open"]  = pd.DataFrame(df_smpl[["open", "close"]].values.reshape(-1)).ffill().values.reshape(-1, 2)[:, 0]
-        df_smpl["close"] = pd.DataFrame(df_smpl[["open", "close"]].values.reshape(-1)).ffill().values.reshape(-1, 2)[:, 1]
-        df_smpl["open"]  = df_smpl["close"].shift(1)
-    df_smpl["high"] = df_smpl[["open", "high", "low", "close"]].max(axis=1) # It might be (df_smpl["open"] > df_smpl["high"])
-    df_smpl["low" ] = df_smpl[["open", "high", "low", "close"]].min(axis=1) # It might be (df_smpl["open"] < df_smpl["low" ])
-    # [ sampling_rate -> sampling_rate, interval ] open, high, low, close
-    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
-    if sampling_rate != interval:
-        df_itvl  = df_base.copy()
-        _, _, _, index_names, n = indexes_to_aggregate(df_itvl.index.copy(), interval, sampling_rate)
-        df_itvl["high" ] = df_smpl.groupby(index_names[:-1], as_index=False)[["high"]].rolling(n).max()["high"]
-        df_itvl["low"  ] = df_smpl.groupby(index_names[:-1], as_index=False)[["low" ]].rolling(n).min()["low" ]
-        df_itvl["close"] = df_smpl["close"].copy()
-        df_itvl["open" ] = df_smpl.groupby(index_names[:-1], as_index=False)["open"].shift(n - 1)
-    else:
-        df_itvl = df_smpl.copy()
-    ## Williams %R
-    df_itvl["williams_r"]    = (df_itvl["close"] - df_itvl["low"]) / (df_itvl["high"] - df_itvl["low"])
-    df_itvl["interval"]      = interval
-    df_itvl["sampling_rate"] = sampling_rate
-    LOGGER.info("END")
-    return df_itvl
-
-def ana_size_price(df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, index_base: pd.MultiIndex, from_tx: bool=False):
-    LOGGER.info("STRAT")
-    df = check_common_input(df, unixtime_name, interval, sampling_rate, from_tx=from_tx)
-    ndf_idx1, ndf_idx2, ndf_tg, index_names, n = indexes_to_aggregate(index_base.copy(), interval, sampling_rate)
-    df_base = pd.DataFrame(index=index_base.copy())
-    # [ unixtime -> sampling_rate, sampling_rate ]
-    colbase = ["size", "ntx", "volume"]
-    columns = [f"{y}_{x}" for x in ["ask", "bid"] for y in colbase]
-    df_smpl = df_base.copy()
-    if from_tx:
-        assert df.columns.isin([x for x in colbase if x != "ntx"]).sum() == (len(colbase) - 1)
-        assert df.columns.isin(["price"]                         ).sum() == 1
-        dfwk        = df.groupby(index_names + ["side"])[["size", "volume"]].sum()
-        dfwk["ntx"] = df.groupby(index_names + ["side"]).size()
-        for side, name in zip([0, 1], ["ask", "bid"]):
-            df_smpl[[f"{x}_{name}" for x in colbase]] = dfwk.loc[(slice(None), slice(None), side)][colbase]
-            df_smpl[[f"{x}_{name}" for x in colbase]] = df_smpl[[f"{x}_{name}" for x in colbase]].fillna(0)
-            df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-        dfwk           = df.groupby(index_names)[["volume", "size"]].sum()
-        df_smpl["ave"] = (dfwk["volume"] / dfwk["size"])
-        dfwk           = pd.merge(df[index_names + ["price", "size"]], df_smpl.reset_index()[index_names + ["ave"]], how="left", on=index_names)
-        dfwk["tmp"]    = (dfwk["price"] - dfwk["ave"]).pow(2) * dfwk["size"]
-        dfwk           = dfwk.groupby(index_names)[["tmp", "size"]].sum()
-        df_smpl["var"] = (dfwk["tmp"] / dfwk["size"])
-    else:
-        assert df.columns.isin(columns       ).sum() == len(columns)
-        assert df.columns.isin(["ave", "var"]).sum() == 2
-        df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
-        check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
-        if (df["interval"] == sampling_rate).sum() == df.shape[0]:
-            df_smpl = df.copy().sort_values(index_names).set_index(index_names)
-        else:
-            dfwk    = df.groupby(index_names)[columns].sum()
-            df_smpl = pd.concat([df_smpl, dfwk[columns]], axis=1, ignore_index=False, sort=False).loc[df_smpl.index]
-            df_smpl[columns] = df_smpl[columns].fillna(0)
-            for name in ["ask", "bid"]:
-                df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-            df_smpl["ave"] = (df_smpl[["volume_ask", "volume_bid"]].sum(axis=1) / df_smpl[["size_ask", "size_bid"]].sum(axis=1))
-            df["size"]     = df[["size_ask",   "size_bid"  ]].sum(axis=1)
-            df["volume"]   = df[["volume_ask", "volume_bid"]].sum(axis=1)
-            dfwk           = df[index_names + ["ave", "size", "var"]].copy()
-            dfwk.columns   = dfwk.columns.str.replace("ave", "price")
-            dfwk           = pd.merge(dfwk, df_smpl.reset_index()[index_names + ["ave"]], how="left", on=index_names)
-            dfwk["tmp"]    = ((dfwk["price"] - dfwk["ave"]).pow(2) + dfwk["var"]) * dfwk["size"]
-            df_smpl["var"] = dfwk.groupby(index_names)["tmp"].sum() / dfwk.groupby(index_names)["size"].sum()
-    # [ sampling_rate -> sampling_rate, interval ]
-    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
-    if sampling_rate != interval:
-        df_itvl = df_base.copy()
-        df_smpl["size"]   = df_smpl[["size_ask",   "size_bid"  ]].sum(axis=1).fillna(0)
-        df_smpl["volume"] = df_smpl[["volume_ask", "volume_bid"]].sum(axis=1).fillna(0)
-        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
-        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
-        dfwkwk  = df_smpl[["ave", "size", "var", "volume"]].iloc[ndf_idx].copy()
-        ndfwk1  = dfwkwk["ave"   ].values.reshape(-1, n)
-        ndfwk2  = dfwkwk["size"  ].values.reshape(-1, n)
-        ndfwk3  = dfwkwk["var"   ].values.reshape(-1, n)
-        ndfwk4  = dfwkwk["volume"].values.reshape(-1, n)
-        df_itvl["ave"] = np.nansum(ndfwk4, axis=-1) / np.nansum(ndfwk2, axis=-1)
-        df_itvl["var"] = np.ma.average(ndfwk3 + (ndfwk1 - df_itvl["ave"].values.reshape(-1, 1)) ** 2, weights=ndfwk2, axis=1).data
+            df_smpl = df.group_by(index_names).agg([
+                pl.col("open" ).first().alias("open"),
+                pl.col("high" ).max()  .alias("high"),
+                pl.col("low"  ).min()  .alias("low"),
+                pl.col("close").last() .alias("close"),
+            ])
+    if is_run:
+        ### Partial common process.
+        df_smpl = df_base.join(df_smpl, how="left", on=index_names)
         if len(index_names) > 1:
-            df_itvl[columns] = df_smpl.groupby(index_names[:-1], as_index=False)[columns].rolling(n).sum()[columns]
+            df_smpl = df_smpl.group_by(*index_names[:-1], maintain_order=True).map_groups(
+                lambda x: pl.DataFrame(
+                    pl.Series(x.select("open", "close").to_numpy().reshape(-1)).fill_nan(None).fill_null(strategy="forward").to_numpy().reshape(-1, 2),
+                    schema=["open", "close"]
+                ).with_columns(x.select([y for y in x.columns if y not in ["open", "close"]]))
+            )
         else:
-            df_itvl[columns] = df_smpl[columns].rolling(n).sum()[columns]
-    else:
-        df_itvl = df_smpl.copy()
+            df_smpl = df_smpl.with_columns(pl.DataFrame(
+                pl.Series(df_smpl.select("open", "close").to_numpy().reshape(-1)).fill_nan(None).fill_null(strategy="forward").to_numpy().reshape(-1, 2),
+                schema=["open", "close"]
+            ))
+        df_smpl = df_smpl.with_columns([
+            pl.max_horizontal(["open", "high", "low", "close"]).alias("high"),
+            pl.min_horizontal(["open", "high", "low", "close"]).alias("low"),
+        ])
+    ### Copy close price to next open price.
     if len(index_names) > 1:
-        df_itvl["ave"] = df_itvl.groupby(index_names[:-1])["ave"].ffill()
+        df_smpl = df_smpl.group_by(*index_names[:-1]).map_groups(lambda x: x.with_columns(x["close"].shift(1).alias("_open")))
     else:
-        df_itvl["ave"] = df_itvl["ave"].ffill()
-    df_itvl["var"]           = df_itvl["var"].fillna(0)
-    df_itvl["interval"]      = interval
-    df_itvl["sampling_rate"] = sampling_rate
-    LOGGER.info("END")
-    return df_itvl
-
-def ana_quantile_tx_volume(df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, index_base: pd.MultiIndex, from_tx: bool=False, n_div: int=20):
-    LOGGER.info("STRAT")
-    df = check_common_input(df, unixtime_name, interval, sampling_rate, from_tx=from_tx)
-    assert isinstance(n_div, int) and n_div > 1 and n_div <= 100
-    ndf_idx1, ndf_idx2, ndf_tg, index_names, n = indexes_to_aggregate(index_base.copy(), interval, sampling_rate)
-    df_base = pd.DataFrame(index=index_base.copy())
-    # [ unixtime -> sampling_rate, sampling_rate ]
-    df_smpl  = df_base.copy()
-    list_qtl = np.linspace(0.0, 1.0, n_div + 1)
-    columns  = [f"volume_q{str(int(x * 1000)).zfill(4)}" for x in list_qtl]
-    if from_tx:
-        assert df.columns.isin(["side", "volume"]).sum() == 2
-        dfwk = df.groupby(index_names + ["side"])["volume"].quantile(list_qtl)
-        for side, name in zip([0, 1], ["ask", "bid"]):
-            df_smpl[f"ntx_{name}"] = df.groupby(index_names + ["side"]).size().loc[tuple([slice(None)] * len(index_names) + [side, ])]
-            df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-            for x, y in zip(columns, list_qtl):
-                df_smpl[f"{x}_{name}"] = dfwk.loc[tuple([slice(None)] * len(index_names) + [side, y])]
-    else:
-        assert "ntx_ask" in df.columns and "ntx_bid" in df.columns
-        assert df.columns.isin([f"{x}_{name}" for x in columns for name in ["ask", "bid"]]).sum() == ((n_div + 1) * 2)
-        df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
-        check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
-        if (df["interval"] == sampling_rate).sum() == df.shape[0]:
-            df_smpl = df.copy().sort_values(index_names).set_index(index_names)
-        else:
-            for name in ["ask", "bid"]:
-                df[f"ntx_{name}"] = df[f"ntx_{name}"].fillna(0).astype(int)
-                df["__func"] = df[[f"{x}_{name}" for x in columns]].apply(lambda x: NonLinearXY(list_qtl, x.values, is_ignore_nan=True), axis=1)
-                df["__tmp"]  = df[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
-                sewk = df.groupby(index_names)["__tmp"].apply(lambda x: np.concatenate(x.tolist()))
-                df_smpl[f"ntx_{name}"] = df.groupby(index_names)[f"ntx_{name}"].sum()
-                df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-                sewk = sewk.apply(lambda x: np.array([0,]) if x.shape[0] == 0 else x)
-                sewk = sewk.apply(lambda x: np.quantile(x, list_qtl))
-                sewk = sewk.apply(lambda x: np.quantile(x, list_qtl).tolist())
-                assert sewk.str[n_div + 1].isna().sum() == sewk.shape[0]
-                for i, _ in enumerate(list_qtl):
-                    df_smpl[(columns[i] + f"_{name}")] = sewk.str[i]
-    # [ sampling_rate -> sampling_rate, interval ]
-    df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
+        df_smpl = df_smpl.with_columns(pl.col("open").shift(1).alias("_open"))
+    df_smpl = df_smpl.with_columns(pl.when(pl.col("_open").fill_nan(None).is_null()).then("open").otherwise("_open").alias("open"))
+    df_smpl = df_smpl.with_columns([
+        pl.max_horizontal(["open", "high", "low", "close"]).alias("high"),
+        pl.min_horizontal(["open", "high", "low", "close"]).alias("low"),
+    ])
+    # [ sampling_rate -> sampling_rate, interval ] open, high, low, close
+    df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).select(index_names + ["open", "high", "low", "close"]).sort(index_names)
     if sampling_rate != interval:
-        df_itvl = df_base.copy()
-        ndf_idx = np.concatenate([ndf_idx2 + ndf_tg.shape[0] * i for i in range(ndf_idx1.shape[0])])
-        df_itvl = pd.DataFrame(index=index_base[ndf_idx.reshape(-1, n)[:, -1]])
-        for name in ["ask", "bid"]:
-            df_smpl[f"ntx_{name}"] = df_smpl[f"ntx_{name}"].fillna(0).astype(int)
-            df_smpl["__func"] = df_smpl[[f"{x}_{name}" for x in columns]].apply(lambda x: NonLinearXY(list_qtl, x.values, is_ignore_nan=True), axis=1)
-            df_smpl["__tmp"]  = df_smpl[["__func", f"ntx_{name}"]].apply(lambda x: x["__func"](np.linspace(0.0, 1.0, int(x[f"ntx_{name}"]))), axis=1)
-            df_itvl[f"ntx_{name}"] = df_smpl.groupby(index_names[:-1], as_index=False)[f"ntx_{name}"].rolling(n).sum()[f"ntx_{name}"]
-            ndfwk = df_smpl["__tmp"].iloc[ndf_idx].values.reshape(-1, n)
-            ndfwk = [np.concatenate(x) for x in ndfwk]
-            ndfwk = [np.array([0,]) if x.shape[0] == 0 else x for x in ndfwk]
-            ndfwk = [np.quantile(x, list_qtl) for x in ndfwk]
-            ndfwk = np.stack(ndfwk)
-            for i, _ in enumerate(list_qtl):
-                df_itvl[(columns[i] + f"_{name}")] = ndfwk[:, i]
+        ndf_open  = df_smpl["open" ].to_numpy()[ndf_idx3][:, 0 ]
+        ndf_close = df_smpl["close"].to_numpy()[ndf_idx3][:, -1]
+        ndf_high  = np.nanmax(df_smpl["high"].to_numpy()[ndf_idx3], axis=-1)
+        ndf_low   = np.nanmin(df_smpl["low" ].to_numpy()[ndf_idx3], axis=-1)
+        df_itvl   = pl.DataFrame(np.stack([ndf_open, ndf_high, ndf_low, ndf_close]).T, schema=["open", "high", "low", "close"])
+        df_itvl   = df_itvl.with_columns(df_base).filter(ndf_bool)
     else:
-        df_itvl = df_smpl
-    df_itvl["interval"]      = interval
-    df_itvl["sampling_rate"] = sampling_rate
+        df_itvl = df_smpl.clone()
+    # others
+    df_itvl = df_itvl.with_columns(((pl.col("close") - pl.col("low")) / (pl.col("high") - pl.col("low"))).alias("williams_r")) # Williams %R
+    df_itvl = df_itvl.with_columns([pl.lit(interval).alias("interval"), pl.lit(sampling_rate).alias("sampling_rate")])
+    LOGGER.info("END")
+    return df_itvl, df_base
+
+def ana_size_price(df: pl.DataFrame, interval: int, sampling_rate: int, df_base: pl.DataFrame, unixtime_name: str="unixtime", from_tx: bool=False):
+    LOGGER.info("STRAT")
+    df, _ = check_common_input(df, interval, sampling_rate, unixtime_name=unixtime_name, from_tx=from_tx)
+    ndf_idx1, ndf_idx2, ndf_idx3, ndf_bool, ndf_tg, index_names, n = indexes_to_aggregate(df_base, interval, sampling_rate)
+    # [ unixtime -> sampling_rate, sampling_rate ]
+    columns_sum = [f"{a}_{b}" for a in ['size', 'volume', 'ntx'] for b in ["ask", "bid"]]
+    columns_oth = ["ave", "var"]
+    if from_tx:
+        for x in ['price', 'size', 'volume', 'side']: assert x in df.columns
+        dfwk1 = df.filter(pl.col("side") == 0).group_by(index_names).agg([
+            pl.len().alias("ntx_ask"),
+            pl.col("size"  ).sum().alias("size_ask"),
+            pl.col("volume").sum().alias("volume_ask"),
+        ])
+        dfwk2 = df.filter(pl.col("side") == 1).group_by(index_names).agg([
+            pl.len().alias("ntx_bid"),
+            pl.col("size"  ).sum().alias("size_bid"),
+            pl.col("volume").sum().alias("volume_bid"),
+        ])
+        df_smpl = df_base.join(dfwk1.join(dfwk2, how="left", on=index_names), how="left", on=index_names)
+        df_smpl = df_smpl.with_columns([
+            (pl.col("volume_ask").fill_nan(0).fill_null(0) + pl.col("volume_bid").fill_nan(0).fill_null(0)).alias("volume"),
+            (pl.col("size_ask"  ).fill_nan(0).fill_null(0) + pl.col("size_bid"  ).fill_nan(0).fill_null(0)).alias("size"),
+        ])
+        df_smpl = df_smpl.with_columns((pl.col("volume") / pl.col("size")).alias("ave"))
+        dfwk    = df.select(index_names + [unixtime_name, "price", "size"]).join(df_smpl.select(index_names + ["ave"]), how="left", on=index_names)
+        dfwk    = dfwk.group_by(index_names).agg((((pl.col("price") - pl.col("ave")).pow(2) * pl.col("size")).sum() / pl.col("size").sum()).alias("var"))
+        df_smpl = df_smpl.join(dfwk, how="left", on=index_names)
+    else:
+        for x in (columns_sum + columns_oth): assert x in df.columns
+        df = df.sort(index_names + [unixtime_name])
+        check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
+        if df["sampling_rate"][0] == sampling_rate:
+            for x in index_names[:-1]: # index_names[-1] == "timegrp"
+                assert (df[x].unique().is_in(df_base[x].unique()) == False).sum() == 0
+            assert (df_base["timegrp"].unique().is_in(df["timegrp"].unique()) == False).sum() == 0
+            df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
+        else:
+            df_smpl = df.fill_nan(0).fill_null(0).group_by(index_names).agg([
+                pl.col(x).fill_nan(0).fill_null(0).sum().alias(x) for x in columns_sum
+            ])
+            df_smpl = df_smpl.with_columns([
+                (pl.col("size_ask"  ) + pl.col("size_bid"  )).alias("size"),
+                (pl.col("volume_ask") + pl.col("volume_bid")).alias("volume"),
+            ])
+            df_smpl = df_smpl.with_columns((pl.col("volume") / pl.col("size")).alias("ave"))
+            dfwk    = df.with_columns(pl.col("ave").alias("price")).select(index_names + ["price", "var"])
+            dfwk    = dfwk.join(df_smpl.select(index_names + ["ave"]), how="left", on=index_names)
+            dfwk    = dfwk.group_by(index_names).agg((((pl.col("price") - pl.col("ave")).pow(2) * pl.col("size")).sum() / pl.col("size").sum()).alias("var"))
+            df_smpl = df_smpl.join(dfwk,    how="left", on=index_names)
+            df_smpl = df_base.join(df_smpl, how="left", on=index_names)
+    # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).select(index_names + columns_sum + columns_oth + ["size", "volume"]).sort(index_names)
+    if sampling_rate != interval:
+        df_itvl = pl.DataFrame({x: np.nansum(df_smpl[x].to_numpy()[ndf_idx3], axis=-1) for x in columns_sum})
+        df_itvl = df_itvl.with_columns([
+            (pl.col("size_ask"  ).fill_nan(0).fill_null(0) + pl.col("size_bid"  ).fill_nan(0).fill_null(0)).alias("size"),
+            (pl.col("volume_ask").fill_nan(0).fill_null(0) + pl.col("volume_bid").fill_nan(0).fill_null(0)).alias("volume"),
+        ])
+        df_itvl = df_itvl.with_columns((pl.col("volume") / pl.col("size")).alias("ave"))
+        ndfwk1  = np.nansum(((df_smpl["ave"].to_numpy()[ndf_idx3] - df_itvl["ave"].to_numpy().reshape(-1, 1)) ** 2) * (df_smpl["size"].to_numpy()[ndf_idx3]), axis=-1)
+        ndfwk2  = np.nansum(df_smpl["size"].to_numpy()[ndf_idx3], axis=-1)
+        df_itvl = df_itvl.with_columns(pl.Series(ndfwk1 / ndfwk2).alias("var"))
+        df_itvl = df_base.with_columns(df_itvl).filter(ndf_bool)
+    else:
+        df_itvl = df_smpl.clone()
+    if len(index_names) > 1:
+        df_itvl = df_itvl.group_by(*index_names[:-1]).map_groups(lambda x: x.with_columns(x["ave"].fill_nan(None).fill_null(strategy="forward").alias("ave")))
+    else:
+        df_itvl = df_itvl.with_columns(pl.col("ave").fill_nan(None).fill_null(strategy="forward").alias("ave"))
+    df_itvl = df_itvl.select(index_names + columns_sum + columns_oth)
+    df_itvl = df_itvl.with_columns(pl.col("var").fill_nan(0).fill_null(0).alias("var"))
+    df_itvl = df_itvl.with_columns([pl.lit(interval).alias("interval"), pl.lit(sampling_rate).alias("sampling_rate")])
     LOGGER.info("END")
     return df_itvl
 
-def ana_distribution_volume_price_over_time(df: pd.DataFrame, unixtime_name: str, interval: int, sampling_rate: int, index_base: pd.MultiIndex, from_tx: bool=False, n_div: int=10):
+def ana_quantile_tx_volume(df: pl.DataFrame, interval: int, sampling_rate: int, df_base: pl.DataFrame, unixtime_name: str="unixtime", from_tx: bool=False, n_div: int=20):
     LOGGER.info("STRAT")
-    df = check_common_input(df, unixtime_name, interval, sampling_rate, from_tx=from_tx)
-    assert isinstance(n_div, int) and n_div > 1 and n_div <= 100 and sampling_rate % n_div == 0
-    ndf_idx1, ndf_idx2, ndf_tg, index_names, n = indexes_to_aggregate(index_base.copy(), interval, sampling_rate)
-    df_base = pd.DataFrame(index=index_base.copy())
+    df, _ = check_common_input(df, interval, sampling_rate, unixtime_name=unixtime_name, from_tx=from_tx)
+    ndf_idx1, ndf_idx2, ndf_idx3, ndf_bool, ndf_tg, index_names, n = indexes_to_aggregate(df_base, interval, sampling_rate)
+    assert isinstance(n_div, int) and n_div > 1 and n_div <= 100
     # [ unixtime -> sampling_rate, sampling_rate ]
-    df_smpl  = df_base.copy()
+    list_qtl     = np.linspace(0.0, 1.0, n_div + 1)
+    columns_base = [f"volume_q{str(int(x * 1000)).zfill(4)}" for x in list_qtl]
+    if from_tx:
+        for x in ["side", "volume"]: assert x in df.columns
+        dfwk    = df.group_by(index_names + ["side"]).agg(
+            [pl.col("volume").quantile(x, "nearest").alias(y) for x, y in zip(list_qtl, columns_base)] + 
+            [pl.len().alias("ntx")]
+        )
+        df_smpl = df_base.join(
+            dfwk.filter(pl.col("side") == 0).select([x for x in dfwk.columns if x != "side"]).rename({x: f"{x}_ask" for x in (columns_base + ["ntx"])}),
+            how="left", on=index_names
+        ).join(
+            dfwk.filter(pl.col("side") == 1).select([x for x in dfwk.columns if x != "side"]).rename({x: f"{x}_bid" for x in (columns_base + ["ntx"])}),
+            how="left", on=index_names
+        )
+    else:
+        list_qtl_tmp     = [re.match(r"^volume_q([0-9]+)_ask$", x).groups()[0] for x in [x for x in dfwk.columns if len(re.findall(r"^volume_q[0-9]+_ask$", x)) > 0]]
+        list_qtl_tmp     = list(sorted([int(x) / 1000 for x in list_qtl_tmp]))
+        columns_base_tmp = [f"volume_q{str(int(x * 1000)).zfill(4)}" for x in list_qtl_tmp]
+        for x in [f"{y}_{z}" for y in (columns_base_tmp + ["ntx"]) for z in ["ask", "bid"]]: assert x in dfwk.columns
+        df = df.sort(index_names + [unixtime_name])
+        check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
+        if df["sampling_rate"][0] == sampling_rate:
+            for x in index_names[:-1]: # index_names[-1] == "timegrp"
+                assert (df[x].unique().is_in(df_base[x].unique()) == False).sum() == 0
+            assert (df_base["timegrp"].unique().is_in(df["timegrp"].unique()) == False).sum() == 0
+            assert columns_base_tmp == columns_base
+            df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
+        else:
+            df_smpl = df_base.clone()
+            for name in ["ask", "bid"]:
+                dfwk      = df.select(index_names + [f"{x}_{name}" for x in (columns_base_tmp + ["ntx"])])
+                ndf       = dfwk.select([f"{x}_{name}" for x in columns_base_tmp] + [f"ntx_{name}"]).to_numpy()
+                list_fnuc = [NonLinearXY(list_qtl_tmp, x, is_ignore_nan=True)      for x in ndf[:, :-1]]
+                list_tmp  = [np.linspace(0.0, 1.0, (0 if np.isnan(x) else int(x))) for x in ndf[:,  -1]]
+                dfwk      = dfwk.with_columns(pl.Series([x(y) for x, y in zip(list_fnuc, list_tmp)]).alias("__volume")).explode("__volume")
+                dfwkwk    = dfwk.group_by(index_names).agg([pl.col("__volume").quantile(x, "nearest").alias(y) for x, y in zip(list_qtl, columns_base)])
+                df_smpl   = df_smpl.join(dfwkwk.rename({x: f"{x}_{name}" for x in (columns_base)}), how="left", on=index_names)
+                df_smpl   = df_smpl.join(df.group_by(index_names).agg(pl.col(f"ntx_{name}").sum()), how="left", on=index_names)
+    # [ sampling_rate -> sampling_rate, interval ]
+    df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).select(index_names + [f"{x}_{y}" for x in (columns_base + ["ntx"]) for y in ["ask", "bid"]]).sort(index_names)
+    if sampling_rate != interval:
+        # estimate apploximately because the ntx might be super huge number.
+        df_itvl = df_base.clone()
+        for name in ["ask", "bid"]:
+            ndf1    = df_smpl.select([f"{x}_{name}" for x in columns_base]).to_numpy()
+            ndf2    = df_smpl[f"ntx_{name}"].to_numpy()
+            ndf     = np.stack([np.nanquantile(np.concatenate([np.repeat(ndfwkwk, ntx // 10 + 1) for ndfwkwk, ntx in zip(ndfwk1, ndfwk2)]), list_qtl) for ndfwk1, ndfwk2 in zip(ndf1[ndf_idx3], ndf2[ndf_idx3])])
+            df_itvl = df_itvl.with_columns(pl.DataFrame(ndf, schema=[f"{x}_{name}" for x in columns_base]))
+            df_itvl = df_itvl.with_columns(pl.Series(np.nansum(ndf2[ndf_idx3], axis=-1)).alias(f"ntx_{name}"))
+        df_itvl = df_itvl.filter(ndf_bool)
+    else:
+        df_itvl = df_smpl.clone()
+    df_itvl = df_itvl.select(index_names + [f"{x}_{y}" for x in (columns_base + ["ntx"]) for y in ["ask", "bid"]])
+    df_itvl = df_itvl.with_columns([pl.lit(interval).alias("interval"), pl.lit(sampling_rate).alias("sampling_rate")])
+    LOGGER.info("END")
+    return df_itvl
+
+def ana_distribution_volume_price_over_time(df: pl.DataFrame, interval: int, sampling_rate: int, df_base: pl.DataFrame, unixtime_name: str="unixtime", from_tx: bool=False, n_div: int=10):
+    LOGGER.info("STRAT")
+    df, _ = check_common_input(df, interval, sampling_rate, unixtime_name=unixtime_name, from_tx=from_tx)
+    ndf_idx1, ndf_idx2, ndf_idx3, ndf_bool, ndf_tg, index_names, n = indexes_to_aggregate(df_base, interval, sampling_rate)
+    assert isinstance(n_div, int) and n_div > 1 and n_div <= 100 and sampling_rate % n_div == 0
+    # [ unixtime -> sampling_rate, sampling_rate ]
     list_div = np.arange(0.0 + 1.0 / n_div / 2, 1.0, 1.0 / n_div)
-    ndf_tg2  = np.arange(ndf_tg.min() // sampling_rate * sampling_rate, (ndf_tg.max() // sampling_rate * sampling_rate) + sampling_rate + 1, sampling_rate // n_div)
     columnsv = [f"volume_p{str(int(x * 1000)).zfill(4)}" for x in list_div]
     columnss = [f"size_p{  str(int(x * 1000)).zfill(4)}" for x in list_div]
     columnsa = [f"ave_p{   str(int(x * 1000)).zfill(4)}" for x in list_div]
     columnsr = [f"var_p{   str(int(x * 1000)).zfill(4)}" for x in list_div]
-    if from_tx:
-        assert df.columns.isin(["side", "volume", "size", "price"]).sum() == 4
-        dfwk            = pd.DataFrame(ndf_tg2, columns=["timegrp2"])
-        dfwk["timegrp"] = (dfwk["timegrp2"] // sampling_rate * sampling_rate).astype(int)
-        df_smpl2        = pd.merge(df_base.copy().reset_index(), dfwk, how="left", on="timegrp").set_index(index_names[:-1] + ["timegrp2"])
-        df["timegrp2"]  = (df[unixtime_name] // (sampling_rate // n_div) * (sampling_rate // n_div)).astype(int)
-        dfwkwk = df.groupby(index_names[:-1] + ["timegrp2", "side"])[["volume", "size"]].sum()
-        for side, name in zip([0, 1], ["ask", "bid"]):
+    assert from_tx == False # Don't be created from tx
+    df = df.sort(index_names + [unixtime_name])
+    check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
+    # list_qtl_tmp     = [re.match(r"^volume_q([0-9]+)_ask$", x).groups()[0] for x in [x for x in dfwk.columns if len(re.findall(r"^volume_q[0-9]+_ask$", x)) > 0]]
+    # list_qtl_tmp     = list(sorted([int(x) / 1000 for x in list_qtl_tmp]))
+    # columns_base_tmp = [f"volume_q{str(int(x * 1000)).zfill(4)}" for x in list_qtl_tmp]
+    if df["sampling_rate"][0] == sampling_rate:
+        for x in index_names[:-1]: # index_names[-1] == "timegrp"
+            assert (df[x].unique().is_in(df_base[x].unique()) == False).sum() == 0
+        assert (df_base["timegrp"].unique().is_in(df["timegrp"].unique()) == False).sum() == 0
+        for z in ([f"{x}_{y}" for x in (columnsv + columnss) for y in ["ask", "bid"]] + (columnsa + columnsr)): assert z in df.columns
+        df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
+    else:
+        for z in ([f"{x}_{y}" for x in ["volume", "size"] for y in ["ask", "bid"]] + ["ave", "var"]): assert z in df.columns
+        assert sampling_rate >= df["sampling_rate"][0]
+        assert sampling_rate % df["sampling_rate"][0] == 0
+        assert (sampling_rate // df["sampling_rate"][0]) % n_div == 0
+        # kokokara
+
+
+
+    list_div = np.arange(0.0 + 1.0 / n_div / 2, 1.0, 1.0 / n_div)
+    ndf_tg2  = np.arange(ndf_tg.min() // sampling_rate * sampling_rate, (ndf_tg.max() // sampling_rate * sampling_rate) + sampling_rate + 1, sampling_rate // n_div)
+
+    assert df.columns.isin([f"{x}_{name}" for x in (columnsv + columnss) for name in ["ask", "bid"]]).sum() == (n_div * 2 * 2)
+    assert df.columns.isin(columnsa + columnsr).sum() == (n_div * 2)
+    df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
+    check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
+    if (df["interval"] == sampling_rate).sum() == df.shape[0]:
+        df_smpl = df.copy().sort_values(index_names).set_index(index_names)
+    else:
+        for name in ["ask", "bid"]:
             for colname in ["volume", "size"]:
-                df_smpl2[f"{colname}_{name}"] = dfwkwk.loc[(slice(None), slice(None), side)][colname]
-                df_smpl2[f"{colname}_{name}"] = df_smpl2[f"{colname}_{name}"].fillna(0)
-        for side, name in zip([0, 1], ["ask", "bid"]):
-            for colname in ["volume", "size"]:
-                sewk = df_smpl2.reset_index().groupby(index_names)[f"{colname}_{name}"].apply(lambda x: x.tolist())
+                columns = {"volume": columnsv, "size": columnss}[colname]
+                sewk    = df.groupby(index_names)[[f"{x}_{name}" for x in columns]].apply(lambda y: np.concatenate(y.values.tolist()).reshape(n_div, -1).sum(axis=-1).tolist())
                 assert sewk.str[n_div].isna().sum() == sewk.shape[0]
-                for i, x in enumerate({"volume": columnsv, "size": columnss}[colname]):
+                for i, x in enumerate(columns):
                     df_smpl[f"{x}_{name}"] = sewk.str[i]
                     df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
-        for cola, colv, cols in zip(columnsa, columnsv, columnss):
-            df_smpl[cola] = (df_smpl[f"{colv}_ask"] + df_smpl[f"{colv}_bid"]) / (df_smpl[f"{cols}_ask"] + df_smpl[f"{cols}_bid"]).replace(0, float("nan"))
+        for x in (columnss + columnsv): df[x] = (df[f"{x}_ask"] + df[f"{x}_bid"])
+        sewkv = df.groupby(index_names)[columnsv].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
+        sewks = df.groupby(index_names)[columnss].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
+        sewka = sewkv / sewks
+        for i, x in enumerate(columnsv): df_smpl[x] = sewkv.str[i]
+        for i, x in enumerate(columnss): df_smpl[x] = sewks.str[i]
+        for i, x in enumerate(columnsa): df_smpl[x] = sewka.str[i]
+        sewks2 = df.groupby(index_names)[columnss].apply(lambda x: x.values.reshape(n_div, -1))
+        sewka2 = df.groupby(index_names)[columnsa].apply(lambda x: x.values.reshape(n_div, -1))
+        sewkr2 = df.groupby(index_names)[columnsr].apply(lambda x: x.values.reshape(n_div, -1))
+        for i, x in enumerate(columnsr): df_smpl[x] = (((sewka2.str[i] - sewka.str[i]) ** 2 + sewkr2.str[i]) * sewks2.str[i]).apply(lambda x: np.nansum(x)) / sewks.str[i]
         dfwk              = df_smpl.groupby(index_names[:-1], group_keys=False)[columnsa].apply(lambda x: pd.DataFrame(pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div), index=x.index))
         dfwk.columns      = columnsa
         df_smpl[columnsa] = dfwk[columnsa]
-        dfwk        = df.groupby(index_names[:-1] + ["timegrp2"])[["volume", "size"]].sum()
-        dfwk["ave"] = (dfwk["volume"] / dfwk["size"])
-        dfwk        = pd.merge(df[index_names[:-1] + ["timegrp2", "price", "size"]], dfwk.reset_index()[index_names[:-1] + ["timegrp2", "ave"]], how="left", on=(index_names[:-1] + ["timegrp2"]))
-        dfwk["tmp"] = (dfwk["price"] - dfwk["ave"]).pow(2) * dfwk["size"]
-        dfwk        = dfwk.groupby(index_names[:-1] + ["timegrp2"])[["tmp", "size"]].sum()
-        dfwk["var"] = (dfwk["tmp"] / dfwk["size"])
-        df_smpl2["var"] = dfwk["var"]
-        sewk = df_smpl2.reset_index().groupby(index_names)["var"].apply(lambda x: x.tolist())
-        assert sewk.str[n_div].isna().sum() == sewk.shape[0]
-        for i, x in enumerate(columnsr):
-            df_smpl[x] = sewk.str[i]
-            df_smpl[x] = df_smpl[x].fillna(0)
-    else:
-        assert df.columns.isin([f"{x}_{name}" for x in (columnsv + columnss) for name in ["ask", "bid"]]).sum() == (n_div * 2 * 2)
-        assert df.columns.isin(columnsa + columnsr).sum() == (n_div * 2)
-        df = df.sort_values(index_names + [unixtime_name]).reset_index(drop=True)
-        check_interval(df, unixtime_name, sampling_rate, index_names=index_names)
-        if (df["interval"] == sampling_rate).sum() == df.shape[0]:
-            df_smpl = df.copy().sort_values(index_names).set_index(index_names)
-        else:
-            for name in ["ask", "bid"]:
-                for colname in ["volume", "size"]:
-                    columns = {"volume": columnsv, "size": columnss}[colname]
-                    sewk    = df.groupby(index_names)[[f"{x}_{name}" for x in columns]].apply(lambda y: np.concatenate(y.values.tolist()).reshape(n_div, -1).sum(axis=-1).tolist())
-                    assert sewk.str[n_div].isna().sum() == sewk.shape[0]
-                    for i, x in enumerate(columns):
-                        df_smpl[f"{x}_{name}"] = sewk.str[i]
-                        df_smpl[f"{x}_{name}"] = df_smpl[f"{x}_{name}"].fillna(0)
-            for x in (columnss + columnsv): df[x] = (df[f"{x}_ask"] + df[f"{x}_bid"])
-            sewkv = df.groupby(index_names)[columnsv].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
-            sewks = df.groupby(index_names)[columnss].apply(lambda x: np.nansum(x.values.reshape(n_div, -1), axis=-1))
-            sewka = sewkv / sewks
-            for i, x in enumerate(columnsv): df_smpl[x] = sewkv.str[i]
-            for i, x in enumerate(columnss): df_smpl[x] = sewks.str[i]
-            for i, x in enumerate(columnsa): df_smpl[x] = sewka.str[i]
-            sewks2 = df.groupby(index_names)[columnss].apply(lambda x: x.values.reshape(n_div, -1))
-            sewka2 = df.groupby(index_names)[columnsa].apply(lambda x: x.values.reshape(n_div, -1))
-            sewkr2 = df.groupby(index_names)[columnsr].apply(lambda x: x.values.reshape(n_div, -1))
-            for i, x in enumerate(columnsr): df_smpl[x] = (((sewka2.str[i] - sewka.str[i]) ** 2 + sewkr2.str[i]) * sewks2.str[i]).apply(lambda x: np.nansum(x)) / sewks.str[i]
-            dfwk              = df_smpl.groupby(index_names[:-1], group_keys=False)[columnsa].apply(lambda x: pd.DataFrame(pd.Series(x.values.reshape(-1)).ffill().values.reshape(-1, n_div), index=x.index))
-            dfwk.columns      = columnsa
-            df_smpl[columnsa] = dfwk[columnsa]
-            df_smpl[columnsr] = df_smpl[columnsr].fillna(0)
+        df_smpl[columnsr] = df_smpl[columnsr].fillna(0)
     # [ sampling_rate -> sampling_rate, interval ]
     df_smpl = df_smpl.loc[df_smpl.index.get_level_values('timegrp').isin(ndf_tg)]
     if sampling_rate != interval:

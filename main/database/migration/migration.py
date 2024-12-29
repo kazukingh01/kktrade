@@ -2,9 +2,9 @@ import argparse, datetime
 import pandas as pd
 # local package
 from kktrade.config.migration import HOST_FR, PORT_FR, DBNAME_FR, USER_FR, PASS_FR, DBTYPE_FR, HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, DBTYPE_TO
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kkpsgre.migration import migrate
-from kkpsgre.util.logger import set_logger
+from kklogger import set_logger
 
 
 LOGGER = set_logger(__name__)

@@ -2,7 +2,7 @@ import argparse, datetime
 # local package
 from kkpsgre.comapi import select, insert, delete
 from kktrade.config.psgre import HOST, PORT, DBNAME, USER, PASS, DBTYPE
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kklogger import set_logger
 
 

@@ -1,8 +1,9 @@
 import datetime
 import pandas as pd
+import polars as pl
 import numpy as np
 # local package
-from kkpsgre.psgre import DBConnector
+from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import check_type, check_type_list
 from kklogger import set_logger
 
@@ -203,12 +204,13 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     LOGGER.info("START")
     assert isinstance(db_bs, DBConnector)
     assert isinstance(db_bk, DBConnector) or db_bk is None
+    assert db_bs.use_polars == db_bk.use_polars
     assert isinstance(exchange, str) and exchange in EXCHANGES
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)
     assert isinstance(date_sw, datetime.datetime)
     assert date_fr < date_to
-    LOGGER.info(f"from: {date_fr}, to: {date_to}")
+    LOGGER.info(f"exchange: {exchange}, from: {date_fr}, to: {date_to}", color=["BOLD", "GREEN"])
     df_mst  = db_bs.select_sql(f"select * from master_symbol where is_active = true and exchange = '{exchange}';")
     columns = ",".join(["unixtime", "symbol", "side", "price", "size"])
     if exchange in ["bitflyer"]:
@@ -221,21 +223,38 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
         else:
             df1 = db_bk.select_sql(f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
             df2 = db_bs.select_sql(f"SELECT {columns} FROM {exchange}_executions WHERE unixtime >= '{date_sw.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime < '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}';")
-            df  = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
+            if db_bs.use_polars:
+                df = pl.concat([df2, df1], how="vertical")
+            else:
+                df = pd.concat([df2, df1], axis=0, sort=False, ignore_index=True)
     if df.shape[0] == 0:
         LOGGER.info("END")
         return df
-    assert check_type(df["unixtime"].dtype, [np.dtypes.DateTime64DType, pd.core.dtypes.dtypes.DatetimeTZDtype])
-    df = df.loc[df["side"].isin([0, 1])].reset_index(drop=True)
-    df = df.sort_values(["symbol", "unixtime", "price"]).reset_index(drop=True)
-    df = pd.merge(df, df_mst, how="left", left_on="symbol", right_on="symbol_id")
-    df["datetime"] = df["unixtime"].copy()
-    df["unixtime"] = df["unixtime"].astype("int64") / 10e8
-    # Inverse type's size shows USD.
-    boolwk = ((df["symbol_name"].str.find("inverse@") == 0) | (df["symbol_name"].str.find("COIN@") == 0))
-    df["volume"] = (df["price"] * df["size"])
-    df.loc[boolwk, "volume"] = df.loc[boolwk, "size"]
-    df.loc[boolwk, "size"  ] = (df.loc[boolwk, "volume"] / df.loc[boolwk, "price"]) # Define all size as volume / price
+    if db_bs.use_polars:
+        assert df.schema["unixtime"] == pl.Datetime
+        df = df.filter(pl.col("side").is_in([0, 1]))
+        df = df.sort(["symbol", "unixtime", "price"])
+        df = df.join(df_mst, how="left", left_on="symbol", right_on="symbol_id")
+        df = df.with_columns(pl.col("unixtime").alias("datetime"))
+        df = df.with_columns(pl.col("unixtime").dt.timestamp() / 10e5)
+        boolwk = (
+            pl.col("symbol_name").str.starts_with("inverse@") | 
+            pl.col("symbol_name").str.starts_with("COIN@")
+        )
+        df = df.with_columns(pl.when(boolwk).then(pl.col("size")).otherwise(pl.col("price") * pl.col("size")).alias("volume"))
+        df = df.with_columns(pl.when(boolwk).then(pl.col("volume") / pl.col("price")).otherwise("size").alias("size"))
+    else:
+        assert pd.api.types.is_datetime64_any_dtype(df["unixtime"])
+        df = df.loc[df["side"].isin([0, 1])].reset_index(drop=True)
+        df = df.sort_values(["symbol", "unixtime", "price"]).reset_index(drop=True)
+        df = pd.merge(df, df_mst, how="left", left_on="symbol", right_on="symbol_id")
+        df["datetime"] = df["unixtime"].copy()
+        df["unixtime"] = df["unixtime"].astype("int64") / 10e8
+        # Inverse type's size shows USD.
+        boolwk = ((df["symbol_name"].str.find("inverse@") == 0) | (df["symbol_name"].str.find("COIN@") == 0))
+        df["volume"] = (df["price"] * df["size"])
+        df.loc[boolwk, "volume"] = df.loc[boolwk, "size"]
+        df.loc[boolwk, "size"  ] = (df.loc[boolwk, "volume"] / df.loc[boolwk, "price"]) # Define all size as volume / price
     LOGGER.info("END")
     return df
 

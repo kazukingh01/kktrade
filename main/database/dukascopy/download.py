@@ -3,7 +3,7 @@ from typing import List
 from dataclasses import dataclass
 import pandas as pd
 # local package
-from kkpsgre.psgre import Psgre
+from kkpsgre.connector import DBConnector
 from kktrade.config.psgre import HOST, PORT, USER, PASS, DBNAME
 
 
