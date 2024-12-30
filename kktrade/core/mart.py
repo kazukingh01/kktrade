@@ -4,7 +4,7 @@ import polars as pl
 import numpy as np
 # local package
 from kkpsgre.connector import DBConnector
-from kkpsgre.util.com import check_type, check_type_list
+from kkpsgre.util.com import check_type_list
 from kklogger import set_logger
 
 
