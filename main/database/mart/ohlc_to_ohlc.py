@@ -84,11 +84,12 @@ if __name__ == "__main__":
         list_df.append(ana_distribution_volume_price_over_time(
             df[
                 ['symbol', 'unixtime', 'sampling_rate', 'interval', 'ave', 'var', 'size_ask', 'volume_ask', 'size_bid', 'volume_bid', 'ntx_ask', 'ntx_bid'] + 
-                [x for x in df.columns if len(re.findall(r"volume_p[0-9]+", x)) > 0] + 
-                [x for x in df.columns if len(re.findall(  r"size_p[0-9]+", x)) > 0] + 
-                [x for x in df.columns if len(re.findall(   r"ave_p[0-9]+", x)) > 0] + 
-                [x for x in df.columns if len(re.findall(   r"var_p[0-9]+", x)) > 0] + 
-                [x for x in df.columns if len(re.findall( r"bband_p[0-9]+", x)) > 0]
+                [x for x in df.columns if len(re.findall(  r"volume_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(    r"size_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(     r"ave_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(     r"var_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(   r"bband_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(r"autocorrelation_", x)) > 0]
             ], interval, sampling_rate, df_base, n_div=args.ndiv
         ))
         list_df.append(ana_distribution_volume_over_price(
