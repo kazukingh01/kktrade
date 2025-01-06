@@ -1,11 +1,12 @@
 import datetime, argparse
-import pandas as pd
+import polars as pl
 import numpy as np
 # local package
 from kktrade.core.mart import get_mart_ohlc
 from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_volume, \
-    ana_distribution_volume_price_over_time, ana_distribution_volume_over_price, ana_rank_corr_index
-from kkpsgre.psgre import DBConnector
+    ana_distribution_volume_price_over_time, ana_distribution_volume_over_price, ana_other_factor, \
+    check_common_input, check_interval, indexes_to_aggregate
+from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import str_to_datetime
 from kktrade.config.mart import HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
 from kklogger import set_logger
@@ -49,44 +50,70 @@ if __name__ == "__main__":
     parser.add_argument("--tosr", type=int, help="sampling rate. --tosr 120", default=120)
     parser.add_argument("--type",   type=int)
     parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], help="--itvls 120,480,2400,14400,86400", default="120,480,2400,14400")
+    parser.add_argument("--ndiv",   type=int, help="n divide. --ndiv 10", default=10)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.type in [1, 2]
-    assert args.frsr % 60 == 0
     assert args.tosr % args.frsr == 0
     for x in args.itvls: assert x % args.tosr == 0
     LOGGER.info(f"args: {args}")
-    DB = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
+    DB = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, use_polars=True)
     df = get_mart_ohlc(
         DB, args.fr - datetime.timedelta(seconds=(max(args.itvls) + args.tosr + args.frsr)), args.to, 
         type=(0 if args.type == 1 else 1), interval=args.frsr, sampling_rate=args.frsr
     )
     for interval in args.itvls:
         LOGGER.info(f"processing sampling rate: {args.tosr}, interval: {interval}", color=["BOLD", "GREEN"])
-        sampling_rate = args.tosr
-        unixtime_name = "unixtime"
-        from_tx = False
-        df_ohlc    = create_ohlc(df[['symbol', 'unixtime', 'type', 'interval', 'open', 'high', 'low', 'close']], "unixtime", interval, args.tosr, args.fr, args.to, index_names=["symbol"], from_tx=False)
-        index_base = df_ohlc.index.copy()
+        sampling_rate    = args.tosr
+        df_ohlc, df_base = create_ohlc(
+            df.select(['symbol', 'unixtime', 'sampling_rate', 'interval', 'open', 'high', 'low', 'close']),
+            interval, sampling_rate, args.fr, args.to, index_names=["symbol"], from_tx=False
+        )
         list_df    = []
-        list_df.append(ana_size_price(                         df[['symbol', 'unixtime', 'interval', 'ave', 'var','ntx_ask','ntx_bid','size_ask','size_bid','volume_ask','volume_bid']],                     "unixtime", interval, args.tosr, index_base, from_tx=False))
-        list_df.append(ana_quantile_tx_volume(                 df[["symbol", "unixtime", "interval", "ntx_ask", "ntx_bid"] + df.columns[df.columns.str.find("volume_q") == 0].tolist()],                     "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=20))
-        list_df.append(ana_distribution_volume_price_over_time(df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(volume|size|ave|var)_p[0-9]")]].tolist()], "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=10))
-        list_df.append(ana_distribution_volume_over_price(     df[["symbol", "unixtime", "interval"] + df.columns[[len(x) > 0 for x in df.columns.str.findall(r"^(price|volume_price)_h[0-9]" )]].tolist()], "unixtime", interval, args.tosr, index_base, from_tx=False, n_div=20))
-        if args.type == 2:
-            list_df.append(ana_rank_corr_index(                df[['symbol', 'unixtime', 'interval', 'ave']],                                                                                                "unixtime", interval, args.tosr, index_base))
-        df_ohlc = pd.concat([df_ohlc, ] + list_df, axis=1, ignore_index=False, sort=False)
-        df_ohlc = df_ohlc.loc[:, ~df_ohlc.columns.duplicated()]
-        df_ohlc = df_ohlc.reset_index()
-        df_ohlc.columns     = df_ohlc.columns.str.replace("timegrp", "unixtime")
-        df_ohlc = df_ohlc.loc[(df_ohlc["unixtime"] >= int(args.fr.timestamp() // args.tosr * args.tosr)) & (df_ohlc["unixtime"] < int(args.to.timestamp() // args.tosr * args.tosr))]
-        df_ohlc["type"]     = args.type
-        df_ohlc["unixtime"] = (df_ohlc["unixtime"] + args.tosr)
-        df_ohlc["unixtime"] = pd.to_datetime(df_ohlc["unixtime"], unit="s", utc=True)
-        df_ohlc["attrs"]    = df_ohlc.loc[:, df_ohlc.columns[~df_ohlc.columns.isin(DB.db_layout["mart_ohlc"])]].apply(lambda x: str({y:z for y, z in x.to_dict().items() if not (z is None or np.isnan(z))}).replace("'", '"'), axis=1)
+        list_df.append(ana_size_price(
+            df[[
+                'symbol', 'unixtime', 'sampling_rate', 'interval',
+                'size_ask', 'volume_ask', 'ntx_ask', 'size_bid', 'volume_bid', 'ntx_bid', 'size', 'volume', 'ave', 'var'
+            ]], interval, sampling_rate, df_base, from_tx=False
+        ))
+        list_df.append(ana_quantile_tx_volume(
+            df[['symbol', 'unixtime', 'sampling_rate', 'interval', 'ntx_ask', 'ntx_bid'] + [x for x in df.columns if x.startswith("volume_q")]],
+            interval, sampling_rate, df_base, from_tx=False, n_div=args.ndiv
+        ))
+        list_df.append(ana_distribution_volume_price_over_time(
+            df[['symbol', 'unixtime', 'sampling_rate', 'interval', 'ave', 'var', 'size_ask', 'volume_ask', 'size_bid', 'volume_bid', 'ntx_ask', 'ntx_bid']],
+            interval, sampling_rate, df_base, n_div=args.ndiv
+        ))
+        list_df.append(ana_distribution_volume_over_price(
+            df[["symbol", "unixtime", 'sampling_rate', 'interval', "ave", 'volume_ask', 'volume_bid']],
+            interval, sampling_rate, df_base, from_small_sr=True, n_div=args.ndiv
+        ))
+        list_df.append(ana_other_factor(
+            df[["symbol", "unixtime", 'sampling_rate', 'interval', "open", "high", "low", "close", "ave", 'size_ask', 'volume_ask', 'size_bid', 'volume_bid']],
+            interval, sampling_rate, df_base
+        ))
+        for dfwk in list_df:
+            df_ohlc = df_ohlc.join(dfwk, how="left", on=df_base.columns)
+        df_ohlc = df_ohlc.rename({"timegrp": "unixtime"})
+        df_ohlc = df_ohlc.filter(
+            (pl.col("unixtime") >= int(args.fr.timestamp() // sampling_rate * sampling_rate)) &
+            (pl.col("unixtime") <  int(args.to.timestamp() // sampling_rate * sampling_rate))
+        )
+        df_ohlc = df_ohlc.with_columns([
+            pl.lit(interval).alias("interval"),
+            pl.lit(sampling_rate).alias("sampling_rate"),
+            pl.lit(args.type).alias("type"),
+            ((pl.col("unixtime") + sampling_rate) * 1000).cast(pl.Datetime("ms")).dt.replace_time_zone("UTC").alias("unixtime"),
+        ])
+        columns_base = [x for x in df_ohlc.columns if x     in DB.db_layout["mart_ohlc"]]
+        columns_oth  = [x for x in df_ohlc.columns if x not in DB.db_layout["mart_ohlc"]]
+        df_ohlc = df_ohlc.with_columns(
+            pl.struct(columns_oth).map_elements(lambda x: str({k: v for k, v in x.items() if not (v is None or np.isnan(v))}).replace("'", '"'), return_dtype=str).alias("attrs")
+        ).select(columns_base + ["attrs"])
         if args.update and df_ohlc.shape[0] > 0:
             DB.delete_sql("mart_ohlc", str_where=(
-                f"interval = {interval} and sampling_rate = {args.tosr} and type = {df_ohlc['type'].iloc[0]} and symbol in (" + ",".join(df_ohlc["symbol"].unique().astype(str).tolist()) + ") and " + 
+                f"interval = {interval} and sampling_rate = {sampling_rate} and type = {df_ohlc['type'][0]} and " + 
+                f"symbol in (" + ",".join(df_ohlc["symbol"].unique().cast(str).to_list()) + ") and " + 
                 f"unixtime >= " + df_ohlc["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
                 f"unixtime <= " + df_ohlc["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
             ))
