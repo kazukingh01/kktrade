@@ -46,24 +46,25 @@ if __name__ == "__main__":
     parser  = argparse.ArgumentParser()
     parser.add_argument("--fr", type=str_to_datetime, help="--fr 20200101", default=(timenow - datetime.timedelta(hours=1)))
     parser.add_argument("--to", type=str_to_datetime, help="--to 20200101", default= timenow)
-    parser.add_argument("--frsr", type=int, help="sampling rate. --frsr 60",  default=60)
-    parser.add_argument("--tosr", type=int, help="sampling rate. --tosr 120", default=120)
+    parser.add_argument("--frsr",   type=int, help="from sampling rate. --frsr 60",  default=60)
     parser.add_argument("--type",   type=int)
+    parser.add_argument("--tosr",   type=lambda x: [int(y) for y in x.split(",")], help="to sampling rate. --tosr 120,240", default="120,240")
     parser.add_argument("--itvls",  type=lambda x: [int(y) for y in x.split(",")], help="--itvls 120,480,2400,14400,86400", default="120,480,2400,14400")
     parser.add_argument("--ndiv",   type=int, help="n divide. --ndiv 10", default=10)
     parser.add_argument("--update", action='store_true', default=False)
     args = parser.parse_args()
     assert args.type in [1, 2]
-    assert args.tosr % args.frsr == 0
-    for x in args.itvls: assert x % args.tosr == 0
+    assert len(args.tosr) == len(args.itvls)
+    for x in args.tosr:  assert x % args.frsr == 0
+    for x, y in zip(args.tosr, args.itvls): assert y % x == 0
     LOGGER.info(f"args: {args}")
     DB = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, use_polars=True)
     df = get_mart_ohlc(
         DB, args.fr - datetime.timedelta(seconds=(max(args.itvls) + args.tosr + args.frsr)), args.to, 
         type=(0 if args.type == 1 else 1), interval=args.frsr, sampling_rate=args.frsr
     )
-    for interval in args.itvls:
-        LOGGER.info(f"processing sampling rate: {args.tosr}, interval: {interval}", color=["BOLD", "GREEN"])
+    for sampling_rate, interval in zip(args.tosr, args.itvls):
+        LOGGER.info(f"processing sampling rate: {sampling_rate}, interval: {interval}", color=["BOLD", "GREEN"])
         sampling_rate    = args.tosr
         df_ohlc, df_base = create_ohlc(
             df.select(['symbol', 'unixtime', 'sampling_rate', 'interval', 'open', 'high', 'low', 'close']),
