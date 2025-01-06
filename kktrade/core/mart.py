@@ -302,7 +302,7 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
             (pl.col("unixtime").dt.timestamp() / 10e5).cast(pl.Int64).alias("unixtime"),
             pl.col("attrs").struct.unnest(),
         ])
-        df = df.select([x for x in df.columns if x in (COLUMNS_BASE + COLUMNS_MART)])
+        # df = df.select([x for x in df.columns if x in (COLUMNS_BASE + COLUMNS_MART)])
     else:
         dfwk = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
         dfwk = dfwk.loc[:, dfwk.columns.isin(COLUMNS_MART)]

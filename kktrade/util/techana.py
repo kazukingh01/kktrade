@@ -383,8 +383,8 @@ def ana_quantile_tx_volume(df: pl.DataFrame, interval: int, sampling_rate: int, 
         # estimate apploximately because the ntx might be super huge number.
         df_itvl = df_base.clone()
         for name in ["ask", "bid"]:
-            ndf1    = df_smpl.select([f"{x}_{name}" for x in columns_base]).to_numpy()
-            ndf2    = df_smpl[f"ntx_{name}"].to_numpy()
+            ndf1    = np.nan_to_num(df_smpl.select([f"{x}_{name}" for x in columns_base]).to_numpy(), 0)
+            ndf2    = np.nan_to_num(df_smpl[f"ntx_{name}"].to_numpy(), 0)
             listwk  = [
                 np.nanquantile(np.concatenate([np.repeat(ndfwkwk, ntx // n_div + 1) for ndfwkwk, ntx in zip(ndfwk1, ndfwk2)]), list_qtl)
                 for ndfwk1, ndfwk2 in zip(ndf1[ndf_idx3], ndf2[ndf_idx3])
@@ -412,7 +412,8 @@ def ana_distribution_volume_price_over_time(df: pl.DataFrame, interval: int, sam
     columnsa    = [f"ave_p{   str(int(x * 1000)).zfill(4)}" for x in list_div]
     columnsr    = [f"var_p{   str(int(x * 1000)).zfill(4)}" for x in list_div]
     columnsb    = [f"bband_p{ str(int(x * 1000)).zfill(4)}" for x in list_div]
-    columns_all = columnsv + columnss + columnsa + columnsr + columnsb
+    columnsc    = [f"autocorrelation_0{i}" for i in range(1, 6)] + ["autocorrelation_mean"]
+    columns_all = columnsv + columnss + columnsa + columnsr + columnsb + columnsc
     df = df.sort(index_names + [unixtime_name])
     check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
     if df["sampling_rate"][0] == sampling_rate:
@@ -425,6 +426,7 @@ def ana_distribution_volume_price_over_time(df: pl.DataFrame, interval: int, sam
         for z in ([f"{x}_{y}" for x in ["volume", "size"] for y in ["ask", "bid"]] + ["ave", "var"]): assert z in df.columns
         assert sampling_rate >= df["sampling_rate"][0]
         assert sampling_rate % df["sampling_rate"][0] == 0
+        assert (sampling_rate // df["sampling_rate"][0]) % 10 == 0
         assert (sampling_rate // df["sampling_rate"][0]) % n_div == 0
         sr_tmp  = int(sampling_rate // n_div)
         dfwk    = df.with_columns([
@@ -438,6 +440,20 @@ def ana_distribution_volume_price_over_time(df: pl.DataFrame, interval: int, sam
             [pl.col("ave"   ).slice(i).first().alias(x)                          for i, x in zip(range(n_div), columnsa)] + 
             [pl.col("var"   ).slice(i).first().fill_nan(0).fill_null(0).alias(x) for i, x in zip(range(n_div), columnsr)]
         )
+        df_smpl = df_smpl.join(
+            df.group_by(index_names).agg([
+                pl.col(unixtime_name),
+                pl.col("ave").fill_nan(None).fill_null(strategy="forward")
+            ]).explode([unixtime_name, "ave"]).sort(index_names + [unixtime_name]).group_by(index_names).agg([
+                pl.corr(pl.col("ave"), pl.col("ave").shift(((pl.len() / 10) * 1).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_01"),
+                pl.corr(pl.col("ave"), pl.col("ave").shift(((pl.len() / 10) * 2).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_02"),
+                pl.corr(pl.col("ave"), pl.col("ave").shift(((pl.len() / 10) * 3).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_03"),
+                pl.corr(pl.col("ave"), pl.col("ave").shift(((pl.len() / 10) * 4).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_04"),
+                pl.corr(pl.col("ave"), pl.col("ave").shift(((pl.len() / 10) * 5).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_05"),
+            ]), how="left", on=index_names
+        ).with_columns([
+            pl.mean_horizontal([f"autocorrelation_0{i}" for i in range(1, 6)]).alias("autocorrelation_mean")
+        ])
         dfwk    = calc_ave_var(df.rename({"ave": "price"}), index_names)
         df_smpl = df_smpl.join(dfwk.select(index_names + ["ave", "var"]), how="left", on=index_names)
         df_smpl = df_smpl.with_columns([
@@ -452,6 +468,18 @@ def ana_distribution_volume_price_over_time(df: pl.DataFrame, interval: int, sam
             pl.DataFrame(np.nansum(df_smpl[columnss].to_numpy()[ndf_idx3].reshape(df_base.shape[0], n_div, -1), axis=-1), schema=columnss),
         ], how="horizontal")
         df_itvl = df_itvl.with_columns([(pl.col(f"{x.replace('ave', 'volume')}") / pl.col(f"{x.replace('ave', 'size')}")).alias(x) for x in columnsa])
+        ndfwk0  = df_smpl[columnsa].to_numpy()[ndf_idx3].reshape(df_base.shape[0], -1)
+        ndfwk0  = pl.DataFrame(ndfwk0).select(pl.concat_list(pl.all()).alias("tmp")) \
+                    .with_columns(pl.arange(pl.len()).alias("no")).explode("tmp") \
+                    .group_by("no").agg(pl.col("tmp").fill_nan(None).fill_null(strategy="forward")) \
+                    .select([pl.col("tmp").list.get(i).alias(f"{i}") for i in range(ndfwk0.shape[-1])]).to_numpy()
+        df_itvl = df_itvl.with_columns([
+            pl.Series(
+                [np.corrcoef(x[bx & by], y[bx & by])[0][1] for x, y, bx, by in zip(ndfwk0[:, j:], ndfwk0[:, :-j], ~np.isnan(ndfwk0[:, j:]), ~np.isnan(ndfwk0[:, :-j]))]
+            ).alias(f"autocorrelation_0{k}") for j, k in zip([int((ndfwk0.shape[-1] / 10) * i) for i in range(1, 6)], range(1, 6))
+        ]).with_columns([
+            pl.mean_horizontal([f"autocorrelation_0{i}" for i in range(1, 6)]).alias("autocorrelation_mean")
+        ])
         ndfwk1  = df_smpl[columnsa]                         .to_numpy()[ndf_idx3].reshape(df_base.shape[0], n_div, -1)
         ndfwk2  = df_smpl[columnsr].fill_nan(0).fill_null(0).to_numpy()[ndf_idx3].reshape(df_base.shape[0], n_div, -1)
         ndfwk3  = df_itvl[columnsa].to_numpy().reshape(-1, n_div, 1)
@@ -525,7 +553,7 @@ def ana_distribution_volume_over_price(df: pl.DataFrame, interval: int, sampling
             for x in index_names[:-1]: # index_names[-1] == "timegrp"
                 assert (df[x].unique().is_in(df_base[x].unique()) == False).sum() == 0
             assert (df_base["timegrp"].unique().is_in(df["timegrp"].unique()) == False).sum() == 0
-            for x in columnsv: assert x in df.columns
+            for x in (columnsv + columnsp): assert x in df.columns
             df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
         else:
             dfwk = df.with_columns([
@@ -550,15 +578,15 @@ def ana_distribution_volume_over_price(df: pl.DataFrame, interval: int, sampling
     # [ sampling_rate -> sampling_rate, interval ]
     df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).select(index_names + columnsp + columnsv).sort(index_names)
     if sampling_rate != interval:
-        ndfwk1  = df_smpl.select([f"{x}_ask" for x in columns]).to_numpy()
-        ndfwk2  = df_smpl.select([f"{x}_bid" for x in columns]).to_numpy()
-        dfwk    = df_smpl.select(pl.concat_list(columnsp).map_elements(lambda x: pl.Series(func_lst(n_div, x[0], x[1])), return_dtype=pl.List(pl.Float64)).alias("tmp"))
+        ndfwk1  = df_smpl.select([f"{x}_ask" for x in columns]).fill_nan(0).fill_null(0).to_numpy()
+        ndfwk2  = df_smpl.select([f"{x}_bid" for x in columns]).fill_nan(0).fill_null(0).to_numpy()
+        dfwk    = df_smpl.select(pl.concat_list(pl.col(columnsp).fill_null(float("nan"))).map_elements(lambda x: pl.Series(func_lst(n_div, x[0], x[1])), return_dtype=pl.List(pl.Float64)).alias("tmp"))
         ndfwk3  = dfwk.select([pl.col("tmp").list.get(i).alias(f"col{i}") for i in range(n_div)]).to_numpy()
         ndfwk4  = df_smpl[columnsp].to_numpy()
         ndfmin  = np.nanmin(ndfwk4[ndf_idx3].reshape(df_base.shape[0], -1), axis=-1)
         ndfmax  = np.nanmax(ndfwk4[ndf_idx3].reshape(df_base.shape[0], -1), axis=-1)
-        ndfask  = np.stack([np.histogram(p, n_div, range=(pmin, pmax), weights=v)[0] for pmin, pmax, p, v in zip(ndfmin, ndfmax, ndfwk3[ndf_idx3].reshape(df_base.shape[0], -1), ndfwk1[ndf_idx3].reshape(df_base.shape[0], -1))])
-        ndfbid  = np.stack([np.histogram(p, n_div, range=(pmin, pmax), weights=v)[0] for pmin, pmax, p, v in zip(ndfmin, ndfmax, ndfwk3[ndf_idx3].reshape(df_base.shape[0], -1), ndfwk2[ndf_idx3].reshape(df_base.shape[0], -1))])
+        ndfask  = np.stack([np.histogram(p, n_div, range=((pmin, pmax) if np.isnan([pmin, pmax]).sum() == 0 else (0, 0)), weights=v)[0] for pmin, pmax, p, v in zip(ndfmin, ndfmax, ndfwk3[ndf_idx3].reshape(df_base.shape[0], -1), ndfwk1[ndf_idx3].reshape(df_base.shape[0], -1))])
+        ndfbid  = np.stack([np.histogram(p, n_div, range=((pmin, pmax) if np.isnan([pmin, pmax]).sum() == 0 else (0, 0)), weights=v)[0] for pmin, pmax, p, v in zip(ndfmin, ndfmax, ndfwk3[ndf_idx3].reshape(df_base.shape[0], -1), ndfwk2[ndf_idx3].reshape(df_base.shape[0], -1))])
         df_itvl = df_base.with_columns(pl.DataFrame(np.concatenate([ndfask, ndfbid], axis=-1), schema=columnsv))
         df_itvl = df_itvl.with_columns([
             pl.Series(ndfmin).alias("price_h0000"), pl.Series(ndfmax).alias("price_h1000"), 
@@ -581,133 +609,128 @@ def ana_other_factor(df: pl.DataFrame, interval: int, sampling_rate: int, df_bas
         'slope', 'sum_abs_diff', 'mean_abs_diff', 'mean_diff', 'cid_ce_norm',
         'n_above_ave', 'n_below_ave', 'is_above_first', 'n_cross_ave', 'n_cross_hl',
         'n_up', 'n_down', 'n_change', 'position_max', 'position_min',
-        'autocorrelation_01', 'autocorrelation_02', 'autocorrelation_03', 'autocorrelation_04', 'autocorrelation_05', 'autocorrelation_mean'
     ]
     # [ sampling_rate ( small ) -> sampling_rate, sampling_rate ]
     df = df.sort(index_names + [unixtime_name]).fill_nan(None)
     check_interval(df, unixtime_name=unixtime_name, index_names=index_names)
     for x in columns_base: assert x in df.columns
-    df_smpl = df_base.clone()
-    ## OHLC
-    df_smpl = df_smpl.join(
-        df.group_by(index_names).agg([
-            pl.col("open" ).first(),
-            pl.col("high" ).max(),
-            pl.col("low"  ).min(),
-            pl.col("close").last(),
-            pl.col("volume_ask").fill_nan(None).sum(),
-            pl.col("volume_bid").fill_nan(None).sum(),
-            pl.col("size_ask"  ).fill_nan(None).sum(),
-            pl.col("size_bid"  ).fill_nan(None).sum(),
-        ]), how="left", on=index_names
-    ).with_columns([
-        (pl.col("volume_ask") / pl.col("volume_bid")).alias("ratio_volume"),
-        (pl.col("size_ask"  ) / pl.col("size_bid"  )).alias("ratio_size"  ),
-        (pl.col("high") - pl.col("low")).alias("range"),
-        ((pl.col("close") - pl.col("low")) / (pl.col("high") - pl.col("low"))).alias("williams_r"),
-    ])
-    df_smpl = df_smpl.join(
-        df_smpl.with_columns(
-            (
-                (pl.col("volume_ask").fill_nan(None) + pl.col("volume_bid").fill_nan(None)) / 
-                (pl.col("size_ask"  ).fill_nan(None) + pl.col("size_bid"  ).fill_nan(None))
-            ).alias("ave")
-        ).sort(index_names).group_by(index_names[:-1]).agg([
-            pl.col("timegrp"),
-            pl.col("ave").fill_nan(None).fill_null(strategy="forward").alias("ave"),
-        ]).explode(["timegrp", "ave"]), how="left", on=index_names
-    )
-    ## RCI
-    dfwk    = df.filter(pl.col("ave").fill_nan(None).is_not_null()).group_by(index_names).agg(pl.col("ave"))
-    df_smpl = df_smpl.join(
-        dfwk.with_columns(
-            pl.col("ave").map_elements(
-                lambda x: 1 - (
-                    (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) / 
-                    (x.shape[0] * (x.shape[0] ** 2 - 1))
-                ), return_dtype=pl.Float64
-            ).alias("rci")
-        ).select(index_names + ["rci"]), how="left", on=index_names
-    )
-    ## volume rank corr
-    dfwk    = df.group_by(index_names).agg([
-        pl.col("volume_ask").fill_nan(0).fill_null(0),
-        pl.col("volume_bid").fill_nan(0).fill_null(0),
-    ])
-    df_smpl = df_smpl.join(
-        dfwk.with_columns([
-            pl.col("volume_ask").map_elements(
-                lambda x: 1 - (
-                    (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) /
-                    (x.shape[0] * (x.shape[0] ** 2 - 1))
-                ), return_dtype=pl.Float64
-            ).alias("rci_volume_ask"),
-            pl.col("volume_bid").map_elements(
-                lambda x: 1 - (
-                    (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) /
-                    (x.shape[0] * (x.shape[0] ** 2 - 1))
-                ), return_dtype=pl.Float64
-            ).alias("rci_volume_bid"),
-        ]).select(index_names + ["rci_volume_ask", "rci_volume_bid"]), how="left", on=index_names
-    )
-    ## RSI
-    dfwk    = df.group_by(index_names).agg((pl.col("close") - pl.col("open")).alias("tmp")).explode("tmp")
-    df_smpl = df_smpl.join(dfwk.filter(pl.col("tmp") > 0 ).group_by(index_names).agg(pl.col("tmp").mean().abs().alias("rsi_mean_up"  )), how="left", on=index_names)
-    df_smpl = df_smpl.join(dfwk.filter(pl.col("tmp") < 0 ).group_by(index_names).agg(pl.col("tmp").mean().abs().alias("rsi_mean_down")), how="left", on=index_names)
-    df_smpl = df_smpl.with_columns((
-        pl.col("rsi_mean_up").fill_nan(0).fill_null(0) / (pl.col("rsi_mean_up").fill_nan(0).fill_null(0) + pl.col("rsi_mean_down").fill_nan(0).fill_null(0))
-    ).alias("rsi"))
-    ## signal analysis, autocorrelation
-    dfwk = df.group_by(index_names).agg([
-        pl.col(unixtime_name),
-        pl.col("high").fill_nan(None),
-        pl.col("low").fill_nan(None),
-        pl.col("ave").fill_nan(None).alias("price"),
-        pl.col("ave").fill_nan(None).mean().alias("ave"),
-        pl.col("ave").fill_nan(None).var().alias("var"),
-        (pl.col("ave") - pl.col("ave").shift(1)).alias("diff"),
-        (pl.col("ave") > pl.col("ave").shift(1)).alias("is_up"),
-        (pl.col("ave") < pl.col("ave").shift(1)).alias("is_down"),
-    ]).explode([unixtime_name, "high", "low", "price", "diff", "is_up", "is_down"]).sort(index_names + [unixtime_name]).with_columns([
-        (pl.col("price") > pl.col("ave")).alias("is_above"),
-        (pl.col("price") < pl.col("ave")).alias("is_below"),
-    ]).filter(pl.col("var") > 0).with_columns([
-        pl.when((pl.col("is_up") == False) & (pl.col("is_down") == False)).then(None).otherwise("is_up"  ).alias("is_up"  ),
-        pl.when((pl.col("is_up") == False) & (pl.col("is_down") == False)).then(None).otherwise("is_down").alias("is_down"),
-        ((pl.col("price") - pl.col("ave")) / pl.col("var")).alias("z_score"),
-    ])
-    df_smpl = df_smpl.join(
-        dfwk.group_by(index_names).agg([
-            (
-                ((pl.col(unixtime_name) - pl.col(unixtime_name).mean()) * (pl.col("price") - pl.col("price").mean())).sum() / 
-                (pl.col(unixtime_name) - pl.col(unixtime_name).mean()).pow(2).sum()
-            ).alias("slope"),
-            pl.col("diff").fill_nan(None).abs().sum() .alias("sum_abs_diff"),
-            pl.col("diff").fill_nan(None).abs().mean().alias("mean_abs_diff"),
-            pl.col("diff").fill_nan(None).mean()      .alias("mean_diff"),
-            ((pl.col("z_score") - pl.col("z_score").shift(1)).pow(2).sum() / (pl.len() - 1)).sqrt().alias("cid_ce_norm"),
-            (pl.col("is_above").sum() / pl.len()).alias("n_above_ave"),
-            (pl.col("is_below").sum() / pl.len()).alias("n_below_ave"),
-            pl.col("is_above").first().alias("is_above_first"),
-            ((pl.col("is_above") != pl.col("is_above").shift(1)).sum() / (pl.len() - 1)).alias("n_cross_ave"),
-            (((pl.col("high") > pl.col("ave")) & (pl.col("low") < pl.col("ave"))).sum() / pl.len()).alias("n_cross_hl"),
-            (pl.col("is_up"  ).sum() / pl.len()).alias("n_up"),
-            (pl.col("is_down").sum() / pl.len()).alias("n_down"),
-            ((pl.col("is_up") != pl.col("is_up").shift(1)).sum() / (pl.len() - 1)).alias("n_change"),
-            (pl.col("price").arg_max() / pl.len()).alias("position_max"),
-            (pl.col("price").arg_min() / pl.len()).alias("position_min"),
-            pl.corr(pl.col("price"), pl.col("price").shift(((pl.len() / 10) * 1).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_01"),
-            pl.corr(pl.col("price"), pl.col("price").shift(((pl.len() / 10) * 2).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_02"),
-            pl.corr(pl.col("price"), pl.col("price").shift(((pl.len() / 10) * 3).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_03"),
-            pl.corr(pl.col("price"), pl.col("price").shift(((pl.len() / 10) * 4).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_04"),
-            pl.corr(pl.col("price"), pl.col("price").shift(((pl.len() / 10) * 5).cast(pl.Int64))).fill_nan(None).alias("autocorrelation_05"),
-        ]), how="left", on=index_names
-    )
-    df_smpl = df_smpl.with_columns([
-        pl.mean_horizontal([f"autocorrelation_0{i}" for i in range(1, 6)]).alias("autocorrelation_mean")
-    ])
+    if df["sampling_rate"][0] == sampling_rate and sampling_rate != interval:
+        df_smpl = df.filter(pl.col("timegrp").is_in(ndf_tg))
+    else:
+        df_smpl = df_base.clone()
+        ## OHLC
+        df_smpl = df_smpl.join(
+            df.group_by(index_names).agg([
+                pl.col("open" ).first(),
+                pl.col("high" ).max(),
+                pl.col("low"  ).min(),
+                pl.col("close").last(),
+                pl.col("volume_ask").fill_nan(None).sum(),
+                pl.col("volume_bid").fill_nan(None).sum(),
+                pl.col("size_ask"  ).fill_nan(None).sum(),
+                pl.col("size_bid"  ).fill_nan(None).sum(),
+            ]), how="left", on=index_names
+        ).with_columns([
+            (pl.col("volume_ask") / pl.col("volume_bid")).alias("ratio_volume"),
+            (pl.col("size_ask"  ) / pl.col("size_bid"  )).alias("ratio_size"  ),
+            (pl.col("high") - pl.col("low")).alias("range"),
+            ((pl.col("close") - pl.col("low")) / (pl.col("high") - pl.col("low"))).alias("williams_r"),
+        ])
+        df_smpl = df_smpl.join(
+            df_smpl.with_columns(
+                (
+                    (pl.col("volume_ask").fill_nan(None) + pl.col("volume_bid").fill_nan(None)) / 
+                    (pl.col("size_ask"  ).fill_nan(None) + pl.col("size_bid"  ).fill_nan(None))
+                ).alias("ave")
+            ).sort(index_names).group_by(index_names[:-1]).agg([
+                pl.col("timegrp"),
+                pl.col("ave").fill_nan(None).fill_null(strategy="forward").alias("ave"),
+            ]).explode(["timegrp", "ave"]), how="left", on=index_names
+        )
+        ## RCI
+        dfwk    = df.filter(pl.col("ave").fill_nan(None).is_not_null()).group_by(index_names).agg(pl.col("ave"))
+        df_smpl = df_smpl.join(
+            dfwk.with_columns(
+                pl.col("ave").map_elements(
+                    lambda x: 1 - (
+                        (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) / 
+                        (x.shape[0] * (x.shape[0] ** 2 - 1))
+                    ), return_dtype=pl.Float64
+                ).alias("rci")
+            ).select(index_names + ["rci"]), how="left", on=index_names
+        )
+        ## volume rank corr
+        dfwk    = df.group_by(index_names).agg([
+            pl.col("volume_ask").fill_nan(0).fill_null(0),
+            pl.col("volume_bid").fill_nan(0).fill_null(0),
+        ])
+        df_smpl = df_smpl.join(
+            dfwk.with_columns([
+                pl.col("volume_ask").map_elements(
+                    lambda x: 1 - (
+                        (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) /
+                        (x.shape[0] * (x.shape[0] ** 2 - 1))
+                    ), return_dtype=pl.Float64
+                ).alias("rci_volume_ask"),
+                pl.col("volume_bid").map_elements(
+                    lambda x: 1 - (
+                        (6 * ((np.arange(1, x.shape[0] + 1)[::-1] - (np.argsort(np.argsort(-1 * x.to_numpy())) + 1)) ** 2).sum()) /
+                        (x.shape[0] * (x.shape[0] ** 2 - 1))
+                    ), return_dtype=pl.Float64
+                ).alias("rci_volume_bid"),
+            ]).select(index_names + ["rci_volume_ask", "rci_volume_bid"]), how="left", on=index_names
+        )
+        ## RSI
+        dfwk    = df.group_by(index_names).agg((pl.col("close") - pl.col("open")).alias("tmp")).explode("tmp")
+        df_smpl = df_smpl.join(dfwk.filter(pl.col("tmp") > 0 ).group_by(index_names).agg(pl.col("tmp").mean().abs().alias("rsi_mean_up"  )), how="left", on=index_names)
+        df_smpl = df_smpl.join(dfwk.filter(pl.col("tmp") < 0 ).group_by(index_names).agg(pl.col("tmp").mean().abs().alias("rsi_mean_down")), how="left", on=index_names)
+        df_smpl = df_smpl.with_columns((
+            pl.col("rsi_mean_up").fill_nan(0).fill_null(0) / (pl.col("rsi_mean_up").fill_nan(0).fill_null(0) + pl.col("rsi_mean_down").fill_nan(0).fill_null(0))
+        ).alias("rsi"))
+        ## signal analysis, autocorrelation
+        dfwk = df.group_by(index_names).agg([
+            pl.col(unixtime_name),
+            pl.col("high").fill_nan(None),
+            pl.col("low").fill_nan(None),
+            pl.col("ave").fill_nan(None).alias("price"),
+            pl.col("ave").fill_nan(None).mean().alias("ave"),
+            pl.col("ave").fill_nan(None).var().alias("var"),
+            (pl.col("ave") - pl.col("ave").shift(1)).alias("diff"),
+            (pl.col("ave") > pl.col("ave").shift(1)).alias("is_up"),
+            (pl.col("ave") < pl.col("ave").shift(1)).alias("is_down"),
+        ]).explode([unixtime_name, "high", "low", "price", "diff", "is_up", "is_down"]).sort(index_names + [unixtime_name]).with_columns([
+            (pl.col("price") > pl.col("ave")).alias("is_above"),
+            (pl.col("price") < pl.col("ave")).alias("is_below"),
+        ]).filter(pl.col("var") > 0).with_columns([
+            pl.when((pl.col("is_up") == False) & (pl.col("is_down") == False)).then(None).otherwise("is_up"  ).alias("is_up"  ),
+            pl.when((pl.col("is_up") == False) & (pl.col("is_down") == False)).then(None).otherwise("is_down").alias("is_down"),
+            ((pl.col("price") - pl.col("ave")) / pl.col("var")).alias("z_score"),
+        ])
+        df_smpl = df_smpl.join(
+            dfwk.group_by(index_names).agg([
+                (
+                    ((pl.col(unixtime_name) - pl.col(unixtime_name).mean()) * (pl.col("price") - pl.col("price").mean())).sum() / 
+                    (pl.col(unixtime_name) - pl.col(unixtime_name).mean()).pow(2).sum()
+                ).alias("slope"),
+                pl.col("diff").fill_nan(None).abs().sum() .alias("sum_abs_diff"),
+                pl.col("diff").fill_nan(None).abs().mean().alias("mean_abs_diff"),
+                pl.col("diff").fill_nan(None).mean()      .alias("mean_diff"),
+                ((pl.col("z_score") - pl.col("z_score").shift(1)).pow(2).sum() / (pl.len() - 1)).sqrt().alias("cid_ce_norm"),
+                (pl.col("is_above").sum() / pl.len()).alias("n_above_ave"),
+                (pl.col("is_below").sum() / pl.len()).alias("n_below_ave"),
+                pl.col("is_above").first().alias("is_above_first"),
+                ((pl.col("is_above") != pl.col("is_above").shift(1)).sum() / (pl.len() - 1)).alias("n_cross_ave"),
+                (((pl.col("high") > pl.col("ave")) & (pl.col("low") < pl.col("ave"))).sum() / pl.len()).alias("n_cross_hl"),
+                (pl.col("is_up"  ).sum() / pl.len()).alias("n_up"),
+                (pl.col("is_down").sum() / pl.len()).alias("n_down"),
+                ((pl.col("is_up") != pl.col("is_up").shift(1)).sum() / (pl.len() - 1)).alias("n_change"),
+                (pl.col("price").arg_max() / pl.len()).alias("position_max"),
+                (pl.col("price").arg_min() / pl.len()).alias("position_min"),
+            ]), how="left", on=index_names
+        )
+        df_smpl = df_smpl.select(index_names + columns_base + columns).sort(index_names)
     # [ sampling_rate -> sampling_rate, interval ]
-    df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).select(index_names + columns_base + columns).sort(index_names)
+    df_smpl = df_smpl.filter(pl.col("timegrp").is_in(ndf_tg)).sort(index_names)
     if sampling_rate != interval:
         ndfo    = df_smpl["open" ].to_numpy()[ndf_idx3][:, 0]
         ndfh    = np.nanmax(df_smpl["high"].to_numpy()[ndf_idx3], axis=-1)
@@ -771,13 +794,6 @@ def ana_other_factor(df: pl.DataFrame, interval: int, sampling_rate: int, df_bas
             pl.Series(np.nansum((ndfup2[:, 1:] + ndfup2[:, :-1]) == 1, axis=-1) / (n - 1)).alias("n_change"), # nan == nan is True. so 1 + 0 or 0 + 1 == 1
             pl.Series(np.argmax(np.nan_to_num(ndfp, -1), axis=-1) / n).alias("position_max"),
             pl.Series(np.argmin(np.nan_to_num(ndfp, -1), axis=-1) / n).alias("position_min"),
-        ] + [
-            pl.Series(
-                [np.corrcoef(x[bx & by], y[bx & by])[0][1] for x, y, bx, by in zip(ndfp[:, j:], ndfp[:, :-j], ~np.isnan(ndfp[:, j:]), ~np.isnan(ndfp[:, :-j]))]
-            ).alias(f"autocorrelation_0{k}") for j, k in zip([int((n / 10) * i) for i in range(1, 6)], range(1, 6))
-        ])
-        df_itvl = df_itvl.with_columns([
-            pl.mean_horizontal([f"autocorrelation_0{i}" for i in range(1, 6)]).alias("autocorrelation_mean")
         ])
         df_itvl = df_itvl.filter(ndf_bool)
     else:

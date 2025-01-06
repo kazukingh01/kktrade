@@ -1,11 +1,11 @@
-import datetime, argparse
+import datetime, argparse, re
 import polars as pl
 import numpy as np
 # local package
 from kktrade.core.mart import get_mart_ohlc
 from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_volume, \
     ana_distribution_volume_price_over_time, ana_distribution_volume_over_price, ana_other_factor, \
-    check_common_input, check_interval, indexes_to_aggregate
+    check_common_input, check_interval, indexes_to_aggregate, calc_ave_var
 from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import str_to_datetime
 from kktrade.config.mart import HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
@@ -71,22 +71,33 @@ if __name__ == "__main__":
         )
         list_df    = []
         list_df.append(ana_size_price(
-            df[[
-                'symbol', 'unixtime', 'sampling_rate', 'interval',
-                'size_ask', 'volume_ask', 'ntx_ask', 'size_bid', 'volume_bid', 'ntx_bid', 'size', 'volume', 'ave', 'var'
-            ]], interval, sampling_rate, df_base, from_tx=False
+            df[[x for x in df.columns if x in [
+                'symbol', 'unixtime', 'sampling_rate', 'interval', 
+                'size_ask', 'volume_ask', 'ntx_ask', 'size_bid', 'volume_bid', 'ntx_bid',
+                'size', 'volume', 'ave', 'var', "skewness", "kurtosis",
+            ]]], interval, sampling_rate, df_base, from_tx=False
         ))
         list_df.append(ana_quantile_tx_volume(
             df[['symbol', 'unixtime', 'sampling_rate', 'interval', 'ntx_ask', 'ntx_bid'] + [x for x in df.columns if x.startswith("volume_q")]],
             interval, sampling_rate, df_base, from_tx=False, n_div=args.ndiv
         ))
         list_df.append(ana_distribution_volume_price_over_time(
-            df[['symbol', 'unixtime', 'sampling_rate', 'interval', 'ave', 'var', 'size_ask', 'volume_ask', 'size_bid', 'volume_bid', 'ntx_ask', 'ntx_bid']],
-            interval, sampling_rate, df_base, n_div=args.ndiv
+            df[
+                ['symbol', 'unixtime', 'sampling_rate', 'interval', 'ave', 'var', 'size_ask', 'volume_ask', 'size_bid', 'volume_bid', 'ntx_ask', 'ntx_bid'] + 
+                [x for x in df.columns if len(re.findall(r"volume_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(  r"size_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(   r"ave_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall(   r"var_p[0-9]+", x)) > 0] + 
+                [x for x in df.columns if len(re.findall( r"bband_p[0-9]+", x)) > 0]
+            ], interval, sampling_rate, df_base, n_div=args.ndiv
         ))
         list_df.append(ana_distribution_volume_over_price(
-            df[["symbol", "unixtime", 'sampling_rate', 'interval', "ave", 'volume_ask', 'volume_bid']],
-            interval, sampling_rate, df_base, from_small_sr=True, n_div=args.ndiv
+            df[
+                ["symbol", "unixtime", 'sampling_rate', 'interval', "ave", 'volume_ask', 'volume_bid'] + 
+                [x for x in df.columns if len(re.findall(r"volume_price_h[0-9]+", x)) > 0] + 
+                [x for x in df.columns if x in ["price_h0000", "price_h1000"]]
+            ],
+            interval, sampling_rate, df_base, from_small_sr=(True if args.type == 1 else False), n_div=args.ndiv
         ))
         list_df.append(ana_other_factor(
             df[["symbol", "unixtime", 'sampling_rate', 'interval', "open", "high", "low", "close", "ave", 'size_ask', 'volume_ask', 'size_bid', 'volume_bid']],
