@@ -60,7 +60,7 @@ if __name__ == "__main__":
     LOGGER.info(f"args: {args}")
     DB = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, use_polars=True)
     df = get_mart_ohlc(
-        DB, args.fr - datetime.timedelta(seconds=(max(args.itvls) + args.tosr + args.frsr)), args.to, 
+        DB, args.fr - datetime.timedelta(seconds=(max(args.itvls) + max(args.tosr) + args.frsr)), args.to, 
         type=(0 if args.type == 1 else 1), interval=args.frsr, sampling_rate=args.frsr
     )
     for sampling_rate, interval in zip(args.tosr, args.itvls):
