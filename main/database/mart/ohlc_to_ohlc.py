@@ -105,6 +105,9 @@ if __name__ == "__main__":
             pl.lit(args.type).alias("type"),
             ((pl.col("unixtime") + sampling_rate) * 1000).cast(pl.Datetime("ms")).dt.replace_time_zone("UTC").alias("unixtime"),
         ])
+        df_ohlc = df_ohlc.with_columns([
+            pl.col(x).replace(float("inf"), None).replace(float("-inf"), None).alias(x) for x, y in df_ohlc.schema.items() if y in [pl.Float32, pl.Float64]
+        ])
         columns_base = [x for x in df_ohlc.columns if x     in DB.db_layout["mart_ohlc"]]
         columns_oth  = [x for x in df_ohlc.columns if x not in DB.db_layout["mart_ohlc"]]
         df_ohlc = df_ohlc.with_columns(
