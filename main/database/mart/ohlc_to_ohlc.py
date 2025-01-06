@@ -110,15 +110,15 @@ if __name__ == "__main__":
         ])
         columns_base = [x for x in df_ohlc.columns if x     in DB.db_layout["mart_ohlc"]]
         columns_oth  = [x for x in df_ohlc.columns if x not in DB.db_layout["mart_ohlc"]]
-        df_ohlc = df_ohlc.with_columns(
+        df_sql = df_ohlc.with_columns(
             pl.struct(columns_oth).map_elements(lambda x: str({k: v for k, v in x.items() if not (v is None or np.isnan(v))}).replace("'", '"'), return_dtype=str).alias("attrs")
         ).select(columns_base + ["attrs"])
-        if args.update and df_ohlc.shape[0] > 0:
+        if args.update and df_sql.shape[0] > 0:
             DB.delete_sql("mart_ohlc", str_where=(
-                f"interval = {interval} and sampling_rate = {sampling_rate} and type = {df_ohlc['type'][0]} and " + 
-                f"symbol in (" + ",".join(df_ohlc["symbol"].unique().cast(str).to_list()) + ") and " + 
-                f"unixtime >= " + df_ohlc["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
-                f"unixtime <= " + df_ohlc["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
+                f"interval = {interval} and sampling_rate = {sampling_rate} and type = {df_sql['type'][0]} and " + 
+                f"symbol in (" + ",".join(df_sql["symbol"].unique().cast(str).to_list()) + ") and " + 
+                f"unixtime >= " + df_sql["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
+                f"unixtime <= " + df_sql["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'")
             ))
-            DB.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
+            DB.insert_from_df(df_sql, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
             DB.execute_sql()

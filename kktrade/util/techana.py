@@ -231,10 +231,11 @@ def calc_ave_var(df: pl.DataFrame, index_names: list[str]):
         (pl.col("var") * pl.col("size")).sum().alias("var"),
         pl.col("size").sum(),
     ])
-    dfwk   = dfwk.with_columns([
-        ((pl.col("pow2") + pl.col("var")) / pl.col("size")).alias("var"),
-        (pl.col("pow3") / (pl.col("size") * pl.col("var").pow(3))    ).alias("skewness"),
-        (pl.col("pow4") / (pl.col("size") * pl.col("var").pow(4)) - 3).alias("kurtosis"),
+    dfwk   = dfwk.with_columns(
+        ((pl.col("pow2") + pl.col("var")) / pl.col("size")).alias("var")
+    ).with_columns([
+        (pl.col("pow3") / (pl.col("size") * pl.col("var").sqrt().pow(3))    ).alias("skewness"),
+        (pl.col("pow4") / (pl.col("size") * pl.col("var").sqrt().pow(4)) - 3).alias("kurtosis"),
     ]).select(index_names + ["var", "skewness", "kurtosis"])
     df_ret = df_ret.join(dfwk, how="left", on=index_names)
     LOGGER.info("END")
@@ -272,10 +273,11 @@ def ana_size_price(df: pl.DataFrame, interval: int, sampling_rate: int, df_base:
             ((pl.col("price") - pl.col("ave")).fill_nan(0).fill_null(0).pow(4) * pl.col("size")).sum().alias("pow4"),
             pl.col("size").sum(),
         ])
-        dfwk    = dfwk.with_columns((pl.col("pow2") / pl.col("size")).alias("var"))
-        dfwk    = dfwk.with_columns([
-            (pl.col("pow3") / (pl.col("size") * pl.col("var").pow(3))    ).alias("skewness"),
-            (pl.col("pow4") / (pl.col("size") * pl.col("var").pow(4)) - 3).alias("kurtosis"),
+        dfwk    = dfwk.with_columns(
+            (pl.col("pow2") / pl.col("size")).alias("var")
+        ).with_columns([
+            (pl.col("pow3") / (pl.col("size") * pl.col("var").sqrt().pow(3))    ).alias("skewness"),
+            (pl.col("pow4") / (pl.col("size") * pl.col("var").sqrt().pow(4)) - 3).alias("kurtosis"),
         ]).select(index_names + ["var", "skewness", "kurtosis"])
         df_smpl = df_smpl.join(dfwk, how="left", on=index_names)
     else:
