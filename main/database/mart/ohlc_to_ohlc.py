@@ -65,7 +65,6 @@ if __name__ == "__main__":
     )
     for sampling_rate, interval in zip(args.tosr, args.itvls):
         LOGGER.info(f"processing sampling rate: {sampling_rate}, interval: {interval}", color=["BOLD", "GREEN"])
-        sampling_rate    = args.tosr
         df_ohlc, df_base = create_ohlc(
             df.select(['symbol', 'unixtime', 'sampling_rate', 'interval', 'open', 'high', 'low', 'close']),
             interval, sampling_rate, args.fr, args.to, index_names=["symbol"], from_tx=False
