@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 f"symbol in (" + ",".join(df_sql["symbol"].unique().cast(str).to_list()) + ") and " + 
                 f"unixtime >= " + df_sql["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
                 f"unixtime <= " + df_sql["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
-                f"type = {df_sql['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate};"
+                f"type = {df_sql['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate}"
             ))
             DB.insert_from_df(df_sql, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
             DB.execute_sql()

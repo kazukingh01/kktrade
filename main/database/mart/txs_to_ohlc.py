@@ -74,7 +74,7 @@ if __name__ == "__main__":
                     f"symbol in (" + ",".join(df_ohlc["symbol"].unique().cast(str).to_list()) + ") and " + 
                     f"unixtime >= " + df_ohlc["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
                     f"unixtime <= " + df_ohlc["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
-                    f"type = {df_ohlc['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate};"
+                    f"type = {df_ohlc['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate}"
                 ))
                 DB_TO.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
                 DB_TO.execute_sql()
