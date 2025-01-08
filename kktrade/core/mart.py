@@ -288,13 +288,15 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     """
     sql = (
         f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, volume, size, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
-        f"FROM mart_ohlc WHERE type = {type} AND interval = {interval} AND sampling_rate = {sampling_rate} AND " + 
-        f"unixtime >  '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
-        f"unixtime <= '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' "
+        f"FROM mart_ohlc WHERE "
     )
     if symbols is not None:
-        sql += " AND symbol in (" + ",".join([str(x) for x in symbols]) + ") "
-    sql += ";"
+        sql += "symbol in (" + ",".join([str(x) for x in symbols]) + ") AND "
+    sql += (
+        f"unixtime >  '{date_fr.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
+        f"unixtime <= '{date_to.strftime('%Y-%m-%d %H:%M:%S.%f%z')}' AND " + 
+        f"type = {type} AND interval = {interval} AND sampling_rate = {sampling_rate};"
+    )
     df   = db.select_sql(sql)
     if db.use_polars:
         df = df.with_columns([

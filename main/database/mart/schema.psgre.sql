@@ -50,10 +50,37 @@ CREATE TABLE mart_ohlc_2047 PARTITION OF mart_ohlc FOR VALUES FROM ('2047-01-01 
 CREATE TABLE mart_ohlc_2048 PARTITION OF mart_ohlc FOR VALUES FROM ('2048-01-01 00:00:00+00') TO ('2049-01-01 00:00:00+00');
 CREATE TABLE mart_ohlc_2049 PARTITION OF mart_ohlc FOR VALUES FROM ('2049-01-01 00:00:00+00') TO ('2050-01-01 00:00:00+00');
 
-
-ALTER TABLE ONLY public.mart_ohlc
-    ADD CONSTRAINT mart_ohlc_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
-
+ALTER TABLE ONLY public.mart_ohlc_2019 ADD CONSTRAINT mart_ohlc_2019_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2020 ADD CONSTRAINT mart_ohlc_2020_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2021 ADD CONSTRAINT mart_ohlc_2021_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2022 ADD CONSTRAINT mart_ohlc_2022_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2023 ADD CONSTRAINT mart_ohlc_2023_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2024 ADD CONSTRAINT mart_ohlc_2024_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2025 ADD CONSTRAINT mart_ohlc_2025_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2026 ADD CONSTRAINT mart_ohlc_2026_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2027 ADD CONSTRAINT mart_ohlc_2027_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2028 ADD CONSTRAINT mart_ohlc_2028_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2029 ADD CONSTRAINT mart_ohlc_2029_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2030 ADD CONSTRAINT mart_ohlc_2030_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2031 ADD CONSTRAINT mart_ohlc_2031_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2032 ADD CONSTRAINT mart_ohlc_2032_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2033 ADD CONSTRAINT mart_ohlc_2033_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2034 ADD CONSTRAINT mart_ohlc_2034_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2035 ADD CONSTRAINT mart_ohlc_2035_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2036 ADD CONSTRAINT mart_ohlc_2036_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2037 ADD CONSTRAINT mart_ohlc_2037_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2038 ADD CONSTRAINT mart_ohlc_2038_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2039 ADD CONSTRAINT mart_ohlc_2039_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2040 ADD CONSTRAINT mart_ohlc_2040_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2041 ADD CONSTRAINT mart_ohlc_2041_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2042 ADD CONSTRAINT mart_ohlc_2042_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2043 ADD CONSTRAINT mart_ohlc_2043_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2044 ADD CONSTRAINT mart_ohlc_2044_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2045 ADD CONSTRAINT mart_ohlc_2045_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2046 ADD CONSTRAINT mart_ohlc_2046_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2047 ADD CONSTRAINT mart_ohlc_2047_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2048 ADD CONSTRAINT mart_ohlc_2048_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
+ALTER TABLE ONLY public.mart_ohlc_2049 ADD CONSTRAINT mart_ohlc_2049_pkey PRIMARY KEY (symbol, unixtime, type, "interval", sampling_rate);
 
 CREATE INDEX mart_ohlc_0 ON public.mart_ohlc USING btree (symbol);
 CREATE INDEX mart_ohlc_1 ON public.mart_ohlc USING btree (unixtime);
