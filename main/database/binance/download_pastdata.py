@@ -60,7 +60,10 @@ def organize_df(df: pd.DataFrame, mst_id: dict=None):
     df["id"]       = df["id"].astype(np.int64)
     df["symbol"]   = mst_id[symbol] if isinstance(mst_id, dict) and mst_id.get(symbol) is not None else symbol
     df["side"]     = (~df["is_buyer_maker"]).astype(int) # "Buy": 0, "Sell": 1
-    df["unixtime"] = pd.to_datetime(df['time'], unit='ms', utc=True) #df["time"].astype(int) // 1000
+    if len(str(df["time"].iloc[0])) == 16:
+        df["unixtime"] = pd.to_datetime(df['time'], unit='us', utc=True)
+    else:
+        df["unixtime"] = pd.to_datetime(df['time'], unit='ms', utc=True) #df["time"].astype(int) // 1000
     df["size"]     = df["qty"].astype(float)
     for x in ["price", "size"]:
         df[x] = df[x].astype(float)
