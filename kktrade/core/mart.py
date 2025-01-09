@@ -16,189 +16,8 @@ __all__ = {
 
 EXCHANGES = ["bitflyer", "bybit", "binance"]
 LOGGER    = set_logger(__name__)
-DICT_MART = {
-    'open'                  : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None}, 
-    'high'                  : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None}, 
-    'low'                   : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None}, 
-    'close'                 : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None}, 
-    'ave'                   : {"type": "price"     , "vs": None        , "train": 1, "addf": None},
-    'williams_r'            : {"type": None        , "vs": None        , "train": 1, "addf": None},
-    'var'                   : {"type": "price"     , "vs": None        , "train": 1, "addf": None},
-    'ntx_ask'               : {"type": "ntx_ask"   , "vs": None        , "train": 0, "addf": None},
-    'ntx_bid'               : {"type": "ntx_bid"   , "vs": None        , "train": 0, "addf": None},
-    'size_ask'              : {"type": "size_ask"  , "vs": None        , "train": 0, "addf": None},
-    'size_bid'              : {"type": "size_bid"  , "vs": None        , "train": 0, "addf": None},
-    'volume_ask'            : {"type": "volume_ask", "vs": None        , "train": 1, "addf": None},
-    'volume_bid'            : {"type": "volume_bid", "vs": None        , "train": 1, "addf": None},
-    'ave_p0050'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0150'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0250'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0350'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0450'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0550'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0650'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0750'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0850'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'ave_p0950'             : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": "ave_pXXXX"},
-    'var_p0050'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0150'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0250'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0350'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0450'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0550'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0650'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0750'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0850'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'var_p0950'             : {"type": "price"     , "vs": "var"       , "train": 1, "addf": None},
-    'price_h0000'           : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None},
-    'price_h0050'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0100'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0150'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0200'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0250'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0300'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0350'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0400'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0450'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0500'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0550'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0600'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0650'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0700'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0750'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0800'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0850'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0900'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h0950'           : {"type": "price"     , "vs": "ave"       , "train": 0, "addf": None},
-    'price_h1000'           : {"type": "price"     , "vs": "ave"       , "train": 1, "addf": None},
-    'size_p0050_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0050_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0150_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0150_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0250_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0250_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0350_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0350_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0450_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0450_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0550_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0550_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0650_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0650_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0750_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0750_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0850_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0850_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'size_p0950_ask'        : {"type": "size_ask"  , "vs": "size_ask"  , "train": 0, "addf": None},
-    'size_p0950_bid'        : {"type": "size_bid"  , "vs": "size_bid"  , "train": 0, "addf": None},
-    'volume_p0050_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0050_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0150_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0150_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0250_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0250_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0350_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0350_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0450_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0450_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0550_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0550_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0650_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0650_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0750_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0750_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0850_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0850_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_p0950_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": "volume_pXXXX_ask"},
-    'volume_p0950_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": "volume_pXXXX_bid"},
-    'volume_q0000_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0000_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0050_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0050_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0100_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0100_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0150_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0150_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0200_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0200_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0250_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0250_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0300_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0300_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0350_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0350_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0400_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0400_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0450_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0450_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0500_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0500_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0550_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0550_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0600_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0600_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0650_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0650_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0700_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0700_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0750_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0750_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0800_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0800_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0850_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0850_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0900_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0900_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q0950_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q0950_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_q1000_ask'      : {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_q1000_bid'      : {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0025_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0025_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0075_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0075_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0125_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0125_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0175_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0175_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0225_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0225_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0275_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0275_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0325_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0325_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0375_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0375_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0425_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0425_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0475_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0475_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0525_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0525_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0575_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0575_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0625_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0625_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0675_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0675_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0725_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0725_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0775_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0775_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0825_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0825_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0875_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0875_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0925_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0925_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'volume_price_h0975_ask': {"type": "volume_ask", "vs": "volume_ask", "train": 1, "addf": None},
-    'volume_price_h0975_bid': {"type": "volume_bid", "vs": "volume_bid", "train": 1, "addf": None},
-    'rsi'                   : {"type": None        , "vs": None        , "train": 1, "addf": None},
-    'psy_line'              : {"type": None        , "vs": None        , "train": 1, "addf": None},
-    'rci'                   : {"type": None        , "vs": None        , "train": 1, "addf": None},
-}
-COLUMNS_MART = list(DICT_MART.keys())
 COLUMNS_BASE = ["symbol", "unixtime", "type", "interval", "sampling_rate", "open", "high", "low", "close", "ave", "volume", "size"]
+
 
 def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_fr: datetime.datetime, date_to: datetime.datetime, date_sw: datetime.datetime):
     LOGGER.info("START")
@@ -286,10 +105,18 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     ...
     If you want 0s ~ 60s data, you must constrain 0 < unixtime <= 60. "<" and "<=" is important.
     """
-    sql = (
-        f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, volume, size, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
-        f"FROM mart_ohlc WHERE "
-    )
+    if type == 0:
+        sql = (
+            f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, volume, size, " + 
+            ",".join([f"attrs->'{x}'     as {x}"     for x in ['size_ask', 'volume_ask', 'ntx_ask', 'size_bid', 'volume_bid', 'ntx_bid', 'var']]) + ", " + 
+            ",".join([f"attrs->'{x}_{y}' as {x}_{y}" for x in ['volume_q0000', 'volume_q0200', 'volume_q0400', 'volume_q0600', 'volume_q0800', 'volume_q1000'] for y in ["ask", "bid"]]) + " " + 
+            f"FROM mart_ohlc WHERE "
+        )
+    else:
+        sql = (
+            f"SELECT symbol, unixtime, type, interval, sampling_rate, open, high, low, close, ave, volume, size, attrs " + #+ ",".join([f"attrs->'{x}' as {x}" for x in COLUMNS]) + " " + 
+            f"FROM mart_ohlc WHERE "
+        )
     if symbols is not None:
         sql += "symbol in (" + ",".join([str(x) for x in symbols]) + ") AND "
     sql += (
@@ -299,16 +126,16 @@ def get_mart_ohlc(db: DBConnector, date_fr: datetime.datetime, date_to: datetime
     )
     df   = db.select_sql(sql)
     if db.use_polars:
+        if type != 0:
+            df = df.with_columns(pl.col("attrs").struct.unnest())
         df = df.with_columns([
             pl.col("unixtime").alias("datetime"),
             (pl.col("unixtime").dt.timestamp() / 10e5).cast(pl.Int64).alias("unixtime"),
-            pl.col("attrs").struct.unnest(),
         ])
-        # df = df.select([x for x in df.columns if x in (COLUMNS_BASE + COLUMNS_MART)])
     else:
-        dfwk = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
-        dfwk = dfwk.loc[:, dfwk.columns.isin(COLUMNS_MART)]
-        df   = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
+        if type != 0:
+            dfwk = pd.DataFrame(df["attrs"].tolist(), index=df.index.copy())
+            df   = pd.concat([df.iloc[:, :-1], dfwk], axis=1, ignore_index=False, sort=False)
         df["unixtime"] = (df["unixtime"].astype("int64") / 10e8).astype(int)
     # The datetime shoule be interpolated because new symbol's data is missing before it starts
     ndf_tg = np.arange(

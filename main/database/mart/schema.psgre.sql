@@ -84,6 +84,7 @@ ALTER TABLE ONLY public.mart_ohlc_2049 ADD CONSTRAINT mart_ohlc_2049_pkey PRIMAR
 
 CREATE INDEX mart_ohlc_0 ON public.mart_ohlc USING btree (symbol);
 CREATE INDEX mart_ohlc_1 ON public.mart_ohlc USING btree (unixtime);
-CREATE INDEX mart_ohlc_2 ON public.mart_ohlc USING btree (type);
-CREATE INDEX mart_ohlc_3 ON public.mart_ohlc USING btree ("interval");
-CREATE INDEX mart_ohlc_4 ON public.mart_ohlc USING btree (sampling_rate);
+CREATE INDEX mart_ohlc_2 ON public.mart_ohlc USING btree (symbol, unixtime);
+-- CREATE INDEX mart_ohlc_2 ON public.mart_ohlc USING btree (type);
+-- CREATE INDEX mart_ohlc_3 ON public.mart_ohlc USING btree ("interval");
+-- CREATE INDEX mart_ohlc_4 ON public.mart_ohlc USING btree (sampling_rate);
