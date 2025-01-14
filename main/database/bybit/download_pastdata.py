@@ -39,6 +39,7 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
                 return pd.DataFrame()
             df = pd.read_csv(StringIO(content))
     else:
+        n_write = 0
         with gzip.open(tmp_file_path, 'rb') as f_in:
             with open("tmp.csv", 'wb') as f_out:
                 while True:
@@ -46,7 +47,11 @@ def download_trade(symbol: str, date: datetime.datetime, tmp_file_path: str="./t
                     if not buffer:
                         break
                     f_out.write(buffer)
-        df = pd.read_csv("tmp.csv", chunksize=chunk_size)
+                    n_write += 1
+        if n_write == 0:
+            df = pd.DataFrame()
+        else:
+            df = pd.read_csv("tmp.csv", chunksize=chunk_size)
     return df
 
 def organize_df(df: pd.DataFrame, _type: str, mst_id: dict=None):

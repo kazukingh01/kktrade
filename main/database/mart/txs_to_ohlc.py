@@ -8,10 +8,9 @@ from kktrade.util.techana import create_ohlc, ana_size_price, ana_quantile_tx_vo
     check_common_input, check_interval, indexes_to_aggregate
 from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import str_to_datetime
-from kktrade.config.mart import \
+from kktrade.config.psgre import \
     HOST_BS, PORT_BS, USER_BS, PASS_BS, DBNAME_BS, DBTYPE_BS, \
-    HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK, \
-    HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
+    HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK
 from kklogger import set_logger
 
 
@@ -32,12 +31,13 @@ if __name__ == "__main__":
     parser.add_argument("--update", action='store_true', default=False)
     args   = parser.parse_args()
     LOGGER.info(f"args: {args}")
-    DB_BS  = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200, is_read_layout=False, use_polars=True)
-    DB_TO  = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200, is_read_layout=True,  use_polars=True)
+    DB_BS = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200, is_read_layout=True, use_polars=True)
     if (args.switch + datetime.timedelta(days=7)) < args.fr:
         DB_BK = None # No need to connect.
+        DB_TO = DB_BS
     else:
         DB_BK = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200, is_read_layout=False, use_polars=True)
+        DB_TO = DB_BK
     list_dates = [args.fr + datetime.timedelta(days=x) + datetime.timedelta(hours=hour) for x in range(0, (args.to - args.fr).days + 1, 1) for hour in args.hours]
     if len(list_dates) == 1: list_dates = list_dates + [args.to, ]
     for i_date in range(1, len(list_dates)):
@@ -64,17 +64,20 @@ if __name__ == "__main__":
                 pl.lit(0).alias("type"),
                 ((pl.col("unixtime") + sampling_rate) * 1000).cast(pl.Datetime("ms")).dt.replace_time_zone("UTC").alias("unixtime"),
             ])
-            columns_base = [x for x in df_ohlc.columns if x     in DB_TO.db_layout["mart_ohlc"]]
-            columns_oth  = [x for x in df_ohlc.columns if x not in DB_TO.db_layout["mart_ohlc"]]
-            df_ohlc = df_ohlc.with_columns(
-                pl.struct(columns_oth).map_elements(lambda x: str({k: v for k, v in x.items() if not (v is None or np.isnan(v))}).replace("'", '"'), return_dtype=str).alias("attrs")
-            ).select(columns_base + ["attrs"])
-            if args.update and df_ohlc.shape[0] > 0:
+            if DB_TO.dbinfo["dbtype"] == "mongo":
+                df_sql = df_ohlc.clone()
+            else:
+                columns_base = [x for x in df_ohlc.columns if x     in DB_BS.db_layout["mart_ohlc"]]
+                columns_oth  = [x for x in df_ohlc.columns if x not in DB_BS.db_layout["mart_ohlc"]]
+                df_sql = df_ohlc.with_columns(
+                    pl.struct(columns_oth).map_elements(lambda x: str({k: v for k, v in x.items() if not (v is None or np.isnan(v))}).replace("'", '"'), return_dtype=str).alias("attrs")
+                ).select(columns_base + ["attrs"])
+            if args.update and df_sql.shape[0] > 0:
                 DB_TO.delete_sql("mart_ohlc", str_where=(
-                    f"symbol in (" + ",".join(df_ohlc["symbol"].unique().cast(str).to_list()) + ") and " + 
-                    f"unixtime >= " + df_ohlc["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
-                    f"unixtime <= " + df_ohlc["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
-                    f"type = {df_ohlc['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate}"
+                    f"symbol in (" + ",".join(df_sql["symbol"].unique().cast(str).to_list()) + ") and " + 
+                    f"unixtime >= " + df_sql["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
+                    f"unixtime <= " + df_sql["unixtime"].max().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 
+                    f"type = {df_sql['type'][0]} and interval = {interval} and sampling_rate = {sampling_rate}"
                 ))
-                DB_TO.insert_from_df(df_ohlc, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
+                DB_TO.insert_from_df(df_sql, "mart_ohlc", set_sql=True, n_round=10, is_select=True)
                 DB_TO.execute_sql()
