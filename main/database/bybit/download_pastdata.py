@@ -176,6 +176,10 @@ if __name__ == "__main__":
                                 f"symbol = {df['symbol'].iloc[0]} and " +
                                 f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                             ))
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
                             insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
             if "orderbook" in args.fn:
@@ -188,5 +192,9 @@ if __name__ == "__main__":
                         f"symbol = {df['symbol'].iloc[0]} and " + 
                         f"unixtime >= '{df['unixtime'].min().strftime('%Y-%m-%d %H:%M:%S.%f%z')}' and unixtime <= '{df['unixtime'].max().strftime('%Y-%m-%d %H:%M:%S.%f%z')}'"
                     ))
+                    if args.db and src.dbinfo["dbtype"] == "mongo":
+                        df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                        df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                        df = df.loc[:, (df.columns != "yearmonth")]
                     for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
                         insert(src, df.iloc[indexes], f"{EXCHANGE}_orderbook", True, add_sql=None)

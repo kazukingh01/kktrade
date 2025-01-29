@@ -1,5 +1,5 @@
-db.getSiblingDB("trade").createCollection("bybit_executions",   { timeseries: {timeField: "unixtime", metaField: "symbol", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})
-db.getSiblingDB("trade").createCollection("bybit_orderbook",    { timeseries: {timeField: "unixtime", metaField: "symbol", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})
+db.getSiblingDB("trade").createCollection("bybit_executions",   { timeseries: {timeField: "unixtime", metaField: "metadata", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})
+db.getSiblingDB("trade").createCollection("bybit_orderbook",    { timeseries: {timeField: "unixtime", metaField: "metadata", bucketMaxSpanSeconds: 360, bucketRoundingSeconds: 360 }})
 db.getSiblingDB("trade").createCollection("bybit_kline",        { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "seconds" }})
 db.getSiblingDB("trade").createCollection("bybit_ticker",       { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "seconds" }})
 db.getSiblingDB("trade").createCollection("bybit_funding_rate", { timeseries: {timeField: "unixtime", metaField: "symbol", granularity: "hours"   }})

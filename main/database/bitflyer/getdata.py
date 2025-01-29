@@ -134,6 +134,10 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         insert(src, df, f"{EXCHANGE}_orderbook", False, add_sql=None)
                 time.sleep(12)
             elif "getticker" == args.fn:
@@ -154,6 +158,10 @@ if __name__ == "__main__":
                     id_after = None if df_exist.shape[0] == 0 else df_exist["id"].iloc[0]
                     df       = getexecutions(symbol=symbol, after=id_after, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
                 time.sleep(12)
             elif "getfundingrate" == args.fn:
@@ -214,7 +222,11 @@ if __name__ == "__main__":
                     if df.shape[0] > 0:
                         count = 0
                         if args.update:
-                             insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
+                            if args.db and src.dbinfo["dbtype"] == "mongo":
+                                df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                                df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                                df = df.loc[:, (df.columns != "yearmonth")]
+                            insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
                     else:
                         count += 1
                     if count > over_count: break

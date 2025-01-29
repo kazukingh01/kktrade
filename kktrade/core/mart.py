@@ -23,7 +23,7 @@ def get_executions(db_bs: DBConnector, db_bk: DBConnector, exchange: str, date_f
     LOGGER.info("START")
     assert isinstance(db_bs, DBConnector)
     assert isinstance(db_bk, DBConnector) or db_bk is None
-    assert db_bs.use_polars == db_bk.use_polars
+    if db_bk is not None: assert db_bs.use_polars == db_bk.use_polars
     assert isinstance(exchange, str) and exchange in EXCHANGES
     assert isinstance(date_fr, datetime.datetime)
     assert isinstance(date_to, datetime.datetime)

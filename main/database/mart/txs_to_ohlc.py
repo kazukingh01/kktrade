@@ -73,6 +73,12 @@ if __name__ == "__main__":
                     pl.struct(columns_oth).map_elements(lambda x: str({k: v for k, v in x.items() if not (v is None or np.isnan(v))}).replace("'", '"'), return_dtype=str).alias("attrs")
                 ).select(columns_base + ["attrs"])
             if args.update and df_sql.shape[0] > 0:
+                if DB_TO.dbinfo["dbtype"] == "mongo":
+                    df_sql = df_sql.with_columns(
+                        pl.col("unixtime").dt.strftime("%Y%m").cast(pl.Int64).alias("yearmonth")
+                    ).with_columns(
+                        pl.struct(["yearmonth", "symbol"]).alias("metadata")
+                    ).drop("yearmonth")
                 DB_TO.delete_sql("mart_ohlc", str_where=(
                     f"symbol in (" + ",".join(df_sql["symbol"].unique().cast(str).to_list()) + ") and " + 
                     f"unixtime >= " + df_sql["unixtime"].min().strftime("'%Y-%m-%d %H:%M:%S.%f%z'") + " and " + 

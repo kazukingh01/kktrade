@@ -201,6 +201,10 @@ if __name__ == "__main__":
                     LOGGER.info(f"{args.fn}: {symbol}")
                     df = getorderbook(symbol=symbol, count_max=50, mst_id=mst_id)
                     if df.shape[0] > 0 and args.update:
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         insert(src, df, f"{EXCHANGE}_orderbook", False, add_sql=None)
                 time.sleep(10) # 11 * 6 = 66
             if "getticker" == args.fn:
@@ -221,6 +225,10 @@ if __name__ == "__main__":
                         ))
                         df       = df.loc[~df["id"].isin(df_exist["id"])]
                     if df.shape[0] > 0 and args.update:
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         insert(src, df, f"{EXCHANGE}_executions", True, add_sql=None)
                 time.sleep(5) # 11 * 12 = 132
             if "getkline" == args.fn:
