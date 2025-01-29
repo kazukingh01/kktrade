@@ -164,6 +164,10 @@ if __name__ == "__main__":
                     else:
                         LOGGER.warning("Nothing data.")
                     if df.shape[0] > 0 and args.update:
+                        if args.db and src.dbinfo["dbtype"] == "mongo":
+                            df["yearmonth"] = df["unixtime"].dt.strftime("%Y%m").astype(int)
+                            df["metadata"]  = df[["yearmonth", "symbol"]].to_dict(orient="records")
+                            df = df.loc[:, (df.columns != "yearmonth")]
                         for indexes in tqdm(np.array_split(np.arange(df.shape[0]), (df.shape[0] // args.num) if df.shape[0] >= args.num else 1)):
                             insert(src, df.iloc[indexes], f"{EXCHANGE}_executions", True, add_sql=None)
             # other index
