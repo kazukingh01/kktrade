@@ -4,10 +4,9 @@ import numpy as np
 # local package
 from kkpsgre.connector import DBConnector
 from kkpsgre.util.com import str_to_datetime
-from kktrade.config.mart import \
+from kktrade.config.psgre import \
     HOST_BS, PORT_BS, USER_BS, PASS_BS, DBNAME_BS, DBTYPE_BS, \
-    HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK, \
-    HOST_TO, PORT_TO, USER_TO, PASS_TO, DBNAME_TO, DBTYPE_TO
+    HOST_BK, PORT_BK, USER_BK, PASS_BK, DBNAME_BK, DBTYPE_BK
 from kklogger import set_logger
 
 
@@ -99,7 +98,6 @@ if __name__ == "__main__":
     LOGGER.info(f"args: {args}")
     DB_BS    = DBConnector(HOST_BS, PORT_BS, DBNAME_BS, USER_BS, PASS_BS, dbtype=DBTYPE_BS, max_disp_len=200)
     DB_BK    = DBConnector(HOST_BK, PORT_BK, DBNAME_BK, USER_BK, PASS_BK, dbtype=DBTYPE_BK, max_disp_len=200, is_read_layout=False)
-    DB_TO    = DBConnector(HOST_TO, PORT_TO, DBNAME_TO, USER_TO, PASS_TO, dbtype=DBTYPE_TO, max_disp_len=200)
     df_mst   = DB_BS.select_sql("SELECT * FROM master_symbol WHERE is_active = true;")
     ndf_mst  = df_mst["symbol_id"].values.copy()
     ndf_time = np.arange(int(args.fr.timestamp()) // args.sr * args.sr, int(args.to.timestamp()) // args.sr * args.sr, args.sr, dtype=int)
